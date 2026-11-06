@@ -567,6 +567,36 @@ body[data-ac="cat"] :is(.cchip[aria-pressed="true"],.dk[aria-pressed="true"],.to
 .tutOffer{position:fixed;left:50%;bottom:calc(var(--dockH,64px) + 24px);transform:translateX(-50%);z-index:62;display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:8px;max-width:calc(100vw - 24px)}
 .clean .tutOffer{display:none!important}
 @media (prefers-reduced-motion:reduce){ .tutSpot{transition:none} }
+.tutDeep{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;border-radius:12px;background:var(--accent-soft)}
+.tutDeep[hidden]{display:none}
+/* tutorial picker (Quick or Interactive) */
+.pk{display:grid;gap:3px;text-align:left;padding:12px 14px;border-radius:14px;background:var(--raise);color:var(--ink);border:1px solid var(--line);cursor:pointer;font:400 12.5px/1.4 var(--f-ui)}
+.pk b{font:700 14px var(--f-ui)}
+.pk span{color:var(--dim)}
+.pk:hover,.pk:focus-visible{border-color:var(--accent);outline:none;box-shadow:0 0 0 2px var(--accent-soft)}
+/* interactive tutorial: the same spotlight and card, but the dim never blocks the app, so every step can be tried for real */
+.itut{position:fixed;inset:0;z-index:9000;pointer-events:none}
+.itut[hidden]{display:none}
+.itut .tutSpot{box-shadow:0 0 0 9999px rgba(8,14,11,.42)}
+.itut.list{pointer-events:auto}
+.itut.list .tutSpot{box-shadow:0 0 0 9999px rgba(8,14,11,.62);outline-color:transparent}
+.itut .tutCard{pointer-events:auto}
+.itut .tutCard[hidden]{display:none}
+.itTry{font-weight:600}
+.itTry::before{content:"Try it: ";color:var(--accent)}
+.itFull[hidden]{display:none}
+.itFull{display:inline-block;font:600 11px var(--f-ui);padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--ink);justify-self:start}
+.itKey{color:var(--dim);font-size:11.5px}
+.itList.tutCard{left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 24px));gap:10px}
+.itChs{display:grid;gap:6px}
+.itCh{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:12px;font:500 12.5px var(--f-ui);background:var(--raise);color:var(--ink);border:1px solid var(--line);cursor:pointer}
+.itCh:hover,.itCh:focus-visible{border-color:var(--accent);outline:none}
+.itCh .ck{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;flex:none;font:600 10px var(--f-num)}
+.itCh.done .ck{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.itCh small{margin-left:auto;color:var(--dim);font:500 11px var(--f-num)}
+.itList .tutBtns .btn.primary{margin-left:auto}
+body.itOn .toast,body.itOn .atoast{z-index:9100}
+@media (max-width:760px){ .itList.tutCard{top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);max-height:calc(100vh - var(--dockH,118px) - 24px)} }
 .lkg{border-top:1px solid var(--sep,var(--line-soft))}
 .lkg>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 2px 2px;font:700 12.5px var(--f-ui);color:var(--ink)}
 .lkg>summary::-webkit-details-marker{display:none}
@@ -1406,7 +1436,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
 </div></div>
 <div class="lookpop" id="lookPop" role="dialog" aria-label="Theme menu" hidden>
   <h3>Look <span class="meta">Submersion</span></h3>
-  <div class="lkTop" id="lkTop"><button class="btn" id="lkTut" type="button" title="A five-step tour of the controls"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg>Tutorial</button><button class="btn" id="lkKeys" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-keys"/></svg>Shortcuts</button></div>
+  <div class="lkTop" id="lkTop"><button class="btn" id="lkTut" type="button" title="A quick or interactive tour of the controls"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg>Tutorial</button><button class="btn" id="lkKeys" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-keys"/></svg>Shortcuts</button></div>
   <details class="lkg" data-lkg="perf" open><summary>Performance</summary><div class="lkgb">
   <div class="lrowp"><span>Mode</span><div class="seg" id="lkMode" role="group" aria-label="Performance mode"><button data-mode="lite">Lite</button><button data-mode="full">Full</button></div><label class="check"><input type="checkbox" id="lkRemember"> Remember my device choice (skip the start-up question)</label><p class="note" id="lkModeNote">Lite caps resolution and frame rate for phones. Your saved settings are untouched.</p></div>
   </div></details>
@@ -1449,8 +1479,31 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <div class="tutCard" id="tutCard" role="dialog" aria-labelledby="tutT" tabindex="-1">
     <div class="tutHead"><h4 id="tutT"></h4><span id="tutN"></span></div>
     <p id="tutX"></p>
+    <div class="tutDeep" id="tutDeep" hidden><span>Want to dive deeper? Try the interactive tutorial!</span><button class="btn" id="tutDeepGo" type="button">Interactive tutorial</button></div>
     <div class="tutBtns"><button class="btn" id="tutSkip" type="button">Skip tutorial</button><button class="btn" id="tutBack" type="button">Back</button><button class="btn primary" id="tutNext" type="button">Next</button></div>
   </div></div>
+<div class="modeScrim" id="tutPick" hidden><div class="modeBox" role="dialog" aria-modal="true" aria-labelledby="tutPickT">
+  <h3 id="tutPickT">Tutorial</h3>
+  <button class="pk" id="pkQuick" type="button"><b>Quick tutorial</b><span>Five steps around the main controls. About a minute.</span></button>
+  <button class="pk" id="pkDeep" type="button"><b>Interactive tutorial</b><span>Short chapters you try for real on a practice scene. Your own project comes back when you exit.</span></button>
+  <div class="btns"><button class="btn" id="pkCancel" type="button">Cancel</button></div>
+</div></div>
+<div class="itut" id="itut" hidden><div class="tutSpot" id="itSpot"></div>
+  <div class="tutCard" id="itCard" role="dialog" aria-labelledby="itT" tabindex="-1" hidden>
+    <div class="tutHead"><h4 id="itT"></h4><span id="itN"></span></div>
+    <p id="itX"></p>
+    <p class="itTry" id="itTry"></p>
+    <span class="itFull" id="itFull" hidden>Full mode only</span>
+    <p class="itKey" id="itKey" hidden></p>
+    <div class="tutBtns"><button class="btn" id="itExit" type="button">Exit</button><button class="btn" id="itBack" type="button">Back</button><button class="btn primary" id="itNext" type="button">Next</button></div>
+  </div>
+  <div class="tutCard itList" id="itList" role="dialog" aria-labelledby="itListT" tabindex="-1" hidden>
+    <div class="tutHead"><h4 id="itListT">Interactive tutorial</h4><span id="itListN"></span></div>
+    <p>You are practising on Tr1ppical Butterfly. Your own project comes back when you exit, and nothing here is saved.</p>
+    <div class="itChs" id="itChs"></div>
+    <div class="tutBtns"><button class="btn" id="itListExit" type="button">Exit tutorial</button><button class="btn primary" id="itAll" type="button">Play all</button></div>
+  </div>
+</div>
 <audio id="audioEl" loop hidden></audio>
 
 <script>
@@ -1847,7 +1900,8 @@ var DIRTY = false, dirtyQuiet = 0;
 var lastGesture = -1e9;
 ['pointerdown','keydown','input','change','wheel','touchstart'].forEach(ev => addEventListener(ev, () => { lastGesture = performance.now(); }, true));
 function changed(){ status(); const t = performance.now(); if (t >= dirtyQuiet && t - lastGesture < 4000) markDirty(); }
-function markDirty(){ if (DIRTY) return; DIRTY = true; syncDirty(); }
+var TUT_SB = false;   // the interactive tutorial's practice scene is never an unsaved change
+function markDirty(){ if (DIRTY || TUT_SB) return; DIRTY = true; syncDirty(); }
 function clearDirty(quiet = 500){ dirtyQuiet = performance.now() + quiet; DIRTY = false; syncDirty(); }
 function syncDirty(){
   const pn = document.getElementById('projName'), nm = pn ? pn.value.trim() : '';
@@ -6802,6 +6856,7 @@ const tutorialMode = (() => {
     $('#tutT').textContent = st.t; $('#tutX').innerHTML = (matchMedia('(hover: none) and (pointer: coarse)').matches && st.xt) || st.x; $('#tutN').textContent = (i + 1) + ' / ' + STEPS.length;
     $('#tutBack').style.visibility = i ? 'visible' : 'hidden';
     $('#tutNext').textContent = i === STEPS.length - 1 ? 'Done' : 'Next';
+    $('#tutDeep').hidden = i !== STEPS.length - 1;
     layout(); requestAnimationFrame(layout); setTimeout(layout, 280);
   }
   function end(){
@@ -6829,8 +6884,7 @@ const tutorialMode = (() => {
   for (const ev of ['pointerdown', 'click']) root.addEventListener(ev, e => e.stopPropagation());
   window.addEventListener('keydown', e => { if (active && e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); end(); } }, true);
   addEventListener('resize', layout); addEventListener('orientationchange', () => setTimeout(layout, 200));
-  $('#lkTut').onclick = start;
-  $('#tutOfferGo').onclick = start;
+  /* Theme menu > Tutorial and the first-run offer open the Quick / Interactive picker (bound below) */
   $('#tutOfferNo').onclick = hideOffer;
   /* offered once on first run, after the Lite / Full question is answered; never forced */
   if (!seen()){
@@ -6842,9 +6896,380 @@ const tutorialMode = (() => {
       setTimeout(() => { if (active || seen()) return; markSeen(); offer.hidden = false; offerT = setTimeout(hideOffer, 20000); }, 1200);
     }, 1000);
   }
-  return {start, end};
+  return {start, end, hideOffer, isActive: () => active};
 })();
 if (phone.matches){ pL.hidden = true; pI.hidden = true; showPanel(pL, false); }
+/* ---------- Interactive tutorial: chapters on a practice scene (Tr1ppical Butterfly). Next-button only, never blocks the app.
+   On start the current project is copied in memory; Exit, Esc or finishing puts it back through the project-load path.
+   Nothing in here saves: the unsaved-changes dot stays quiet, and Save, presets and project files are switched off. ---------- */
+const itut = (() => {
+  const root = $('#itut'), spot = $('#itSpot'), card = $('#itCard'), list = $('#itList'), pick = $('#tutPick');
+  const DONE_KEY = 'submersion.ui.itutDone', POS_KEY = 'submersion.ui.itutPos';
+  const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } };
+  const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  const touchy = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const catSel = id => `.cat[data-cat="${id}"]`, chip = id => `#cchips [data-cat="${id}"]`;
+  /* steps: sel = what to spotlight, open = what to show first, x = text (xt on touch), tr = the try-it line,
+     key = shortcut-table rows to hint on desktop, full = Full mode only, easyHidden = never shown in Easy, e = Easy overrides */
+  const CH = [
+    {id:'layers', t:'Layers', steps:[
+      {t:'Add layer', sel:['#bAddLayer', '#addMenu'], open:{panel:'L', add:1},
+       x:'Add layer puts something new on top: a picture, a link to an image or folder, or Auto layers.', tr:'Open the menu and look through it.'},
+      {t:'Sample scenes', sel:['#bSample', '#bSample2'], open:{drawer:'view'},
+       x:'Two ready-made scenes live under Source & Depth. You are practising on Tr1ppical Butterfly right now.', tr:'Tap Sacred Tree, then Tr1ppical Butterfly to come back.'},
+      {t:'Bring in pictures', sel:['#bLoad', '#bLayersImport'], open:{drawer:'view'},
+       x:'Load image, drag and drop a file, paste with Ctrl+V, or paste a link. With a picture open you choose Add (on top) or Replace.',
+       xt:'Load image, paste a picture, or paste a link to an image or folder. With a picture open you choose Add (on top) or Replace.',
+       tr:'Bring in any image; your own project comes back when you exit.',
+       e:{sel:['#bAddLayer', '#addMenu'], open:{panel:'L', add:1},
+          x:'Upload a picture from Add layer, drop or paste one on the page, or paste a link. In Easy a new picture replaces the old one.',
+          xt:'Upload a picture from Add layer or paste a link to one. In Easy a new picture replaces the old one.'}},
+      {t:'Layer rows', sel:['#layerList'], open:{panel:'L'}, key:['Hide / show the selected layer', 'Solo the selected layer'],
+       x:'Each row has an eye to hide it, solo to show only that layer, and duplicate. Double-click a name to rename it.',
+       xt:'Each row has an eye to hide it, solo to show only that layer, and duplicate. Double-tap a name to rename it.',
+       tr:'Hide the top layer, then show it again.',
+       e:{x:'The picture is built from layers, nearest first. Tap the eye on a row to hide or show that layer.'}},
+      {t:'Layer menu', sel:['#layerList .lrow'], open:{panel:'L'}, easyHidden:1,
+       x:'Right-click a row for its menu: Rename, Duplicate, Outline, Hide, Solo and Delete.',
+       xt:'Press and hold a row for its menu: Rename, Duplicate, Outline, Hide, Solo and Delete.', tr:'Open the menu on any row.'},
+      {t:'Auto layers', sel:['#bAddLayer', '#addMenu'], open:{panel:'L', add:1},
+       x:'Auto layers… finds the objects in a flat picture and splits them into layers by depth for you.', tr:'Choose Auto layers…, then Generate layers or Cancel.'},
+      {t:'Roll colours', sel:['#lcRow'], open:{panel:'L'},
+       x:'Roll colours recolours the ticked layers with a random scheme. Layers ▾ chooses which ones it touches.', tr:'Tap Roll colours a few times.'},
+    ]},
+    {id:'look', t:'Look', steps:[
+      {t:'Layer tab', sel:[chip('layer'), '#pInsp'], open:{cat:'layer'}, key:['Inspector'],
+       x:'The Inspector shows one tab at a time. Layer holds the selected layer’s depth, size, opacity, blend and effects.', tr:'Pick a layer in Layers, then drag one of its sliders.'},
+      {t:'Glow and trails', sel:['#g-lfx'], open:{cat:'layer'}, full:1,
+       x:'Effects add wiggle, glow, melt and trails to the selected layer. Lite softens glow and shortens trails to stay smooth.', tr:'Raise Glow or Trails on the top layer.',
+       e:{x:'Effects add wiggle and glow to the selected layer. Lite softens glow to stay smooth.', tr:'Raise Glow on the top layer.'}},
+      {t:'Symmetry', sel:[chip('sym'), catSel('sym')], open:{cat:'sym'},
+       x:'Symmetry turns the picture into a kaleidoscope: segments, twist, zoom and spin.', tr:'Drag the first slider and watch the pattern change.'},
+      {t:'Color', sel:[chip('color'), catSel('color')], open:{cat:'color'},
+       x:'Color shifts the hue and sets saturation and brightness for the whole picture.', tr:'Drag Hue shift slowly.'},
+      {t:'Motion', sel:[chip('motion'), catSel('motion')], open:{cat:'motion'},
+       x:'Motion sets the loop length and movement. Everything repeats a whole number of times per loop, so exports loop seamlessly.', tr:'Change the loop length and watch the speed.'},
+    ]},
+    {id:'osc', t:'Oscillators and Mod', steps:[
+      {t:'Oscillators', sel:['#pOsc'], open:{panel:'O'}, key:['Oscillators'], easyHidden:1,
+       x:'Oscillators are waves that move sliders for you, locked to the tempo (Sync) or free (Hz). Up to 8 per project.', tr:'Watch the wave in a card move.'},
+      {t:'Add an oscillator', sel:['#pOsc .oadd', '#pOsc .oaddS'], open:{panel:'O'}, easyHidden:1,
+       x:'Add oscillator makes a new wave. Its card sets the shape, rate and amount.', tr:'Tap Add oscillator.'},
+      {t:'Map it to a slider', sel:['#pOsc .onode'], open:{panel:'O'}, easyHidden:1,
+       x:'Tap an oscillator’s node, then tap any slider. That slider now moves with the wave, across its full range to start.', tr:'Tap a node, then a slider in the Inspector.'},
+      {t:'Mod tab', sel:[chip('mod'), catSel('mod')], open:{cat:'mod'}, easyHidden:1,
+       x:'Mod lists every mapping from oscillators and audio bands to sliders. Change amounts, filter, sort or remove them here.', tr:'Find your new mapping and lower its amount.'},
+    ]},
+    {id:'audio', t:'Audio', steps:[
+      {t:'Load audio', sel:['#bAudio'], open:{cat:'audio'},
+       x:'Load audio plays a song from your device and the picture reacts to it. Nothing is uploaded.', tr:'Optional: load any song you have.'},
+      {t:'Microphone and Device audio', sel:[catSel('audio') + ' .lv'], open:{cat:'audio'},
+       x:'Microphone reacts to sound in the room. Device audio captures what this computer plays; it works in desktop Chrome or Edge only.',
+       tr:'Optional: try Microphone and allow access if asked.',
+       e:{sel:['#pMusic .lv'], open:{panel:'M'}}},
+      {t:'Streaming', sel:['#mMusic'], open:{more:1},
+       x:'More › Streaming plays SoundCloud or Spotify links, playlists and albums too. Listen lets the picture react (desktop Chrome or Edge).',
+       tr:'Optional: open it and paste a playlist link.'},
+      {t:'Bands and gates', sel:[catSel('audio') + ' .bands', '#g-aband'], open:{cat:'audio'},
+       x:'Low, Mid and High split the sound. Each gate sets how loud a band must be before it moves the picture.', tr:'With sound playing, watch the three meters.',
+       e:{x:'Low, Mid and High split the sound into bass, middle and treble. Each meter shows how hard that band drives the picture.'}},
+      {t:'Tempo pulse and tap tempo', sel:['#bTap', '#g-apulse'], open:{cat:'audio'}, key:['Tap tempo'],
+       x:'Tempo pulse beats the picture without any sound. Tap tempo along with your music to set the speed.', tr:'Tap Tap tempo four times in a steady rhythm.'},
+    ]},
+    {id:'rand', t:'Randomize and Pins', steps:[
+      {t:'Roll', sel:['#dRoll'], key:['Roll'],
+       x:'Roll picks a random look from the controls it is allowed to change.', tr:'Roll a few times.',
+       e:{x:'Roll picks a random look using the controls you can see.'}},
+      {t:'Undo', sel:['#bDiceUndo'], open:{cat:'random'}, key:['Undo Roll, resets, layer delete, Look preset or project load'],
+       x:'Undo steps back through rolls, resets, layer deletes and preset or project loads. Redo brings them back.', tr:'Roll, then undo it.',
+       e:{sel:['#dRoll'], open:{}, x:'Every roll shows a message with Undo. Tap it to get the previous look back.'}},
+      {t:'Roll presets', sel:['#randPreset'], open:{cat:'random'},
+       x:'Roll presets choose which controls Roll may change. Pick one to change what Roll does.', tr:'Switch presets, then Roll and compare.'},
+      {t:'Layer colours target', sel:['#fltLC'], open:{cat:'random'},
+       x:'Layer colours decides whether Roll also recolours your layers, and which ones.', tr:'Turn it on, then Roll.'},
+      {t:'Pin a slider', sel:[catSel('sym') + ' .pin'], open:{cat:'sym'}, easyHidden:1,
+       x:'The pin next to a slider puts it in the dock bar, so you can drag it with every panel closed.', tr:'Pin a Symmetry slider, then drag it in the dock.'},
+      {t:'Dock slots', sel:['#lkSlots', '#lkAutoPin'], open:{look:1, lkg:['pins']},
+       x:'Pinned slots sets how many sliders fit in the bar. Auto pin adds the sliders you use; locked pins stay put.', tr:'Set slots to 4 and watch the bar.'},
+    ]},
+    {id:'dock', t:'Dock and saving', steps:[
+      {t:'Play and Record', sel:['#dPlay', '#dRec'], key:['Play / pause', 'Record one loop (press again to stop)'],
+       x:'Play pauses or resumes the motion. Record captures exactly one loop as a video that loops seamlessly.', tr:'Pause, then play again.'},
+      {t:'Theme menu', sel:['#dTheme', '#lookPop'], open:{look:1}, key:['Theme menu'],
+       x:'The Theme menu holds performance, interface, colours, pins, Shortcuts and this Tutorial.', tr:'Open and close each group.',
+       e:{x:'The Theme menu holds performance, interface, colours, Shortcuts and this Tutorial.'}},
+      {t:'More menu', sel:['#dMore', '#moreMenu'], open:{more:1},
+       x:'More holds Save project, Streaming, image links and Look presets. A dot on it means unsaved changes.', tr:'Look through it.',
+       e:{x:'More holds Save project and Streaming. A dot on it means unsaved changes.'}},
+      {t:'Save, presets, Export and Import', sel:[catSel('project')], open:{cat:'project'}, key:['Save project'],
+       x:'Save keeps everything in a project file; Import opens one. Look presets store a look to reuse or export. Saving is off during the tutorial.',
+       tr:'Scroll through to see Look presets and Output.'},
+      {t:'Output', sel:['#aspectSel', '#qSeg', '#bPng', '#bRec'], open:{cat:'project'},
+       x:'Output sets the aspect and quality, then exports a PNG still or a seamless loop video. Lite renders at Normal at most.', tr:'Capture a PNG still.'},
+      {t:'Hide UI', sel:['#dHide'], key:['Hide / show the UI'],
+       x:'Hide UI leaves only the picture. A small corner button keeps Roll, Record, Play and Capture handy; Show UI brings everything back.',
+       tr:'Hide the UI, then bring it back.',
+       e:{sel:['#mHide'], open:{more:1}}},
+      {t:'Lite, Full and Easy', sel:['#lkMode', '#lkEasy'], open:{look:1, lkg:['perf', 'iface']},
+       x:'Lite keeps phones smooth; Full shows every effect. Easy shows fewer controls; Full shows them all. Any mix works.', tr:'Nothing to change now; switch whenever you like.'},
+    ]},
+    {id:'unlock', t:'Unlock more', easyOnly:1, steps:[
+      {t:'Switch to Full', sel:['#easyChip'], open:{chip:1},
+       x:'Easy hides oscillators, Mod, Randomize, calibration, Find and pin editing. Switch to Full shows them all; your settings stay.', tr:'Switch whenever you feel ready.'},
+      {t:'Interface setting', sel:['#lkEasy'], open:{look:1, lkg:['iface']},
+       x:'You can also switch in Theme menu › Interface. Easy and Full both work with Lite or Full performance.', tr:'Come back to Easy any time.'},
+    ]},
+  ];
+  const eff = st => easyOn() && st.e ? {...st, ...st.e} : st;
+  const PANELS = {L: pL, I: pI, O: pO, M: pM};
+  function hiddenInEasy(st){
+    if (st.easyHidden) return true;
+    let found = 0;
+    for (const s of eff(st).sel){ const el = $(s); if (!el) continue; found++; if (!el.closest('[data-adv]')) return false; }
+    return found > 0;          // every target exists and sits in an advanced-only area
+  }
+  const stepsOf = ch => easyOn() ? ch.steps.filter(s => !hiddenInEasy(s)) : ch.steps;
+  const chapters = () => CH.filter(ch => (ch.easyOnly ? easyOn() : true) && stepsOf(ch).length);
+  const doneSet = () => new Set(lsGet(DONE_KEY, []));
+  let active = false, busy = false, SB = null, run = null, pollT = null, backFocus = null, chipShown = false;
+
+  /* ---- sandbox: copy the project in memory, practise on the sample, put it back on exit ---- */
+  function sbStart(){
+    const cap = capProject();
+    if (!cap){ toast('The interactive tutorial could not start here'); return false; }
+    const lkg = {}; document.querySelectorAll('#lookPop .lkg').forEach(d => { lkg[d.dataset.lkg] = d.open; });
+    SB = {cap, dirty: DIRTY, hu: HIST.u, hr: HIST.r, cats: [...shownCats], drOpen: drawer.dataset.open === 'true', drTab: UI.get('drawerTab', 'view'),
+      slots: SLOTS, auto: AUTO_ON, sheet: sheetMode, lkg, chip: easyChip.hidden, clean: document.body.classList.contains('clean'),
+      ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])};
+    HIST.u = []; HIST.r = []; syncHist();       // the tour has its own undo history; yours comes back on exit
+    TUT_SB = true;
+    $('#bSample2').click();                      // the same path as the Tr1ppical Butterfly button
+    return true;
+  }
+  async function sbEnd(){
+    const s = SB; if (!s) return;
+    sampleTok++;                                 // a sample still loading must not land on top of your project
+    try { if (mapArmed) disarmMap(); } catch(e){}
+    try { if (s.slots !== SLOTS){ SLOTS = s.slots; UI.set('pinSlots', SLOTS); } if (s.auto !== AUTO_ON){ AUTO_ON = s.auto; UI.set('autoPin', AUTO_ON); } } catch(e){}
+    let ok = true;
+    try { await uncapProject(s.cap); } catch(e){ ok = false; }
+    try { drawMacros(); } catch(e){}
+    HIST.u = s.hu; HIST.r = s.hr; syncHist();
+    try { shownCats.clear(); for (const c of s.cats) shownCats.add(c); if (!shownCats.size) shownCats.add('layer'); drawInsp(); } catch(e){}
+    try { setDrawer(s.drOpen, s.drTab); } catch(e){}
+    try { document.querySelectorAll('#lookPop .lkg').forEach(d => { const o = s.lkg[d.dataset.lkg]; if (o != null && d.open !== o) d.open = o; }); } catch(e){}
+    try { if (sheetMode !== s.sheet) setSheetMode(s.sheet); } catch(e){}
+    try { if (document.body.classList.contains('clean') !== s.clean) $('#hPanel').click(); } catch(e){}
+    try {
+      for (const [p, h] of s.ps) if (h && !p.hidden) showPanel(p, false);
+      for (const [p, h] of s.ps) if (!h && p.hidden) showPanel(p, true);
+      for (const [p, h, f] of s.ps) if (!h && p.classList.contains('folded') !== f) p.querySelector('[data-fold]').click();
+    } catch(e){}
+    SB = null; TUT_SB = false;
+    if (s.dirty){ DIRTY = false; markDirty(); } else clearDirty(1500);
+    toast(ok ? 'Tutorial closed. Your project is back.' : 'Could not bring your project back. Use Ctrl+Z or import your last save.', ok ? 2200 : 5000);
+  }
+  /* saving is off: Save, project files, Look presets and Roll presets */
+  const SAVE_SEL = '#mSave, #bProjExport, #bProjImport, #bPresetSave, #bPresetUpdate, #bPresetDelete, #bPresetImport, #bPresetExport, #bRandSave, #bRandSaveOk, #bRandDel';
+  const saveOff = () => toast('Saving is off during the tutorial');
+  document.addEventListener('click', e => { if (SB && e.target.closest && e.target.closest(SAVE_SEL)){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); } }, true);
+  window.addEventListener('keydown', e => {
+    if (!SB) return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's'){ e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) saveOff(); return; }
+    if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('#presetName, #randPresetName, #projName')){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); return; }
+    if (e.key === 'Escape' && active && !busy && !isTyping(e.target)){ e.preventDefault(); e.stopImmediatePropagation(); exit(); }
+  }, true);
+
+  /* ---- showing a step ---- */
+  function hideChip(){ if (chipShown && SB){ easyChip.hidden = SB.chip; } chipShown = false; }
+  function prep(st){
+    const o = st.open || {};
+    try { closePinMenu(); } catch(e){}
+    try { if (!o.add && !$('#addMenu').hidden) setAddMenu(false); } catch(e){}
+    try { if (!o.more && !moreMenu.hidden) setMore(false); } catch(e){}
+    try { if (!o.look && !lookPop.hidden) toggleLookPop(false); } catch(e){}
+    hideChip();
+    try {
+      const p = PANELS[o.panel];
+      if (p){ if (p.hidden) showPanel(p, true); else if (p.classList.contains('folded')) p.querySelector('[data-fold]').click(); }
+      if (o.drawer) openCat(o.drawer);
+      if (o.cat) openCat(o.cat);
+      if (o.add){ if (pL.hidden) showPanel(pL, true); if ($('#addMenu').hidden) setAddMenu(true); }
+      if (o.more && moreMenu.hidden) setMore(true);
+      if (o.look){ if (lookPop.hidden) toggleLookPop(true); for (const g of o.lkg || []){ const d = lookPop.querySelector(`.lkg[data-lkg="${g}"]`); if (d && !d.open) d.open = true; } }
+      if (o.chip){ clearTimeout(easyChipT); easyChip.hidden = false; chipShown = true; }
+    } catch(e){}
+    try { if (phone.matches && sheetMode === 'full') setSheetMode('half'); } catch(e){}   // the card sits above the sheet, never on it
+  }
+  function targetEl(st){ for (const s of st.sel){ const el = $(s); if (el){ const b = el.getBoundingClientRect(); if (b.width > 1 && b.height > 1) return el; } } return null; }
+  function reveal(st){
+    const el = targetEl(st); if (!el) return;
+    const sc = el.closest('#inspBody, .dwscroll, .fpb, .lookpop, .moreMenu'); if (!sc || sc === el) return;
+    const a = el.getBoundingClientRect(), b = sc.getBoundingClientRect();
+    if (a.top < b.top + 8) sc.scrollTop -= b.top + 8 - a.top;
+    else if (a.bottom > b.bottom - 8) sc.scrollTop += Math.max(0, Math.min(a.bottom - b.bottom + 8, a.top - b.top - 8));
+  }
+  function rectOf(sels){
+    let r = null;
+    for (const s of sels){
+      const el = $(s); if (!el) continue;
+      const b = el.getBoundingClientRect(); if (b.width < 2 || b.height < 2) continue;
+      r = r ? {l: Math.min(r.l, b.left), t: Math.min(r.t, b.top), r: Math.max(r.r, b.right), b: Math.max(r.b, b.bottom)} : {l: b.left, t: b.top, r: b.right, b: b.bottom};
+    }
+    return r;
+  }
+  const curStep = () => run && run.steps ? eff(run.steps[run.i]) : null;
+  function layout(){
+    if (!active) return;
+    const vw = innerWidth, vh = innerHeight, m = 10, pad = 6, st = curStep();
+    const r = st ? rectOf(st.sel) : null;
+    let box = null;
+    if (r) box = {l: Math.max(0, r.l - pad), t: Math.max(0, r.t - pad), r: Math.min(vw, r.r + pad), b: Math.min(vh, r.b + pad)};
+    spot.classList.toggle('none', !box);
+    const q = box || {l: vw / 2, t: vh / 2, r: vw / 2, b: vh / 2};
+    spot.style.left = q.l + 'px'; spot.style.top = q.t + 'px'; spot.style.width = (q.r - q.l) + 'px'; spot.style.height = (q.b - q.t) + 'px';
+    if (card.hidden) return;
+    if (phone.matches){
+      /* phones: the card docks at the top and stops above whichever sheet is open */
+      const top = 8, sh = sheetEl(), lim = sh ? sh.getBoundingClientRect().top : vh - Math.ceil(dockEl.getBoundingClientRect().height);
+      card.style.width = (vw - 16) + 'px'; card.style.left = '8px'; card.style.top = top + 'px';
+      card.style.maxHeight = Math.max(110, lim - top - 8) + 'px';
+      return;
+    }
+    card.style.width = ''; card.style.maxHeight = '';
+    const cw = card.offsetWidth, ch = card.offsetHeight, cx = (q.l + q.r) / 2, cy = (q.t + q.b) / 2, c = [];
+    if (box) c.push([q.l, q.b + 12], [q.l, q.t - 12 - ch], [q.r + 12, q.t], [q.l - 12 - cw, q.t], [cx - cw / 2, q.b + 12], [cx - cw / 2, q.t - 12 - ch]);
+    c.push([(vw - cw) / 2, m], [(vw - cw) / 2, vh - ch - m], [m, m], [vw - cw - m, m], [m, vh - ch - m], [vw - cw - m, vh - ch - m]);
+    let best = null;
+    for (const p of c){
+      const x = Math.max(m, Math.min(vw - cw - m, p[0])), y = Math.max(m, Math.min(vh - ch - m, p[1]));
+      const ov = box ? Math.max(0, Math.min(x + cw, q.r) - Math.max(x, q.l)) * Math.max(0, Math.min(y + ch, q.b) - Math.max(y, q.t)) : 0;
+      const sc = ov * 1000 + Math.hypot(x + cw / 2 - cx, y + ch / 2 - cy);
+      if (!best || sc < best.sc) best = {x, y, sc};
+    }
+    card.style.left = best.x + 'px'; card.style.top = best.y + 'px';
+  }
+  function keyHint(st){
+    if (!st.key || touchy()) return '';
+    return st.key.map(lbl => { const row = KEYMAP.find(r => r.length > 1 && r[1] === lbl); return row ? row[0].map(kbdCombo).join(' or ') + ' ' + escH(lbl) : ''; }).filter(Boolean).join(' · ');
+  }
+  function show(){
+    const ch = run.chs[run.c], st = eff(run.steps[run.i]), last = run.i === run.steps.length - 1;
+    root.classList.remove('list'); list.hidden = true; card.hidden = false;
+    prep(st);
+    $('#itT').textContent = st.t;
+    $('#itN').textContent = ch.t + ' · ' + (run.i + 1) + ' / ' + run.steps.length;
+    $('#itX').textContent = (touchy() && st.xt) || st.x;
+    const liteBlock = st.full && LITE.on;
+    $('#itTry').textContent = st.tr || ''; $('#itTry').hidden = liteBlock || !st.tr;
+    $('#itFull').hidden = !liteBlock;
+    const kh = keyHint(st); $('#itKey').innerHTML = kh; $('#itKey').hidden = !kh;
+    $('#itNext').textContent = !last ? 'Next' : run.all && run.c < run.chs.length - 1 ? 'Next chapter' : run.all ? 'Finish' : 'Finish chapter';
+    lsSet(POS_KEY, {ch: ch.id, i: run.i, all: !!run.all});
+    requestAnimationFrame(() => { reveal(st); layout(); }); layout(); setTimeout(() => { reveal(st); layout(); }, 300);
+    try { card.focus({preventScroll: true}); } catch(e){}
+  }
+  function beginChapter(c, i = 0){
+    const ch = run.chs[c]; run.c = c; run.steps = stepsOf(ch); run.i = Math.min(i, run.steps.length - 1);
+    if (!run.steps.length){ next(); return; }
+    show();
+  }
+  function markDone(id){ const d = doneSet(); d.add(id); lsSet(DONE_KEY, [...d]); }
+  function next(){
+    if (!run || !run.steps) return;
+    if (run.i < run.steps.length - 1){ run.i++; show(); return; }
+    markDone(run.chs[run.c].id);
+    if (run.all && run.c < run.chs.length - 1){ beginChapter(run.c + 1); return; }
+    lsSet(POS_KEY, null);
+    showList(run.all ? 'All chapters done' : run.chs[run.c].t + ' done');
+  }
+  function back(){
+    if (!run || !run.steps) return;
+    if (run.i > 0){ run.i--; show(); return; }
+    if (run.all && run.c > 0){ const c = run.c - 1; run.steps = stepsOf(run.chs[c]); beginChapter(c, run.steps.length - 1); return; }
+    showList();
+  }
+  /* ---- chapter list ---- */
+  function showList(note){
+    hideChip();
+    try { closePinMenu(); if (!$('#addMenu').hidden) setAddMenu(false); if (!moreMenu.hidden) setMore(false); if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
+    const chs = chapters(), done = doneSet(), pos = lsGet(POS_KEY, null);
+    run = {chs, all: false, c: 0, i: 0, steps: null};
+    const host = $('#itChs'); host.innerHTML = '';
+    const pc = pos && chs.findIndex(c => c.id === pos.ch);
+    if (pos && pc >= 0){
+      const n = stepsOf(chs[pc]).length;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'itCh';
+      b.innerHTML = `<span class="ck">›</span><span>Resume: ${escH(chs[pc].t)}</span><small>${Math.min(pos.i, n - 1) + 1} / ${n}</small>`;
+      b.onclick = () => { run.all = !!pos.all; beginChapter(pc, pos.i); };
+      host.appendChild(b);
+    }
+    chs.forEach((ch, k) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'itCh' + (done.has(ch.id) ? ' done' : '');
+      const n = stepsOf(ch).length;
+      b.innerHTML = `<span class="ck" aria-hidden="true">${done.has(ch.id) ? '✓' : k + 1}</span><span>${escH(ch.t)}</span><small>${n} ${n === 1 ? 'step' : 'steps'}</small>`;
+      b.setAttribute('aria-label', ch.t + (done.has(ch.id) ? ', done' : '') + ', ' + n + ' steps');
+      b.onclick = () => { run.all = false; beginChapter(k); };
+      host.appendChild(b);
+    });
+    const nd = chs.filter(c => done.has(c.id)).length;
+    $('#itListN').textContent = note || (nd + ' of ' + chs.length + ' done');
+    card.hidden = true; list.hidden = false; root.classList.add('list');
+    layout();
+    try { list.focus({preventScroll: true}); } catch(e){}
+  }
+  /* ---- start and exit ---- */
+  function start(){
+    if (active || busy) return;
+    if (!$('#modePrompt').hidden) return;
+    try { if (tutorialMode.isActive()) tutorialMode.end(); } catch(e){}
+    try { closeKeys(); } catch(e){}
+    try { if (!lookPop.hidden) toggleLookPop(false); if (!moreMenu.hidden) setMore(false); } catch(e){}
+    backFocus = document.activeElement;
+    if (!sbStart()) return;
+    active = true; root.hidden = false; document.body.classList.add('itOn');
+    showList();
+    pollT = setInterval(layout, 250);
+  }
+  async function exit(){
+    if (!active || busy) return;
+    busy = true; active = false; clearInterval(pollT); pollT = null;
+    root.hidden = true; root.classList.remove('list'); document.body.classList.remove('itOn');
+    hideChip();
+    try { closePinMenu(); if (!$('#addMenu').hidden) setAddMenu(false); if (!moreMenu.hidden) setMore(false); if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
+    run = null;
+    try { await sbEnd(); } finally { busy = false; }
+    try { if (backFocus && backFocus.isConnected && backFocus.offsetParent !== null) backFocus.focus({preventScroll: true}); } catch(e){}
+    backFocus = null;
+  }
+  $('#itNext').onclick = next;
+  $('#itBack').onclick = back;
+  $('#itExit').onclick = exit;
+  $('#itListExit').onclick = exit;
+  $('#itAll').onclick = () => { run.all = true; lsSet(POS_KEY, null); beginChapter(0); };
+  /* the card is the tutorial's own: its taps must not count as clicks outside the app's open menus */
+  for (const el of [card, list]) for (const ev of ['pointerdown', 'click']) el.addEventListener(ev, e => e.stopPropagation());
+  addEventListener('resize', layout); addEventListener('orientationchange', () => setTimeout(layout, 200));
+
+  /* ---- picker: Theme menu > Tutorial and the first-run offer ---- */
+  let pickBack = null;
+  function openPick(){
+    if (active || busy || tutorialMode.isActive() || !$('#modePrompt').hidden) return;
+    tutorialMode.hideOffer();
+    try { if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
+    pickBack = document.activeElement; pick.hidden = false; $('#pkQuick').focus();
+  }
+  function closePick(){ if (pick.hidden) return; pick.hidden = true; }
+  $('#pkQuick').onclick = () => { closePick(); tutorialMode.start(); };
+  $('#pkDeep').onclick = () => { closePick(); start(); };
+  $('#pkCancel').onclick = () => { closePick(); try { if (pickBack && pickBack.isConnected && pickBack.offsetParent !== null) pickBack.focus(); } catch(e){} };
+  pick.addEventListener('pointerdown', e => { if (e.target === pick) $('#pkCancel').click(); });
+  window.addEventListener('keydown', e => { if (!pick.hidden && e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); $('#pkCancel').click(); } }, true);
+  $('#lkTut').onclick = openPick;
+  $('#tutOfferGo').onclick = openPick;
+  $('#tutDeepGo').onclick = () => { tutorialMode.end(); start(); };
+  return {start, exit, openPick, isActive: () => active};
+})();
 
 /* ================= UI-2: more menu, save, phone sheets, landscape ================= */
 /* ---- dock height as a CSS variable, so sheets, menus and the picture clear the dock at any size ---- */
