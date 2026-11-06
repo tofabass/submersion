@@ -807,6 +807,14 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 .impProg[hidden]{display:none}
 .impAsk .btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .drop.on{box-shadow:inset 0 0 0 6px var(--accent-soft)}
+/* phones: pinned sliders in the dock readable on any picture (near-solid dock, 3:1 track / thumb / separators, ink labels) */
+@media (max-width:760px){
+  .dock{background:rgba(var(--frost-tint),.94);--track:#6F8177;--sep:#6F8177}
+  :root[data-theme="dark"] .dock{--track:#7C8A84;--sep:#6E7A74}
+  .dock .macro .mn{color:var(--ink)}
+  .dock .macro input[type=range]::-webkit-slider-thumb{border:3px solid var(--cc,var(--accent));box-shadow:0 0 0 1px var(--ink)}
+  .dock .macro input[type=range]::-moz-range-thumb{border:3px solid var(--cc,var(--accent));box-shadow:0 0 0 1px var(--ink)}
+}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
