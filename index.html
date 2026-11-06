@@ -1002,6 +1002,13 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
           <div class="lbl">Color</div>
           <label class="check" id="layerInvRow"><input type="checkbox" id="layerInv"> Invert colours (black becomes white)</label>
           <div id="g-lcol" class="stack"></div>
+          <div id="rcBox" class="stack" hidden>
+            <div class="lbl">Recolour</div>
+            <label class="check"><input type="checkbox" id="rcOn"> Recolour this layer (for pure white or black layers)</label>
+            <div class="bgcol" id="rcColRow"><label for="rcCol">Colour</label><input type="color" id="rcCol" value="#00e5ff"><output id="rcColOut">#00E5FF</output></div>
+            <div id="g-lrc" class="stack"></div>
+            <label class="check"><input type="checkbox" id="rcKeep"> Keep shading (original brightness multiplies the colour)</label>
+          </div>
           <div class="lbl">Effects</div>
           <p class="note liteHint">Lite: trails use 2 echoes and glow is softer. Full mode shows them at full quality.</p>
           <div id="g-lfx" class="stack"></div>
@@ -1316,7 +1323,7 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 
 /* ---------- parameters ---------- */
 const LD = {ltwist:0, ltwSpeed:0, ltwBounce:0, ltwBounceRate:1, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
-  seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, vis:true, solo:false};
+  seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
@@ -1457,6 +1464,9 @@ const LSPECS = {
     ['sat','Saturation',-1,1,.01,sgn],
     ['con','Contrast',-1,1,.01,sgn],
     ['op','Opacity',0,1,.01,fx(2)],
+  ],
+  'g-lrc':[
+    ['rcStr','Recolour strength',0,1,.01,v=>Math.round(v*100)+'%'],
   ],
   'g-lol':[
     ['olW','Width',0,20,.5,v=>(+v).toFixed(1)+' px'],
@@ -2139,6 +2149,12 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
     float e = 2.5/float(textureSize(uDepth,0).y);
     float g = abs(D(uv+vec2(e,0.)) - D(uv-vec2(e,0.))) + abs(D(uv+vec2(0.,e)) - D(uv-vec2(0.,e)));
     col += uEdge*smoothstep(.03,.18,g)*vec3(1.,.72,.28)*1.6;
+  }
+  if (A.x < 1.5 && abs(uI[i].w) > 0.){   // Recolour (image + icon layers): swap RGB, alpha untouched; runs before hue / sat / contrast
+    float pk = uJ[i].w, rr = floor(pk/65536.); pk -= rr*65536.; float rg = floor(pk/256.), rb = pk - rg*256.;
+    vec3 rc = vec3(rr, rg, rb)/255.;
+    if (uI[i].w < 0.) rc *= dot(max(col, 0.), vec3(.2126, .7152, .0722));   // keep shading
+    col = mix(col, rc, clamp(abs(uI[i].w), 0., 1.));
   }
   vec3 h = rgb2hsv(max(col, 0.));
   h.x = fract(h.x + uHue + B.y + uDepthHue*A.z + uHueCycle*phi/TAU + hueDrift(phi) + (uG[i].x > 0. ? uG[i].y + uG[i].z*(.5 - .5*cos(uG[i].x*phi)) : 0.));
@@ -3195,6 +3211,7 @@ function syncLayerEd(){
   } else $('#edInfo').textContent = isI ? 'Icon overlay' : isO ? '3D object overlay' : 'Particle layer';
   $('#bCalibrate').hidden = !img; $('#bLayerDelete').hidden = !P.L.layers.some(l => l.id === sel) && !isExtra(sel); resetLayerDelete();
   $('#olBox').hidden = !(isI || (img && sel !== 'bg')); $('#olOn').checked = !!L.olOn; $('#olCol').value = L.olCol || '#ffffff'; $('#olColOut').textContent = ($('#olCol').value).toUpperCase();
+  $('#rcBox').hidden = !(img || isI); $('#rcOn').checked = !!L.rcOn; $('#rcKeep').checked = !!L.rcKeep; $('#rcCol').value = L.rcCol || '#00e5ff'; $('#rcColOut').textContent = $('#rcCol').value.toUpperCase();
   $('#iconBox').hidden = !isI; $('#objBox').hidden = !isO; $('#partBox').hidden = !isPt; $('#g-sprite').hidden = img || isPt; syncPart();
   $('#g-icon').hidden = !isI; $('#g-objx').hidden = !isO;
   document.getElementById('g-lpos-relief').closest('.ctl').hidden = !img;
@@ -3236,6 +3253,9 @@ function syncBgFill(){
 }
 $('#olOn').addEventListener('change', e => { getL(sel).olOn = e.target.checked ? 1 : 0; changed(); });
 $('#olCol').addEventListener('input', e => { getL(sel).olCol = e.target.value; $('#olColOut').textContent = e.target.value.toUpperCase(); changed(); });
+$('#rcOn').addEventListener('change', e => { getL(sel).rcOn = e.target.checked ? 1 : 0; changed(); });
+$('#rcKeep').addEventListener('change', e => { getL(sel).rcKeep = e.target.checked ? 1 : 0; changed(); });
+$('#rcCol').addEventListener('input', e => { getL(sel).rcCol = e.target.value; $('#rcColOut').textContent = e.target.value.toUpperCase(); changed(); });
 $('#layerInv').addEventListener('change', e => { getL(sel).inv = e.target.checked ? 1 : 0; changed(); });
 $('#bgFill').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; P.L.bg.solid = +b.dataset.f; syncBgFill(); renderLayers(); changed(); });
 $('#bgCol').addEventListener('input', e => { P.L.bg.solidCol = e.target.value; $('#bgColOut').textContent = e.target.value; changed(); });
@@ -3441,6 +3461,20 @@ function bleed(src, W, H){
   for (const r of [1,2,3,5,8,12]) for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]) x.drawImage(src, dx*r, dy*r);
   return x.canvas;
 }
+/* true when 95%+ of a layer's opaque pixels are pure white, or 95%+ are pure black (sampled on a small copy) */
+function isFlatMono(cv){
+  try {
+    const k = Math.min(1, 160/Math.max(cv.canvas ? cv.canvas.width : cv.width, cv.canvas ? cv.canvas.height : cv.height)), src = cv.canvas || cv;
+    const w = Math.max(1, Math.round(src.width*k)), h = Math.max(1, Math.round(src.height*k)), x = scratch(w, h);
+    x.drawImage(src, 0, 0, w, h);
+    const d = x.getImageData(0, 0, w, h).data; let op = 0, wh = 0, bk = 0;
+    for (let i = 0; i < d.length; i += 4){
+      if (d[i+3] < 128) continue; op++;
+      if (d[i] >= 250 && d[i+1] >= 250 && d[i+2] >= 250) wh++; else if (d[i] <= 5 && d[i+1] <= 5 && d[i+2] <= 5) bk++;
+    }
+    return op > 0 && (wh >= op*.95 || bk >= op*.95);
+  } catch(e){ return false; }
+}
 $('#bImpGo').onclick = () => {
   const plate = impItems.find(i => i.role === 'plate'), lay = impItems.filter(i => i.role === 'layer').slice(0, MAX_OBJ);
   if (!lay.length && !plate){ toast('Add at least one image'); return; }
@@ -3471,9 +3505,18 @@ $('#bImpGo').onclick = () => {
     P.L.layers.push({...LD, id, name: lay[k].name.slice(0, 28), type:'fg'});
     masks.set(id, m); ownCols.set(id, bleed(c, imgW, imgH));
   });
+  const flat = P.L.layers.filter((l, k) => isFlatMono(layerCv[k]));      // pure white / pure black layers: offer Recolour (never automatic)
   impItems = []; $('#impBox').hidden = true;
   imageReady('Imported layers', true); uploadIcon(); syncUI();
   toast(`Imported ${n} ${n===1?'layer':'layers'}${plate ? ' and a background plate' : ''}`);
+  if (flat.length){
+    const ids = flat.map(l => l.id);
+    actionToast(ids.length === 1 ? `${flat[0].name} is pure white or black, so colour controls can't tint it.` : `${ids.length} layers are pure white or black, so colour controls can't tint them.`, ids.length === 1 ? 'Recolour this layer' : 'Recolour these layers', () => {
+      for (const id of ids){ const L = P.L.layers.find(l => l.id === id); if (L) L.rcOn = 1; }
+      if (ids.length === 1 && P.L.layers.some(l => l.id === ids[0]) && !cal) sel = ids[0];
+      syncLayerEd(); renderLayers(); changed();
+    });
+  }
 };
 
 /* ---------- projects: everything needed to pick up where you left off ---------- */
@@ -4598,7 +4641,7 @@ function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el
 const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
-const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','slot','twSpeed','twBounceRate','ltwSpeed','ltwBounceRate','ptwSpeed','ptwBounceRate','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
+const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','rcOn','rcCol','rcKeep','slot','twSpeed','twBounceRate','ltwSpeed','ltwBounceRate','ptwSpeed','ptwBounceRate','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
 let frameDt = 1/60;
 function smooth(key, target){
   if (!(P.glide > 0)){ GLIDE.set(key, target); return target; }
@@ -4674,6 +4717,9 @@ function draw(w, h){
     const ol = l.olOn && x.type < 2 && !x.isBg && !LITE.on;      // outlines: image layers and icons only
     Iv[o] = ol ? l.olW : 0; Iv[o+1] = l.olSoft; Iv[o+2] = ol ? l.olOp : 0; Iv[o+3] = 0;
     { const c = olRGB(l.olCol); Jv[o] = c[0]; Jv[o+1] = c[1]; Jv[o+2] = c[2]; Jv[o+3] = 0; }
+    if (l.rcOn && x.type < 2){                                   // recolour: strength (negative = keep shading) and the colour packed as one 24-bit number
+      const s = clamp01(l.rcStr ?? 1); if (s > 0){ const c = olRGB(l.rcCol); Iv[o+3] = l.rcKeep ? -s : s; Jv[o+3] = Math.round(c[0]*255)*65536 + Math.round(c[1]*255)*256 + Math.round(c[2]*255); }
+    }
     Gd[o]=l.hdSpeed || 0; Gd[o+1]=(l.hdMin ?? 0)/360; Gd[o+2]=((l.hdMax ?? 360) - (l.hdMin ?? 0))/360;
     const pk = phi + (x.off || 0);
     Gd[o+3]=(x.off ? instG(Q, 'twist', x.off) + Q.twBounce*Math.sin(Q.twBounceRate*pk) : twG) + (l.ltwist || 0) + (l.ltwBounce || 0)*Math.sin((l.ltwBounceRate || 1)*pk);
@@ -5195,6 +5241,7 @@ function layerFits(info, lid){
   if (info.host in LAYER_HOST_KIND) return kd === LAYER_HOST_KIND[info.host];
   if (info.host === 'g-sprite') return kd === 'icon' || kd === 'obj';
   if (info.host === 'g-lol') return (kd === 'img' && lid !== 'bg') || kd === 'icon';
+  if (info.host === 'g-lrc') return kd === 'img' || kd === 'icon';
   if (info.k === 'relief') return kd === 'img';
   return true;
 }
@@ -5971,7 +6018,7 @@ const FGROUPS = [
   ['Symmetry','g',['g-sym']], ['Color','g',['g-color']], ['Depth & parallax','g',['g-depth']], ['Motion','g',['g-motion']],
   ['All-layer dry/wet','g',['g-layers']], ['Audio','g',['g-aband','g-afx','g-audio','g-apulse']],
   ['Layer depth','l',['g-lpos']], ['Layer dry/wet & blend','l',['g-lmix']], ['Layer symmetry & twist','l',['g-lsym']],
-  ['Layer color','l',['g-lcol']], ['Layer effects','l',['g-lfx']], ['Layer outline','l',['g-lol']], ['Layer instances','l',['g-linst']], ['Icon & 3D object placement','l',['g-sprite','g-icon','g-objx']],
+  ['Layer color','l',['g-lcol','g-lrc']], ['Layer effects','l',['g-lfx']], ['Layer outline','l',['g-lol']], ['Layer instances','l',['g-linst']], ['Icon & 3D object placement','l',['g-sprite','g-icon','g-objx']],
   ['Particles','l',['g-part']],
 ];
 function buildRandFilters(){
