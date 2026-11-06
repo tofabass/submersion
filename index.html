@@ -883,7 +883,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 <div class="stage" id="stage">
   <canvas id="bgcv" aria-hidden="true"></canvas>
   <canvas id="cv"></canvas>
-  <div class="badge" id="badge">Sacred Tree</div>
+  <div class="badge" id="badge">Tr1ppical Butterfly</div>
   <div class="toast" id="toast" role="status"></div>
   <div class="cursor" id="cursor" hidden></div>
   <canvas class="pip" id="pip" hidden aria-hidden="true"></canvas>
@@ -1784,7 +1784,7 @@ function status(){
 /* ---------- source canvases ---------- */
 const colorC = document.createElement('canvas'), depthC = document.createElement('canvas');
 const cctx = colorC.getContext('2d', {willReadFrequently:true}), dctx = depthC.getContext('2d', {willReadFrequently:true});
-let imgW = 1600, imgH = 1000, srcName = 'Sacred Tree', depthDirty = false, depthVer = 0, colorVer = 0;
+let imgW = 1600, imgH = 1000, srcName = 'Tr1ppical Butterfly', depthDirty = false, depthVer = 0, colorVer = 0;
 function markDepth(){ depthDirty = true; depthVer++; }
 
 /* ---------- layer model: masks at working resolution ---------- */
@@ -1961,8 +1961,8 @@ function svgToCanvas(svg){
 /* instant stand-in so the first frame has an image while the layers are drawn */
 function samplePlaceholder(){
   imgW = 1600; imgH = 900; colorC.width = depthC.width = imgW; colorC.height = depthC.height = imgH;
-  cctx.fillStyle = '#2A2D2F'; cctx.fillRect(0,0,imgW,imgH); dctx.fillStyle = gray(.3); dctx.fillRect(0,0,imgW,imgH);
-  imageReady('Sacred Tree');
+  cctx.fillStyle = '#000000'; cctx.fillRect(0,0,imgW,imgH); dctx.fillStyle = gray(.3); dctx.fillRect(0,0,imgW,imgH);
+  imageReady('Tr1ppical Butterfly');
 }
 let sampleTok = 0;
 /* sample scene 2: six uploaded PNG layers (assets/scene2), back to front; the more a layer fills the middle, the nearer it sits */
@@ -4981,7 +4981,7 @@ function frame(now){
 buildIconGrid(); uploadIcon();
 $('#viewNote').textContent = VIEW_NOTES.final;
 renderPresetSel('b:Original (no effects)'); projNote(); syncSym();
-samplePlaceholder(); makeSample();
+samplePlaceholder(); makeSample('Tr1ppical Butterfly', 2);
 syncUI(); resize();
 
 /* ================= Stage UI shell: floating panels, inspector categories, pinned faders, search, dock ================= */
