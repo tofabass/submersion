@@ -883,7 +883,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 <div class="stage" id="stage">
   <canvas id="bgcv" aria-hidden="true"></canvas>
   <canvas id="cv"></canvas>
-  <div class="badge" id="badge">Sample scene</div>
+  <div class="badge" id="badge">Sacred Tree</div>
   <div class="toast" id="toast" role="status"></div>
   <div class="cursor" id="cursor" hidden></div>
   <canvas class="pip" id="pip" hidden aria-hidden="true"></canvas>
@@ -1143,8 +1143,8 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
       <div class="cath"><span class="catn">Source &amp; view</span></div>
         <div class="btns">
           <button class="btn primary" id="bLoad">Load image</button>
-          <button class="btn" id="bSample">Sample scene</button>
-          <button class="btn" id="bSample2">Sample scene 2</button>
+          <button class="btn" id="bSample">Sacred Tree</button>
+          <button class="btn" id="bSample2">Tr1ppical Butterfly</button>
           <button class="btn" id="bLayersImport">Import layer images</button>
           <input type="file" id="fImg" accept="image/*" hidden>
           <input type="file" id="fLayers" accept="image/*" multiple hidden>
@@ -1784,7 +1784,7 @@ function status(){
 /* ---------- source canvases ---------- */
 const colorC = document.createElement('canvas'), depthC = document.createElement('canvas');
 const cctx = colorC.getContext('2d', {willReadFrequently:true}), dctx = depthC.getContext('2d', {willReadFrequently:true});
-let imgW = 1600, imgH = 1000, srcName = 'Sample scene', depthDirty = false, depthVer = 0, colorVer = 0;
+let imgW = 1600, imgH = 1000, srcName = 'Sacred Tree', depthDirty = false, depthVer = 0, colorVer = 0;
 function markDepth(){ depthDirty = true; depthVer++; }
 
 /* ---------- layer model: masks at working resolution ---------- */
@@ -1962,22 +1962,22 @@ function svgToCanvas(svg){
 function samplePlaceholder(){
   imgW = 1600; imgH = 900; colorC.width = depthC.width = imgW; colorC.height = depthC.height = imgH;
   cctx.fillStyle = '#2A2D2F'; cctx.fillRect(0,0,imgW,imgH); dctx.fillStyle = gray(.3); dctx.fillRect(0,0,imgW,imgH);
-  imageReady('Sample scene');
+  imageReady('Sacred Tree');
 }
 let sampleTok = 0;
 /* sample scene 2: six uploaded PNG layers (assets/scene2), back to front; the more a layer fills the middle, the nearer it sits */
 const SCENE2 = [['sparkles','Sparkles','accent',.2], ['corner-mandalas','Corner Mandalas','accent',.32], ['side-mandalas','Side Mandalas','accent',.45], ['moon-phases','Moon Phases','fg',.6], ['sun','Sun','fg',.75], ['butterfly','Butterfly','fg',.9]];
 const pngToCanvas = url => loadImgURL(url).then(im => { const c = document.createElement('canvas'); c.width = 1600; c.height = 900; c.getContext('2d').drawImage(im, 0, 0, 1600, 900); return c; });
-async function makeSample(name = 'Sample scene', which = 1){
+async function makeSample(name = 'Sacred Tree', which = 1){
   const tok = ++sampleTok;
   let cv, info, depths;
   if (which === 2){
     try { const bc = document.createElement('canvas'); bc.width = 1600; bc.height = 900; const bx = bc.getContext('2d'); bx.fillStyle = '#2A2D2F'; bx.fillRect(0,0,1600,900);
-      cv = [bc, ...await Promise.all(SCENE2.map(s => pngToCanvas('assets/scene2/' + s[0] + '.png')))]; } catch(e){ toast('Sample scene 2 could not be loaded'); return false; }
+      cv = [bc, ...await Promise.all(SCENE2.map(s => pngToCanvas('assets/scene2/' + s[0] + '.png')))]; } catch(e){ toast('Tr1ppical Butterfly could not be loaded'); return false; }
     info = SCENE2.map(s => [s[1], s[2]]); depths = SCENE2.map(s => s[3]);
   } else {
     const S = sampleSVG();
-    try { cv = await Promise.all([S.bg, S.fol, S.met, S.tree, S.hands, S.eyes].map(svgToCanvas)); } catch(e){ toast('The sample scene could not be drawn'); return false; }
+    try { cv = await Promise.all([S.bg, S.fol, S.met, S.tree, S.hands, S.eyes].map(svgToCanvas)); } catch(e){ toast('Sacred Tree could not be drawn'); return false; }
     info = [['Flower of Life','accent'], ["Metatron's Cube",'accent'], ['Tree of Life','fg'], ['Hands','fg'], ['Eyes','fg']]; depths = [.2, .3, .5, .74, .9];
   }
   if (tok !== sampleTok) return false;
@@ -4511,8 +4511,8 @@ cv.addEventListener('pointerleave', () => { if (!painting && !calPainting) vrx =
 
 $('#bLoad').onclick = () => $('#fImg').click();
 $('#fImg').onchange = e => { const f = e.target.files[0]; if (f) loadImageFile(f); e.target.value=''; };
-$('#bSample').onclick = () => { makeSample().then(ok => { if (ok) toast('Sample scene'); }); };
-$('#bSample2').onclick = () => { makeSample('Sample scene 2', 2).then(ok => { if (ok) toast('Sample scene 2'); }); };
+$('#bSample').onclick = () => { makeSample().then(ok => { if (ok) toast('Sacred Tree'); }); };
+$('#bSample2').onclick = () => { makeSample('Tr1ppical Butterfly', 2).then(ok => { if (ok) toast('Tr1ppical Butterfly'); }); };
 $('#bAuto').onclick = () => { pushDepth(); autoDepth($('#depthMode').value); toast('Depth re-guessed'); };
 $('#bInvert').onclick = () => { pushDepth(); dctx.save(); dctx.globalCompositeOperation='difference'; dctx.fillStyle='#fff'; dctx.fillRect(0,0,imgW,imgH); dctx.restore(); markDepth(); scheduleMedians(); };
 $('#bSmooth').onclick = () => { pushDepth(); softenDepth(6); markDepth(); scheduleMedians(); };
