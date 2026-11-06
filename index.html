@@ -134,6 +134,8 @@ select{font:400 12px var(--f-ui);background:var(--raise);color:var(--ink);border
 .spec input[type=range]::-webkit-slider-thumb{pointer-events:auto;width:14px;height:24px;margin-top:-10px;border-radius:4px;background:var(--ink);border:2px solid var(--panel)}
 .spec input[type=range]::-moz-range-thumb{pointer-events:auto;width:10px;height:20px;border-radius:4px;background:var(--ink);border:2px solid var(--panel)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.lcrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.lcrow .lcl{flex:1 1 auto;font:600 12.5px var(--f-ui)}
 .chip{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;cursor:pointer;background:var(--raise)}
 .chip input{accent-color:var(--accent)}
 .improw{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:8px;align-items:center;padding:4px;border:1px solid var(--line);border-radius:4px;background:var(--raise)}
@@ -908,6 +910,8 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
     <p class="note" id="calTip">Double-click a layer to calibrate it; its selection tools open on the right. Each new layer only sees the part of the image earlier layers haven't claimed; whatever is left stays in Background.</p>
     <div class="lbl">All layers</div>
             <div id="g-layers" class="stack"></div>
+    <div class="lcrow" id="lcRow"><span class="lcl">Layer colours</span><button class="btn" id="bRollCols" title="Recolour the ticked layers with a random colour scheme (60-30-10 by depth)">Roll colours</button><button class="btn" id="bLcTicks" aria-expanded="false" aria-controls="lcList" aria-label="Choose which layers Roll colours recolours" title="Choose which layers Roll colours recolours">Layers ▾</button></div>
+    <div class="chips" id="lcList" hidden></div>
   </div>
 </section>
 
@@ -1200,6 +1204,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
       <details class="filt" id="fltTg"><summary><span>Targets: global, layers, particles</span><span class="meta" id="fltTgCount"></span></summary><div class="fbody"><div class="chips" id="diceTargets"></div></div></details>
       <details class="filt"><summary><span>Random pulse timing</span></summary><div class="fbody"><div class="chips" id="randTiming"></div><p class="note">Ticked bands pick a new pulse rate on every beat.</p></div></details>
       <details class="filt" id="fltOsc"><summary><span>Oscillators</span><span class="meta" id="fltOscState"></span></summary><div class="fbody"><label class="check"><input type="checkbox" id="randOsc"> Roll oscillator shapes and rates, and add a mapping</label><p class="note">Off by default. When ticked, each roll gives every oscillator a new wave shape and rate and maps one of them to one of the ticked effects. Undo roll takes it all back.</p></div></details>
+      <details class="filt" id="fltLC"><summary><span>Layer colours</span><span class="meta" id="fltLCState"></span></summary><div class="fbody"><label class="check"><input type="checkbox" id="randLC"> Include Layer colours in Roll</label><p class="note">Off by default. When ticked, each roll also recolours the layers ticked in the Layers panel with a random colour scheme. Undo roll takes it back.</p></div></details>
       <p class="note">Roll changes the ticked effects on the ticked targets. Random amount caps how far each one can move from where it is now; at 100% anything goes.</p>
     </div>
 
@@ -1437,6 +1442,7 @@ const P0 = {
   pRateL:'1/4', pRateM:'1/2', pRateH:'1/8', pOffL:0, pOffM:.5, pOffH:.5, pRandL:0, pRandM:0, pRandH:0,
   brushSize:60, brushStrength:.25, q:.75, aspect:'image', exposure:1,
   snapRadius:12, snapEdge:.7, snapAuto:0,
+  lcTicks: {},                       // Layer colours: layer id → 1 / 0 once the user ticks it; no entry = default (all image and icon layers except Background)
   mod: {osc: [], maps: []},          // oscillators (and, from the mapping phase, their mappings); older saves have none
   L: defLayers()
 };
@@ -3200,6 +3206,7 @@ const ROLE = {fg:['r-fg','Foreground object'], bgobj:['r-bgobj','Background obje
 function roleOf(id, L){ const kd = kindOf(id); return ROLE[kd === 'img' ? (id === 'bg' ? 'bg' : L.type) : kd] || ROLE.fg; }
 const DUP_SVG = '<svg class="gi-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 3.5V3.2A1.7 1.7 0 0 0 8.8 1.5H3.2A1.7 1.7 0 0 0 1.5 3.2v5.6a1.7 1.7 0 0 0 1.7 1.7h.3"/></svg>';
 function renderLayers(){
+  if (!$('#lcList').hidden) renderLcList();
   const host = $('#layerList'), focusId = document.activeElement && document.activeElement.id;
   { const live = renaming && document.getElementById('rn-' + renaming); if (live) renameDraft = live.value; }
   host.innerHTML = '';
@@ -3752,8 +3759,79 @@ function genVal(key){
   const v = sp.min + Math.random()*(sp.max - sp.min), st = sp.step;
   return Math.round(Math.round(v/st)*st*1000)/1000;
 }
+/* ---------- Layer colours: a colour-theory Recolour for the ticked layers, 60-30-10 by depth ---------- */
+const randLCBox = $('#randLC');
+try { randLCBox.checked = localStorage.getItem('depthscope.randLC') === '1'; } catch(e){}
+const syncRandLC = () => { $('#fltLCState').textContent = randLCBox.checked ? 'on' : 'off'; };
+randLCBox.addEventListener('change', () => { try { localStorage.setItem('depthscope.randLC', randLCBox.checked ? '1' : '0'); } catch(e){} syncRandLC(); });
+syncRandLC();
+const lcTicked = id => { const t = P.lcTicks && P.lcTicks[id]; return t === undefined ? id !== 'bg' : !!t; };
+const lcCandidates = () => layerDefs().filter(d => { const k = kindOf(d.id); return k === 'img' || k === 'icon'; });   // image + icon layers (Background listed, off by default); 3D object and particles never
+function renderLcList(){
+  const host = $('#lcList'); host.innerHTML = '';
+  for (const d of lcCandidates()){
+    const lab = document.createElement('label'); lab.className = 'chip';
+    lab.innerHTML = `<input type="checkbox" ${lcTicked(d.id) ? 'checked' : ''}> ${escH(d.name)}`;
+    lab.querySelector('input').onchange = e => { P.lcTicks = {...(P.lcTicks || {}), [d.id]: e.target.checked ? 1 : 0}; changed(); markDirty(); };
+    host.appendChild(lab);
+  }
+}
+$('#bLcTicks').onclick = () => { const h = $('#lcList'); h.hidden = !h.hidden; $('#bLcTicks').setAttribute('aria-expanded', String(!h.hidden)); if (!h.hidden) renderLcList(); };
+function hslHex(h, s, l){
+  h = ((h % 360) + 360) % 360; s /= 100; l /= 100;
+  const a = s*Math.min(l, 1 - l), f = n => { const k = (n + h/30) % 12; return l - a*Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return '#' + [f(0), f(8), f(4)].map(v => Math.round(v*255).toString(16).padStart(2, '0')).join('');
+}
+/* each scheme gives hue lists for the main (60%), second (30%) and accent (10%) colours; the middle layers cycle through the second list */
+const LC_SCHEMES = {
+  'Complementary': h => ({main:[h], second:[h + 180], accent:[h + 180]}),
+  'Analogous': h => ({main:[h], second:[h + 30], accent:[h - 30]}),
+  'Triadic': h => ({main:[h], second:[h + 120], accent:[h + 240]}),
+  'Split-complementary': h => ({main:[h], second:[h + 150], accent:[h + 210]}),
+  'Tetradic': h => ({main:[h], second:[h + 90, h + 270], accent:[h + 180]}),
+  'Monochrome': h => ({main:[h], second:[h], accent:[h]}),
+};
+function lcTone(role, mono, hue){
+  const [s, l] = mono ? {main:[rnd(40,54), rnd(30,38)], second:[rnd(46,60), rnd(48,56)], accent:[rnd(56,70), rnd(66,74)]}[role]
+                      : {main:[rnd(42,58), rnd(32,42)], second:[rnd(52,68), rnd(48,56)], accent:[rnd(68,84), rnd(60,68)]}[role];
+  const hn = ((hue % 360) + 360) % 360;
+  let S = s, Lt = l;
+  if (hn >= 35 && hn <= 80){ Lt = Math.max(Lt, 50); S = Math.min(S, 72); }     // yellows and olives turn to mud when dark, so keep them light
+  return [Math.max(40, Math.min(86, S)), Math.max(28, Math.min(74, Lt))];
+}
+function applyLayerColours(){            // sets Recolour on every ticked layer; returns the scheme name ('' when nothing is ticked)
+  const ids = lcCandidates().map(d => d.id).filter(lcTicked).reverse();   // layerDefs lists nearest first, so reversed = back to front
+  const n = ids.length; if (!n) return '';
+  const name = pickR(Object.keys(LC_SCHEMES)), mono = name === 'Monochrome', hues = LC_SCHEMES[name](Math.round(rnd(0, 360)));
+  let nA = Math.round(n*.1), nS = Math.round(n*.3);
+  if (n >= 3 && nA < 1) nA = 1;
+  if (n >= 2 && nS < 1) nS = 1;
+  const nM = Math.max(1, n - nS - nA); nS = Math.min(nS, n - nM); nA = n - nM - nS;
+  const roles = [['main', nM], ['second', nS], ['accent', nA]];
+  let i = 0;
+  for (const [role, k] of roles){
+    const list = hues[role];
+    for (let j = 0; j < k; j++, i++){
+      const hue = list[j % list.length], [s, l] = lcTone(role, mono, hue);
+      const lv = k > 1 ? (j/(k - 1) - .5)*12 : 0;                          // ±6 lightness spread so layers sharing a colour stay distinguishable
+      const L = getL(ids[i]), was = L.rcOn;
+      L.rcOn = 1; L.rcCol = hslHex(hue, s, Math.max(26, Math.min(76, l + lv)));
+      if (!was) L.rcStr = 1;                                                // existing Strength and Keep shading stay as they are
+    }
+  }
+  syncLayerEd(); renderLayers();
+  return name;
+}
+$('#bRollCols').onclick = () => {
+  if (cal){ toast('Finish calibrating first'); return; }
+  if (!lcCandidates().some(d => lcTicked(d.id))){ toast('Tick at least one layer first (Layers ▾)'); return; }
+  const before = fxSnap(), name = applyLayerColours();
+  const after = fxSnap(), he = histPush('colours', 'Layer colours', () => fxRestore(before), () => fxRestore(after));
+  changed(); markDirty();
+  actionToast(name + ' colours', 'Undo', () => histUndoEntry(he));
+};
 $('#bDice').onclick = () => {
-  if (!randSet.size){ toast('Tick at least one die next to a slider'); return; }
+  if (!randSet.size && !randLCBox.checked){ toast('Tick at least one die next to a slider'); return; }
   const before = fxSnap(), rb = rangeSnap();
   for (const key of randSet){
     if (!RLABEL[key]) continue;
@@ -3773,9 +3851,10 @@ $('#bDice').onclick = () => {
     }
   }
   if (mapReady && randOscBox.checked) rollOsc();
+  const lcName = randLCBox.checked ? applyLayerColours() : '';
   const after = fxSnap(), he = histPush('roll', 'Roll', () => fxRestore(before), () => fxRestore(after));
   syncUI(); syncPart(); markDirty(); flashApplied(rb);
-  actionToast(RA.amt >= .999 ? 'Rolled' : `Rolled, up to ${Math.round(RA.amt*100)}% of each range`, 'Undo', () => histUndoEntry(he));
+  actionToast((RA.amt >= .999 ? 'Rolled' : `Rolled, up to ${Math.round(RA.amt*100)}% of each range`) + (lcName ? ` · ${lcName} colours` : ''), 'Undo', () => histUndoEntry(he));
 };
 function fxPickAll(L){ const o = {}; for (const k in L) if (typeof L[k] !== 'object') o[k] = L[k]; return o; }
 $('#bDiceUndo').onclick = () => histStep(-1);
