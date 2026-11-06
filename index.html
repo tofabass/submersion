@@ -808,6 +808,10 @@ body.easy .moreMenu .onlyCmp{display:flex}
   .fp.folded{height:auto}
   body:not(.shDrag):not(.shOpen) .fp,body:not(.shDrag):not(.shOpen) .lookpop{transition:height .2s ease}
   #pOsc{bottom:var(--dockH,118px)}
+  /* pin bar: up to 3 pins share the bar's width; with more, each stays a third wide and the bar scrolls sideways */
+  .dock .macros{scroll-snap-type:x proximity}
+  .dock .macro{width:auto;min-width:0;flex:1 0 calc((100% - (var(--mn,3) - 1)*6px)/var(--mn,3));padding:3px 8px 0;scroll-snap-align:start}
+  .dock .macro input[type=range]{height:34px}
   .fph{position:relative;touch-action:none;cursor:grab;padding-top:14px}
   .shHandle{display:block;position:absolute;left:50%;top:0;transform:translateX(-50%);width:72px;height:20px;border:0;background:transparent;padding:0;cursor:grab}
   .shHandle::before{content:"";position:absolute;left:50%;top:7px;width:36px;height:4px;border-radius:2px;background:var(--dim);opacity:.55;transform:translateX(-50%)}
@@ -5446,9 +5450,10 @@ const GLYPHS = [[/speed|rate|tempo|loop length/i,'g-speed'],[/swing|bounce|wiggl
   [/wet|opacity|smooth|softness|mix/i,'g-mix'],[/gate|crossover|offset|position|center|axis|limit|tolerance|steer/i,'g-range']];
 const glyphFor = t => (GLYPHS.find(([re]) => re.test(t)) || [0, 'g-amount'])[1];
 const RANGE_ROWS = [...document.querySelectorAll('#pLayers .ctl, #pInsp .ctl')].filter(r => r.querySelector('input[type=range]'));
-let PINS = UI.get('pins', ['g-sym-seg','g-sym-twist','g-sym-zoom','g-color-hue','g-depth-strength','g-layers-wet']);
+const PHONE_PINS = phone.matches;   // on a phone the bar starts with 3 pins and Auto pin on; saved choices still win
+let PINS = UI.get('pins', PHONE_PINS ? ['g-sym-seg','g-sym-zoom','g-color-hue'] : ['g-sym-seg','g-sym-twist','g-sym-zoom','g-color-hue','g-depth-strength','g-layers-wet']);
 let AUTOPIN = new Set(UI.get('pinsAuto', []));            // which pins were added automatically
-let AUTO_ON = !!UI.get('autoPin', false), SLOTS = Math.min(12, Math.max(2, +UI.get('pinSlots', 6) || 6));
+let AUTO_ON = !!UI.get('autoPin', PHONE_PINS), SLOTS = Math.min(12, Math.max(2, +UI.get('pinSlots', PHONE_PINS ? 3 : 6) || (PHONE_PINS ? 3 : 6)));
 let LOCKED = new Set(UI.get('pinsLocked', []));
 const savePins = () => { markDirty(); UI.set('pins', PINS); UI.set('pinsAuto', [...AUTOPIN]); UI.set('pinsLocked', [...LOCKED]); };
 const pinnable = id => RANGE_ROWS.some(r => r.querySelector('input[type=range]').id === id);
@@ -6111,6 +6116,8 @@ function drawMacros(){
   for (const id of PINS){ const el = proxyRow(id, 'macro'); if (el) m.appendChild(el); }
   if (!m.children.length) m.innerHTML = '<span class="empty-m">Nothing pinned yet. Use the pin beside any slider to keep it here.</span>';
   m.classList.toggle('autoOn', AUTO_ON);
+  m.style.setProperty('--mn', Math.max(1, Math.min(3, m.querySelectorAll('.macro').length)));   // phone: how many share the bar's width
+  try { setDockH(); applySheet(); } catch(e){}
   document.querySelectorAll('.pin').forEach(b => { const on = PINS.includes(b.dataset.pin), t = b.dataset.nm ? (on ? `Unpin ${b.dataset.nm} from the dock` : `Pin ${b.dataset.nm} to the dock`) : null; b.setAttribute('aria-pressed', on); if (t){ b.title = t; b.setAttribute('aria-label', t); } });
 }
 
@@ -6844,6 +6851,7 @@ if (phone.matches){ pL.hidden = true; pI.hidden = true; showPanel(pL, false); }
 const dockEl = $('#dock');
 const setDockH = () => document.documentElement.style.setProperty('--dockH', Math.ceil(dockEl.getBoundingClientRect().height) + 'px');
 new ResizeObserver(() => { setDockH(); try { applySheet(); } catch(e){} }).observe(dockEl); setDockH();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { setDockH(); try { applySheet(); } catch(e){} });
 
 /* ---- "more" menu: Save, Look presets, and (small screens) Invert, Reset and Hide UI ---- */
 const moreMenu = $('#moreMenu'), dMore = $('#dMore');
