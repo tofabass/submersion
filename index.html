@@ -1908,18 +1908,30 @@ function samplePlaceholder(){
   imageReady('Sample scene');
 }
 let sampleTok = 0;
-async function makeSample(name = 'Sample scene'){
-  const tok = ++sampleTok, S = sampleSVG();
-  let cv; try { cv = await Promise.all([S.bg, S.fol, S.met, S.tree, S.hands, S.eyes].map(svgToCanvas)); } catch(e){ toast('The sample scene could not be drawn'); return false; }
+/* sample scene 2: six uploaded PNG layers (assets/scene2), back to front; the more a layer fills the middle, the nearer it sits */
+const SCENE2 = [['sparkles','Sparkles','accent',.2], ['corner-mandalas','Corner Mandalas','accent',.32], ['side-mandalas','Side Mandalas','accent',.45], ['moon-phases','Moon Phases','fg',.6], ['sun','Sun','fg',.75], ['butterfly','Butterfly','fg',.9]];
+const pngToCanvas = url => loadImgURL(url).then(im => { const c = document.createElement('canvas'); c.width = 1600; c.height = 900; c.getContext('2d').drawImage(im, 0, 0, 1600, 900); return c; });
+async function makeSample(name = 'Sample scene', which = 1){
+  const tok = ++sampleTok;
+  let cv, info, depths;
+  if (which === 2){
+    try { const bc = document.createElement('canvas'); bc.width = 1600; bc.height = 900; const bx = bc.getContext('2d'); bx.fillStyle = '#2A2D2F'; bx.fillRect(0,0,1600,900);
+      cv = [bc, ...await Promise.all(SCENE2.map(s => pngToCanvas('assets/scene2/' + s[0] + '.png')))]; } catch(e){ toast('Sample scene 2 could not be loaded'); return false; }
+    info = SCENE2.map(s => [s[1], s[2]]); depths = SCENE2.map(s => s[3]);
+  } else {
+    const S = sampleSVG();
+    try { cv = await Promise.all([S.bg, S.fol, S.met, S.tree, S.hands, S.eyes].map(svgToCanvas)); } catch(e){ toast('The sample scene could not be drawn'); return false; }
+    info = [['Flower of Life','accent'], ["Metatron's Cube",'accent'], ['Tree of Life','fg'], ['Hands','fg'], ['Eyes','fg']]; depths = [.2, .3, .5, .74, .9];
+  }
   if (tok !== sampleTok) return false;
-  const [bgC, ...lay] = cv, info = [['Flower of Life','accent'], ["Metatron's Cube",'accent'], ['Tree of Life','fg'], ['Hands','fg'], ['Eyes','fg']];
+  const [bgC, ...lay] = cv;
   imgW = 1600; imgH = 900; colorC.width = depthC.width = imgW; colorC.height = depthC.height = imgH;
   if (cal){ cal = null; showCal(false); }
   cctx.clearRect(0,0,imgW,imgH); cctx.drawImage(bgC, 0, 0); for (const c of lay) cctx.drawImage(c, 0, 0);
   // depth: background furthest, the two geometry layers behind the tree, hands and eyes nearest
   dctx.fillStyle = gray(.04); dctx.fillRect(0,0,imgW,imgH);
   const plane = (c, fill) => { const t = scratch(imgW, imgH); t.drawImage(c, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = fill; t.fillRect(0,0,imgW,imgH); dctx.drawImage(t.canvas, 0, 0); };
-  [.2, .3, .5, .74, .9].forEach((d, k) => plane(lay[k], gray(d)));
+  depths.forEach((d, k) => plane(lay[k], gray(d)));
   softenDepth(2);
   P.L.layers = []; masks.clear(); medians.clear(); ownCols.clear(); P.L.xs = [];
   plateC = bgC; [MW, MH] = maskDims();
@@ -1930,7 +1942,7 @@ async function makeSample(name = 'Sample scene'){
   });
   P.L.bg.relief = .3;      // low inner depth: a layer hidden behind another must not tie with it, or the two blend half and half
   // Particles: the built-in particle layer, small sage and cream spores
-  P.L.part = {...defLayers().part, name:'Particles', vis:true, count:160, psize:1.5, psizeVar:.3, pspeed:.4, pspread:.5, pturb:.35, ptwinkle:.6, phue:93, phueVar:.1, psat:.35, pbright:1.1, pseed:7, pshape:'soft'};
+  P.L.part = which === 2 ? {...defLayers().part} : {...defLayers().part, name:'Particles', vis:true, count:160, psize:1.5, psizeVar:.3, pspeed:.4, pspread:.5, pturb:.35, ptwinkle:.6, phue:93, phueVar:.1, psat:.35, pbright:1.1, pseed:7, pshape:'soft'};
   imageReady(name, true); uploadIcon(); syncUI();
   return true;
 }
@@ -4370,7 +4382,7 @@ cv.addEventListener('pointerleave', () => { if (!painting && !calPainting) vrx =
 $('#bLoad').onclick = () => $('#fImg').click();
 $('#fImg').onchange = e => { const f = e.target.files[0]; if (f) loadImageFile(f); e.target.value=''; };
 $('#bSample').onclick = () => { makeSample().then(ok => { if (ok) toast('Sample scene'); }); };
-$('#bSample2').onclick = () => { makeSample('Sample scene 2').then(ok => { if (ok) toast('Sample scene 2'); }); };
+$('#bSample2').onclick = () => { makeSample('Sample scene 2', 2).then(ok => { if (ok) toast('Sample scene 2'); }); };
 $('#bAuto').onclick = () => { pushDepth(); autoDepth($('#depthMode').value); toast('Depth re-guessed'); };
 $('#bInvert').onclick = () => { pushDepth(); dctx.save(); dctx.globalCompositeOperation='difference'; dctx.fillStyle='#fff'; dctx.fillRect(0,0,imgW,imgH); dctx.restore(); markDepth(); scheduleMedians(); };
 $('#bSmooth').onclick = () => { pushDepth(); softenDepth(6); markDepth(); scheduleMedians(); };
