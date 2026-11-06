@@ -773,6 +773,13 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 .moreMenu .mrow{display:grid;gap:4px;padding:6px 10px 8px}
 .moreMenu .mrow select{width:100%;min-height:36px;flex:none}
 .moreMenu .onlyCmp{display:none}
+/* Easy mode: anything tagged data-adv is hidden (its value keeps applying); dice and pin buttons go with the sliders they sit on */
+body.easy [data-adv]{display:none!important}
+body.easy .rk,body.easy .ctl>.pin{display:none!important}
+body.easy .moreMenu .onlyCmp{display:flex}
+.easyChip{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border-radius:999px;font:500 12px var(--f-ui);color:var(--ink);background:var(--panel);border:1px solid var(--line);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.easyChip[hidden]{display:none}
+.easyChip .btn{padding:3px 10px;min-height:0}
 .clean .moreMenu{display:none!important}
 .shHandle{display:none}
 /* Rec: a clear idle state in the light theme (recording stays solid red) */
@@ -930,7 +937,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
             <div class="layers" id="layerList" role="listbox" aria-label="Layers"></div>
             <p class="note emptyNote" id="layersEmpty" hidden></p>
     <button class="hidtog" id="bShowHidden" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-eye"/></svg><span></span></button>
-    <div class="btns"><button class="btn primary" id="bAddLayer" aria-haspopup="menu" aria-expanded="false" aria-controls="addMenu">Add layer</button><button class="tipq" id="calTipQ" hidden aria-expanded="false" aria-controls="calTip" aria-label="How layers and calibration work">?</button></div>
+    <div class="btns"><button class="btn primary" id="bAddLayer" aria-haspopup="menu" aria-expanded="false" aria-controls="addMenu">Add layer</button><button class="tipq" data-adv id="calTipQ" hidden aria-expanded="false" aria-controls="calTip" aria-label="How layers and calibration work">?</button></div>
     <div class="addMenu" id="addMenu" role="menu" aria-label="Add layer" hidden></div>
         <div class="ed" id="autoBox" hidden>
           <div class="edhead"><h3>Auto layers</h3></div>
@@ -939,11 +946,11 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
           <p class="note">Listed nearest first. Foreground objects take the nearest depths and background objects the farthest ones above Background; text and accent are found by fine detail. Whatever is left stays in Background. You can calibrate each layer afterwards.</p>
           <div class="btns"><button class="btn primary" id="bAutoGo">Generate layers</button><button class="btn" id="bAutoCancel">Cancel</button></div>
         </div>
-    <p class="note" id="calTip">Double-click a layer to calibrate it; its selection tools open on the right. Each new layer only sees the part of the image earlier layers haven't claimed; whatever is left stays in Background.</p>
-    <div class="lbl">All layers</div>
-            <div id="g-layers" class="stack"></div>
-    <div class="lcrow" id="lcRow"><span class="lcl">Layer colours</span><button class="btn" id="bRollCols" title="Recolour the ticked layers with a random colour scheme (60-30-10 by depth)">Roll colours</button><button class="btn" id="bLcTicks" aria-expanded="false" aria-controls="lcList" aria-label="Choose which layers Roll colours recolours" title="Choose which layers Roll colours recolours">Layers ▾</button></div>
-    <div class="chips" id="lcList" hidden></div>
+    <p class="note" data-adv id="calTip">Double-click a layer to calibrate it; its selection tools open on the right. Each new layer only sees the part of the image earlier layers haven't claimed; whatever is left stays in Background.</p>
+    <div class="lbl" data-adv>All layers</div>
+            <div id="g-layers" data-adv class="stack"></div>
+    <div class="lcrow" data-adv id="lcRow"><span class="lcl">Layer colours</span><button class="btn" id="bRollCols" title="Recolour the ticked layers with a random colour scheme (60-30-10 by depth)">Roll colours</button><button class="btn" id="bLcTicks" aria-expanded="false" aria-controls="lcList" aria-label="Choose which layers Roll colours recolours" title="Choose which layers Roll colours recolours">Layers ▾</button></div>
+    <div class="chips" data-adv id="lcList" hidden></div>
   </div>
 </section>
 
@@ -955,7 +962,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 
     <div class="cat off" data-cat="layer">
       <div class="cath"><span class="catn">Layer · <span id="layerCtlName"></span></span></div>
-        <div class="ed cal" id="calCard" hidden>
+        <div class="ed cal" data-adv id="calCard" hidden>
           <div class="edhead"><h3 id="calTitle">Calibrate</h3><span class="meta" id="calStep"></span></div>
           <div id="calSelBox" class="stack">
             <div class="lbl">1 · What is this layer?</div>
@@ -1015,15 +1022,15 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
           <div class="edhead"><h3 id="edTitle">Background</h3>
             <div class="btns">
               <span hidden><button class="btn" id="bCalibrate">Calibrate</button><button class="btn" id="bLayerDelete">Delete</button></span>
-              <button class="btn" id="bLayerReset" title="Put this layer's effects back to their starting values; its selection, name and visibility stay (Ctrl+Z undoes)">Reset this layer's effects</button>
+              <button class="btn" data-adv id="bLayerReset" title="Put this layer's effects back to their starting values; its selection, name and visibility stay (Ctrl+Z undoes)">Reset this layer's effects</button>
             </div>
           </div>
           <div class="info" id="edInfo"></div>
-          <div id="iconBox" class="stack" hidden>
+          <div id="iconBox" data-adv class="stack" hidden>
             <div class="icons" id="iconGrid" role="group" aria-label="Icon"></div>
             <div class="btns"><button class="btn" id="bIconLoad">Load icon image</button><input type="file" id="fIcon" accept="image/*" hidden></div>
           </div>
-          <div id="objBox" class="stack" hidden>
+          <div id="objBox" data-adv class="stack" hidden>
             <div class="btns">
               <select id="objShape" aria-label="3D shape">
                 <option value="merkaba">Merkaba</option>
@@ -1043,7 +1050,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
               <button data-s="both" aria-pressed="true">Both</button>
             </div>
           </div>
-          <div id="partBox" class="stack" hidden>
+          <div id="partBox" data-adv class="stack" hidden>
             <div class="ctl"><label for="partMode">Motion</label><output></output>
               <select id="partMode"><option value="drift">Drift</option><option value="burst">Burst from center</option><option value="orbit">Orbit</option><option value="vortex">Vortex (spiral in)</option><option value="swarm">Swarm (hover)</option></select></div>
             <div class="ctl"><label for="partShape">Shape</label><output></output>
@@ -1052,12 +1059,12 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
             <div id="g-part" class="stack"></div>
             <p class="note">Particles live in the image's space, so this layer's Symmetry folds them into the kaleidoscope like any other layer. Emitter symmetry copies the particles themselves around the emitter center. Flow and turbulence speeds are whole numbers per loop, so exports stay seamless.</p>
           </div>
-          <div id="g-sprite" class="stack" hidden></div>
-          <div id="g-icon" class="stack" hidden></div>
-          <div id="g-objx" class="stack" hidden></div>
+          <div id="g-sprite" data-adv class="stack" hidden></div>
+          <div id="g-icon" data-adv class="stack" hidden></div>
+          <div id="g-objx" data-adv class="stack" hidden></div>
           <div class="lbl">Depth</div>
           <div id="g-lpos" class="stack"></div>
-          <div id="instBox" class="stack">
+          <div id="instBox" data-adv class="stack">
             <div class="lbl">Instances</div>
             <div id="g-linst" class="stack"></div>
             <div class="seg" id="instMode" role="group" aria-label="How copies look deeper in"><button data-im="shrink" aria-pressed="true">Shrink</button><button data-im="fade" aria-pressed="false">Shrink + fade</button><button data-im="flat" aria-pressed="false">Same size</button></div>
@@ -1065,7 +1072,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
           </div>
           <div class="lbl">Dry / wet</div>
           <div id="g-lmix" class="stack"></div>
-          <div class="ctl"><label for="layerBlend">Blend mode</label>
+          <div class="ctl" data-adv><label for="layerBlend">Blend mode</label>
             <select id="layerBlend">
               <option value="0">Normal</option><option value="1">Add</option><option value="2">Screen</option>
               <option value="3">Multiply</option><option value="4">Overlay</option><option value="5">Soft light</option>
@@ -1073,9 +1080,9 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
               <option value="9">Darken</option><option value="10">Color dodge</option>
             </select>
           </div>
-          <div class="lbl">Symmetry</div>
-          <div id="g-lsym" class="stack"></div>
-          <div id="bgBox" class="stack" hidden>
+          <div class="lbl" data-adv>Symmetry</div>
+          <div id="g-lsym" data-adv class="stack"></div>
+          <div id="bgBox" data-adv class="stack" hidden>
             <div class="lbl">Background fill</div>
             <div class="seg" id="bgFill" role="group" aria-label="Background fill">
               <button data-f="0" aria-pressed="true">Photo</button>
@@ -1084,20 +1091,20 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
             <div class="bgcol" id="bgColRow"><label for="bgCol">Colour</label><input type="color" id="bgCol" value="#153126"><output id="bgColOut">#153126</output></div>
             <p class="note" id="bgNote" hidden>The solid colour fills everything behind your layers and stays still: it ignores parallax, colour, glow and melt. Opacity, blend mode and dry/wet still apply.</p>
           </div>
-          <div class="lbl">Color</div>
-          <label class="check" id="layerInvRow"><input type="checkbox" id="layerInv"> Invert colours (black becomes white)</label>
-          <div id="g-lcol" class="stack"></div>
+          <div class="lbl" data-adv>Color</div>
+          <label class="check" data-adv id="layerInvRow"><input type="checkbox" id="layerInv"> Invert colours (black becomes white)</label>
+          <div id="g-lcol" data-adv class="stack"></div>
           <div id="rcBox" class="stack" hidden>
             <div class="lbl">Recolour</div>
             <label class="check"><input type="checkbox" id="rcOn"> Recolour this layer (for pure white or black layers)</label>
             <div class="bgcol" id="rcColRow"><label for="rcCol">Colour</label><input type="color" id="rcCol" value="#00e5ff"><output id="rcColOut">#00E5FF</output></div>
             <div id="g-lrc" class="stack"></div>
-            <label class="check"><input type="checkbox" id="rcKeep"> Keep shading (original brightness multiplies the colour)</label>
+            <label class="check" data-adv><input type="checkbox" id="rcKeep"> Keep shading (original brightness multiplies the colour)</label>
           </div>
           <div class="lbl">Effects</div>
-          <p class="note liteHint">Lite: trails use 2 echoes and glow is softer. Full mode shows them at full quality.</p>
+          <p class="note liteHint" data-adv>Lite: trails use 2 echoes and glow is softer. Full mode shows them at full quality.</p>
           <div id="g-lfx" class="stack"></div>
-          <div id="olBox" class="stack" hidden>
+          <div id="olBox" data-adv class="stack" hidden>
             <div class="lbl">Outline <span class="liteOnly">Full mode only</span></div>
             <label class="check"><input type="checkbox" id="olOn"> Draw an outline around this layer</label>
             <div class="bgcol" id="olColRow"><label for="olCol">Colour</label><input type="color" id="olCol" value="#ffffff"><output id="olColOut">#FFFFFF</output></div>
@@ -1109,13 +1116,13 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 
     <div class="cat off" data-cat="sym">
       <div class="cath"><span class="catn">Symmetry</span></div>
-<div class="stack" id="g-sym">        <label class="check"><input type="checkbox" id="p-mirror"> Mirror each segment</label></div>
+<div class="stack" id="g-sym">        <label class="check" data-adv><input type="checkbox" id="p-mirror"> Mirror each segment</label></div>
     </div>
 
     <div class="cat off" data-cat="color">
       <div class="cath"><span class="catn">Color</span></div>
-<label class="check"><input type="checkbox" id="gInv"> Invert all image layers <span class="kbd-i">Shift I</span></label><p class="note">Flips every image layer, black to white. A solid background colour stays as you picked it, and a layer with its own Invert ticked flips back.</p>        <div id="g-color" class="stack"></div>
-        <p class="note">For hue that sweeps back and forth, map an oscillator to Hue shift (Mod).</p>
+<label class="check" data-adv><input type="checkbox" id="gInv"> Invert all image layers <span class="kbd-i">Shift I</span></label><p class="note" data-adv>Flips every image layer, black to white. A solid background colour stays as you picked it, and a layer with its own Invert ticked flips back.</p>        <div id="g-color" class="stack"></div>
+        <p class="note" data-adv>For hue that sweeps back and forth, map an oscillator to Hue shift (Mod).</p>
     </div>
 
     <div class="cat off" data-cat="depth">
@@ -1153,23 +1160,23 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
           <button class="btn" id="bPlay" disabled>Play</button>
           <input type="file" id="fAudio" accept="audio/*" hidden>
         </div>
-        <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
+        <div class="lv" data-adv><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
         <div class="lbl">Frequency bands</div>
         <div class="bands">
-          <div class="band"><span class="bn">Low</span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
-          <div class="band"><span class="bn">Mid</span><i class="bm"><b id="mM"></b><em id="gM"></em></i><span class="hz" id="hzM"></span><button class="ibtn solo" id="soloM" aria-pressed="false" aria-label="Solo the mid band" title="Solo the mid band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
-          <div class="band"><span class="bn">High</span><i class="bm"><b id="mH"></b><em id="gH"></em></i><span class="hz" id="hzH"></span><button class="ibtn solo" id="soloH" aria-pressed="false" aria-label="Solo the high band" title="Solo the high band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">Low</span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" data-adv id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">Mid</span><i class="bm"><b id="mM"></b><em id="gM"></em></i><span class="hz" id="hzM"></span><button class="ibtn solo" data-adv id="soloM" aria-pressed="false" aria-label="Solo the mid band" title="Solo the mid band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">High</span><i class="bm"><b id="mH"></b><em id="gH"></em></i><span class="hz" id="hzH"></span><button class="ibtn solo" data-adv id="soloH" aria-pressed="false" aria-label="Solo the high band" title="Solo the high band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
         </div>
-        <div class="btns"><button class="btn" id="bGateSolo" aria-pressed="false">Gate solo</button><span class="note">Hear only what the gates let through. The headphone button on a band listens to that band alone.</span></div>
-        <div id="g-aband" class="stack"></div>
+        <div class="btns" data-adv><button class="btn" id="bGateSolo" aria-pressed="false">Gate solo</button><span class="note">Hear only what the gates let through. The headphone button on a band listens to that band alone.</span></div>
+        <div id="g-aband" data-adv class="stack"></div>
         <div class="lbl">Effects</div>
-        <div class="btns"><span class="note">Which band drives each effect, and rubber band, are set in Mod.</span><button class="btn" id="bToMod">Open Mod</button></div>
+        <div class="btns" data-adv><span class="note">Which band drives each effect, and rubber band, are set in Mod.</span><button class="btn" id="bToMod">Open Mod</button></div>
         <div id="g-afx" class="stack"></div>
-        <div class="lbl">Tempo pulse</div>
-        <div id="g-audio" class="stack"></div>
-        <div class="btns"><button class="btn primary" id="bTap" title="Tap tempo (M)" aria-keyshortcuts="M">Tap tempo</button><span class="note" id="tapNote">Tap along with your music (or press M). Every tap also restarts the beat on that tap, so you can line it up.</span></div>
-        <div id="g-apulse" class="stack"></div>
-        <p class="note" id="audioNote">No track loaded. Set a tempo pulse to test reactivity without sound.</p>
+        <div class="lbl" data-adv>Tempo pulse</div>
+        <div id="g-audio" data-adv class="stack"></div>
+        <div class="btns" data-adv><button class="btn primary" id="bTap" title="Tap tempo (M)" aria-keyshortcuts="M">Tap tempo</button><span class="note" id="tapNote">Tap along with your music (or press M). Every tap also restarts the beat on that tap, so you can line it up.</span></div>
+        <div id="g-apulse" data-adv class="stack"></div>
+        <p class="note" data-adv id="audioNote">No track loaded. Set a tempo pulse to test reactivity without sound.</p>
     </div>
 
     <div class="cat off" data-cat="view">
@@ -1216,7 +1223,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
         </div>
     </div>
 
-    <div class="cat off" data-cat="random">
+    <div class="cat off" data-adv data-cat="random">
       <div class="cath"><span class="catn">Randomize</span></div>
       <div class="lbl">Randomize effects</div>
       <div class="btns">
@@ -1241,7 +1248,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
       <p class="note">Roll changes the ticked effects on the ticked targets. Random amount caps how far each one can move from where it is now; at 100% anything goes.</p>
     </div>
 
-    <div class="cat off" data-cat="mod">
+    <div class="cat off" data-adv data-cat="mod">
       <div class="cath"><span class="catn">Mod</span></div>
       <p class="note">Every mapping in one place: what moves what, and how far. Click a target to jump to its slider.</p>
       <div class="mtool">
@@ -1260,7 +1267,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 
     <div class="cat off" data-cat="project">
       <div class="cath"><span class="catn">Project &amp; export</span></div>
-<div class="mark"><b>Submersion</b><span>prototype v1.3 · Glass</span></div>            <div class="status" id="status"></div>      <div class="btns">
+<div class="mark"><b>Submersion</b><span>prototype v1.3 · Glass</span></div>            <div class="status" id="status"></div>      <div class="btns" data-adv>
         <button class="btn" id="bCopy">Copy settings</button>
         <button class="btn" id="bReset">Reset all</button>
         <button class="btn" id="bResetUndo" disabled>Undo reset</button>
@@ -1274,20 +1281,20 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
         <button class="btn" id="bProjImport">Import file</button>
         <input type="file" id="fProj" accept=".json,application/json" hidden>
       </div>
-      <p class="note" id="projNote">A project keeps the image, depth map, every layer selection and all settings. Export file saves it to your computer; Import file opens it again.</p>      <div class="lbl">Look presets</div>
-      <div class="btns"><select id="presetSel" aria-label="Look presets"></select></div>
-      <div class="btns">
+      <p class="note" id="projNote">A project keeps the image, depth map, every layer selection and all settings. Export file saves it to your computer; Import file opens it again.</p>      <div class="lbl" data-adv>Look presets</div>
+      <div class="btns" data-adv><select id="presetSel" aria-label="Look presets"></select></div>
+      <div class="btns" data-adv>
         <input type="text" id="presetName" maxlength="40" placeholder="Name this Look preset" aria-label="Look preset name">
         <button class="btn primary" id="bPresetSave">Save Look preset</button>
       </div>
-      <div class="btns">
+      <div class="btns" data-adv>
         <button class="btn" id="bPresetUpdate" disabled>Update selected</button>
         <button class="btn" id="bPresetDelete" disabled>Delete</button>
         <button class="btn" id="bPresetExport">Export</button>
         <button class="btn" id="bPresetImport">Import</button>
         <input type="file" id="fPresets" accept=".json,application/json" hidden>
       </div>
-      <p class="note" id="presetNote">Loading your Look presets…</p><div class="lbl">Output</div>        <div class="ctl"><label for="aspectSel">Aspect ratio</label>
+      <p class="note" data-adv id="presetNote">Loading your Look presets…</p><div class="lbl">Output</div>        <div class="ctl"><label for="aspectSel">Aspect ratio</label>
           <select id="aspectSel">
             <option value="image">Match image</option>
             <option value="free">Fill monitor</option>
@@ -1357,29 +1364,29 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 <nav class="dock" id="dock" aria-label="Dock">
   <button class="dk" id="dLayers" aria-pressed="true" aria-label="Layers" title="Layers (L)" aria-keyshortcuts="L"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-layers"/></svg></button>
   <button class="dk" id="dInsp" aria-pressed="true" aria-label="Inspector" title="Inspector (I)" aria-keyshortcuts="I"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-sym"/></svg></button>
-  <button class="dk" id="dOsc" aria-pressed="false" aria-label="Oscillators" title="Oscillators (O)" aria-keyshortcuts="O" aria-controls="pOsc"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-osc"/></svg></button>
-  <span class="vr m"></span>
-  <div class="macros" id="macros" aria-label="Pinned controls"></div>
-  <span class="vr m"></span>
-  <div class="srch"><svg class="gi-svg s" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-search"/></svg><input type="text" id="dq" placeholder="Find a control" aria-label="Find a control" autocomplete="off"><span class="kbd">Ctrl F</span>
+  <button class="dk" data-adv id="dOsc" aria-pressed="false" aria-label="Oscillators" title="Oscillators (O)" aria-keyshortcuts="O" aria-controls="pOsc"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-osc"/></svg></button>
+  <span class="vr m" data-adv></span>
+  <div class="macros" id="macros" data-adv aria-label="Pinned controls"></div>
+  <span class="vr m" data-adv></span>
+  <div class="srch" data-adv><svg class="gi-svg s" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-search"/></svg><input type="text" id="dq" placeholder="Find a control" aria-label="Find a control" autocomplete="off"><span class="kbd">Ctrl F</span>
     <button class="dk" id="dFind" aria-label="Find a control" title="Find a control (Ctrl+F)" aria-keyshortcuts="Control+F"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-search"/></svg></button>
     <div class="sres" id="sres" hidden></div></div>
   <button class="dk" id="dPlay" aria-label="Pause" title="Play / pause (Space)" aria-keyshortcuts="Space"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-pause"/></svg></button>
   <button class="dk" id="dRoll" aria-label="Roll" title="Roll (? or /)" aria-keyshortcuts="? /"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dice"/></svg></button>
-  <button class="dk" id="dInv" aria-pressed="false" aria-label="Invert all image layers" title="Invert all image layers (Shift+I)" aria-keyshortcuts="Shift+I"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg></button>
+  <button class="dk" data-adv id="dInv" aria-pressed="false" aria-label="Invert all image layers" title="Invert all image layers (Shift+I)" aria-keyshortcuts="Shift+I"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg></button>
   <button class="dk" id="dRec" aria-label="Record one loop" title="Record one loop (R, press again to stop)" aria-keyshortcuts="R"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rec"/></svg></button>
-  <button class="dk" id="dFull" aria-label="Fullscreen" title="Fullscreen (Shift+F)" aria-keyshortcuts="Shift+F"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-full"/></svg></button>
-  <button class="dk" id="dHide" aria-label="Hide UI" title="Hide everything but the picture (H)" aria-keyshortcuts="H"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-hide"/></svg></button>
+  <button class="dk" data-adv id="dFull" aria-label="Fullscreen" title="Fullscreen (Shift+F)" aria-keyshortcuts="Shift+F"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-full"/></svg></button>
+  <button class="dk" data-adv id="dHide" aria-label="Hide UI" title="Hide everything but the picture (H)" aria-keyshortcuts="H"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-hide"/></svg></button>
   <button class="dk" id="dTheme" aria-label="Theme menu" title="Theme menu (T)" aria-keyshortcuts="T" aria-expanded="false" aria-controls="lookPop" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-theme"/></svg></button>
-  <button class="dk" id="dReset" aria-label="Reset all effects" title="Reset all effects (Z)" aria-keyshortcuts="Z"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-reset"/></svg></button>
+  <button class="dk" data-adv id="dReset" aria-label="Reset all effects" title="Reset all effects (Z)" aria-keyshortcuts="Z"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-reset"/></svg></button>
   <button class="dk" id="dMore" aria-haspopup="dialog" aria-expanded="false" aria-controls="moreMenu" title="More" aria-label="More"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-more"/></svg><i class="dotb" id="dMoreDot" hidden></i></button>
 </nav>
 <div class="moreMenu" id="moreMenu" role="dialog" aria-label="More" hidden>
   <button class="mi" id="mSave" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg><span>Save project</span><i class="dirtyDot" id="mSaveDot" hidden></i><kbd class="kbd-i">Ctrl S</kbd></button>
   <button class="mi" id="mMusic" type="button" aria-controls="pMusic"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg><span>Streaming</span></button>
-  <form class="impLink" id="mImpLink" autocomplete="off"><input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button></form>
-  <label class="mrow" for="mLook"><span class="lbl">Look presets</span><select id="mLook" aria-label="Look presets"></select></label>
-  <button class="mi onlyCmp" id="mInv" type="button" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg><span>Invert image layers</span></button>
+  <form class="impLink" data-adv id="mImpLink" autocomplete="off"><input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button></form>
+  <label class="mrow" data-adv for="mLook"><span class="lbl">Look presets</span><select id="mLook" aria-label="Look presets"></select></label>
+  <button class="mi onlyCmp" data-adv id="mInv" type="button" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg><span>Invert image layers</span></button>
   <button class="mi onlyCmp" id="mReset" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-reset"/></svg><span>Reset all effects</span></button>
   <button class="mi onlyCmp" id="mHide" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-hide"/></svg><span>Hide UI</span></button>
 </div>
@@ -1398,6 +1405,9 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   <details class="lkg" data-lkg="perf" open><summary>Performance</summary><div class="lkgb">
   <div class="lrowp"><span>Mode</span><div class="seg" id="lkMode" role="group" aria-label="Performance mode"><button data-mode="lite">Lite</button><button data-mode="full">Full</button></div><label class="check"><input type="checkbox" id="lkRemember"> Remember my device choice (skip the start-up question)</label><p class="note" id="lkModeNote">Lite caps resolution and frame rate for phones. Your saved settings are untouched.</p></div>
   </div></details>
+  <details class="lkg" data-lkg="iface" open><summary>Interface</summary><div class="lkgb">
+  <div class="lrowp"><span>Controls</span><div class="seg" id="lkEasy" role="group" aria-label="Interface"><button data-easy="1">Easy</button><button data-easy="0">Full</button></div><p class="note">Easy shows fewer controls. Hidden ones keep their values and still shape the picture; switch to Full to see everything. Separate from Lite / Full performance.</p></div>
+  </div></details>
   <details class="lkg" data-lkg="look" open><summary>Look</summary><div class="lkgb">
   <div class="lrowp"><span>Theme</span><div class="seg" role="group" aria-label="Theme"><button data-lk="theme" data-v="light">Light</button><button data-lk="theme" data-v="dark">Dark</button></div></div>
   <div class="lrowp"><span>Backdrop</span><div class="seg" role="group" aria-label="Backdrop"><button data-lk="bd" data-v="dark">Dark</button><button data-lk="bd" data-v="light">Light</button><button data-lk="bd" data-v="mirror">Mirror</button></div></div>
@@ -1405,7 +1415,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   <div class="lrowp"><span>Global colour</span><div class="colrow"><input type="color" id="lkColor" aria-label="Global colour"><output id="lkColorOut"></output><button class="btn" id="lkReset">Default</button></div><div class="swatches" id="lkSw" aria-hidden="true"></div><p class="note">Accents, text and slider colours are all worked out from this one colour.</p></div>
   <div class="lrowp"><span>Frost</span><div class="frostrow"><span>Clear</span><input type="range" id="lkFrost" min="0" max="1" step="0.01" aria-label="Frost"><output id="lkFrostOut"></output></div></div>
   </div></details>
-  <details class="lkg" data-lkg="pins" open><summary>Pins</summary><div class="lkgb">
+  <details class="lkg" data-adv data-lkg="pins" open><summary>Pins</summary><div class="lkgb">
   <div class="lrowp"><span>Auto pin</span><label class="check"><input type="checkbox" id="lkAutoPin"> Pin sliders to the bar as I use them</label><p class="note">Skips sliders that an oscillator or audio is moving. Hover a pin in the bar and tap its lock to keep it in place; locked pins are never dropped.</p></div>
   <div class="lrowp"><span>Pinned slots</span><div class="slotrow"><input type="number" id="lkSlots" min="2" max="12" step="1" inputmode="numeric" data-typing aria-label="Pinned slots"><span>sliders fit in the bar (2–12)</span></div></div>
   </div></details>
@@ -1428,6 +1438,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
     <button class="miniBtn" id="mnCap" type="button" aria-label="Capture still (PNG)" title="Capture still (PNG)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-image"/></svg></button>
   </div>
 </div>
+<div class="easyChip" id="easyChip" role="status" hidden><span>Easy mode</span><button class="btn" id="easyChipGo" type="button">Switch to Full</button></div>
 <div class="tutOffer" id="tutOffer" role="status" hidden><span>New here? Take a quick tour of the controls.</span><button class="btn primary" id="tutOfferGo" type="button">Show me</button><button class="btn" id="tutOfferNo" type="button">No thanks</button></div>
 <div class="tut" id="tut" hidden><div class="tutSpot" id="tutSpot"></div>
   <div class="tutCard" id="tutCard" role="dialog" aria-labelledby="tutT" tabindex="-1">
@@ -1438,10 +1449,28 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 <audio id="audioEl" loop hidden></audio>
 
 <script>
+/* Easy / Full interface: runs first so the page never flashes the wrong layout. Own key, not part of projects or presets.
+   No stored choice: a visitor with no saved Submersion data at all is new and starts in Easy; anyone with saved data stays in Full. */
+(() => {
+  const KEY = 'submersion.ui.easy'; let on = false, firstRun = false;
+  try {
+    const v = localStorage.getItem(KEY);
+    if (v === '1' || v === '0') on = v === '1';
+    else {
+      let old = false;
+      for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i) || ''; if (k !== KEY && /^(submersion|depthscope)\./.test(k)) { old = true; break; } }
+      on = firstRun = !old; localStorage.setItem(KEY, on ? '1' : '0');
+    }
+  } catch(e){ on = false; }
+  document.body.classList.toggle('easy', on); window.__easyFirstRun = firstRun && on;
+})();
+</script>
+<script>
 /* Google Drive API key for Drive links (restricted to this site and the Drive API) */
 const GOOGLE_API_KEY = 'AIzaSyDqGIB72YRcUTVVAf-0ZZRYNX2WfI0FsvI';
 (() => {
 const $ = s => document.querySelector(s);
+const easyOn = () => document.body.classList.contains('easy');   // Easy = fewer controls on screen; hidden ones keep their values
 const TAU = Math.PI * 2;
 const clone = o => JSON.parse(JSON.stringify(o));
 const clamp01 = v => Math.max(0, Math.min(1, v));
@@ -1649,8 +1678,11 @@ function randSummary(){
   el.textContent = `Roll changes ${keys.length} ${keys.length === 1 ? 'control' : 'controls'} on ${targets} ${targets === 1 ? 'target' : 'targets'}: ${names.join(', ')}${keys.length > 6 ? ` and ${keys.length - 6} more` : ''}.`;
 }
 function saveRand(){ try { localStorage.setItem('depthscope.rand', JSON.stringify([...randSet])); } catch(e){} }
+/* Easy mode keeps only these slider rows on screen; every other row in these groups is tagged data-adv (groups not listed are hidden whole or fully shown) */
+const EASY_ROWS = {'g-sym':['seg','twist','zoom'], 'g-color':['hue','depthHue','sat'], 'g-motion':['loop','spin','hueCycle'], 'g-lpos':['z'], 'g-lmix':['wet'], 'g-lrc':['rcStr'], 'g-lfx':['wig','glow']};
 function makeSlider(host, [k,label,min,max,step,fmt,typed], target, after, rk, def){
   const row = document.createElement('div'); row.className = 'ctl';
+  if (EASY_ROWS[host.id] && !EASY_ROWS[host.id].includes(k)) row.setAttribute('data-adv', '');
   const id = host.id + '-' + k;
   row.innerHTML = `<label for="${id}">${label}</label><output id="${id}-o"></output><input type="range" id="${id}" min="${min}" max="${max}" step="${step}">`;
   if (rk){ RSPEC[rk] = {min, max, step}; RGROUP[rk] = host.id; row.insertBefore(makeRk(rk, label), row.querySelector('input')); }
@@ -1700,9 +1732,9 @@ for (const [amt, key, name] of ROUTES){
   const se = document.createElement('select'); se.id = 'route-' + key; se.setAttribute('aria-label', name + ' follows');
   se.innerHTML = '<option value="low">follows Low band</option><option value="mid">follows Mid band</option><option value="high">follows High band</option><option value="off">off</option>';
   se.onchange = () => { P[key] = se.value; };
-  row.insertBefore(se, row.querySelector('input[type=range]')); routeSel[key] = se;
+  se.setAttribute('data-adv', ''); row.insertBefore(se, row.querySelector('input[type=range]')); routeSel[key] = se;
   const rbKey = 'rb' + key.slice(1), lab = document.createElement('label'); lab.className = 'check';
-  lab.innerHTML = `<input type="checkbox" id="${rbKey}"> Rubber band`; lab.title = 'Springs toward the band level, overshoots and settles';
+  lab.setAttribute('data-adv', ''); lab.innerHTML = `<input type="checkbox" id="${rbKey}"> Rubber band`; lab.title = 'Springs toward the band level, overshoots and settles';
   row.after(lab); lab.querySelector('input').onchange = e => { P[rbKey] = e.target.checked ? 1 : 0; };
 }
 // layer hue drift range (same two-handle spectrum as the global one)
@@ -2995,7 +3027,15 @@ function autoLayers(){
   sel = P.L.layers[0] ? P.L.layers[0].id : 'bg';
   $('#autoBox').hidden = true;
   uploadMasks(); rebuildBg(); computeMedians(); renderLayers(); syncLayerEd(); status();
-  toast(`Made ${P.L.layers.length} ${P.L.layers.length === 1 ? 'layer' : 'layers'}` + (dropped ? `; ${dropped} found nothing and ${dropped === 1 ? 'was' : 'were'} skipped` : '') + '. Calibrate any layer to fine-tune it.');
+  toast(`Made ${P.L.layers.length} ${P.L.layers.length === 1 ? 'layer' : 'layers'}` + (dropped ? `; ${dropped} found nothing and ${dropped === 1 ? 'was' : 'were'} skipped` : '') + (easyOn() ? '.' : '. Calibrate any layer to fine-tune it.'));
+}
+/* Easy upload: run the same Auto layers with its starting settings (3 layers, within the layer cap), leaving the Full-mode Auto settings as they were */
+function easySeparate(){
+  if (!imgW || !imgH) return;
+  const keep = {n: AUTO.n, types: AUTO.types.slice()};
+  AUTO.n = 3; AUTO.types = ['fg','fg','bgobj','fg','fg','fg','fg'];
+  try { autoLayers(); } catch(e){ toast('The picture loaded but could not be separated into layers'); }
+  AUTO.n = keep.n; AUTO.types = keep.types; renderAutoRows();
 }
 
 /* ---------- calibration flow ---------- */
@@ -3298,8 +3338,8 @@ function renderLayers(){
     row.title = `${d.name} · ${rName}${fxs.length ? ' · ' + fxs.join(' · ') : ''}${img ? ' · double-click to calibrate' : ''}`;
     row.innerHTML = `<button class="ibtn eye" id="eye-${d.id}" title="${L.vis?'Hide':'Show'} (E, selected layer)" aria-pressed="${L.vis}" aria-label="${L.vis?'Hide':'Show'} ${nmE}">${L.vis?EYE_ON:EYE_OFF}</button>
       <div class="lmain">${sw}<span class="role" title="${rName}"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#${rIcon}"/></svg></span><span class="nm" title="${nmE} · double-click to rename">${renaming === d.id ? `<input class="rnin" id="rn-${d.id}" type="text" data-typing maxlength="40" autocomplete="off" spellcheck="false" aria-label="Rename ${nmE}" value="${escH(renameDraft || d.name)}">` : nmE}</span><span class="vh">${rName}${fxs.length ? ', ' + escH(fxs.join(', ')) : ''}</span></div>
-      <button class="ibtn solo" id="solo-${d.id}" title="Solo ${nmE} (S solos the selected layer)" aria-pressed="${L.solo}" aria-label="Solo ${nmE}" aria-keyshortcuts="S">${SOLO_SVG}</button>
-      <button class="ibtn dup" id="dup-${d.id}" title="Duplicate ${nmE}" aria-label="Duplicate ${nmE}" ${d.id === 'bg' ? 'disabled' : ''}>${DUP_SVG}</button>
+      <button class="ibtn solo" data-adv id="solo-${d.id}" title="Solo ${nmE} (S solos the selected layer)" aria-pressed="${L.solo}" aria-label="Solo ${nmE}" aria-keyshortcuts="S">${SOLO_SVG}</button>
+      <button class="ibtn dup" data-adv id="dup-${d.id}" title="Duplicate ${nmE}" aria-label="Duplicate ${nmE}" ${d.id === 'bg' ? 'disabled' : ''}>${DUP_SVG}</button>
       <button class="ibtn del${delArm.id === d.id ? ' armed' : ''}" id="del-${d.id}" aria-label="${delArm.id === d.id ? 'Confirm: delete ' : 'Delete '}${nmE}" title="${!canDel ? '' : delArm.id === d.id ? 'Click again to delete' : 'Delete ' + nmE}" ${canDel ? '' : 'disabled'}><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-trash"/></svg></button>`;
     const rin = row.querySelector('.rnin');
     if (rin){
@@ -3332,7 +3372,7 @@ function renderLayers(){
 function syncLayersEmpty(){
   const el = document.getElementById('layersEmpty'); if (!el) return;
   el.hidden = P.L.layers.length > 0;
-  el.textContent = (!imgW || !imgH) ? 'No image yet. Press Load image in Source & view, or drop a picture onto the canvas, to start making layers.' : 'No layers yet. Use Add layer to pick out an object, or let Auto layers find them for you.';
+  el.textContent = easyOn() ? ((!imgW || !imgH) ? 'No picture yet. Drop one onto the canvas, or use Add layer, then Upload a picture.' : 'No layers yet. Use Add layer to separate the picture into layers.') : (!imgW || !imgH) ? 'No image yet. Press Load image in Source & view, or drop a picture onto the canvas, to start making layers.' : 'No layers yet. Use Add layer to pick out an object, or let Auto layers find them for you.';
 }
 function selectLayer(id){
   if (cal){ if (isImageLayer(id)) { startCal(id); return; } finalizeCal(true); }
@@ -3887,10 +3927,13 @@ $('#bRollCols').onclick = () => {
   changed(); markDirty();
   actionToast(name + ' colours', 'Undo', () => histUndoEntry(he));
 };
+/* Easy Roll touches only controls that are on screen in Easy (no dice ticks, oscillators or layer colours) */
+const EASY_ROLL = ['g:seg','g:twist','g:zoom','g:hue','g:depthHue','g:sat','g:spin','g:hueCycle','l:wig','l:glow'];
 $('#bDice').onclick = () => {
-  if (!randSet.size && !randLCBox.checked){ toast('Tick at least one die next to a slider'); return; }
+  const easy = easyOn();
+  if (!easy && !randSet.size && !randLCBox.checked){ toast('Tick at least one die next to a slider'); return; }
   const before = fxSnap(), rb = rangeSnap();
-  for (const key of randSet){
+  for (const key of (easy ? EASY_ROLL : randSet)){
     if (!RLABEL[key]) continue;
     const [scope, k] = key.split(':');
     if (scope === 'g'){
@@ -3907,8 +3950,8 @@ $('#bDice').onclick = () => {
       }
     }
   }
-  if (mapReady && randOscBox.checked) rollOsc();
-  const lcName = randLCBox.checked ? applyLayerColours() : '';
+  if (!easy && mapReady && randOscBox.checked) rollOsc();
+  const lcName = !easy && randLCBox.checked ? applyLayerColours() : '';
   const after = fxSnap(), he = histPush('roll', 'Roll', () => fxRestore(before), () => fxRestore(after));
   syncUI(); syncPart(); markDirty(); flashApplied(rb);
   actionToast((RA.amt >= .999 ? 'Rolled' : `Rolled, up to ${Math.round(RA.amt*100)}% of each range`) + (lcName ? ` · ${lcName} colours` : ''), 'Undo', () => histUndoEntry(he));
@@ -4567,7 +4610,7 @@ cv.addEventListener('wheel', e => {
 cv.addEventListener('pointerleave', () => { if (!painting && !calPainting) vrx = null; ptr.over = false; if(!painting && !calPainting && !clickDrag){ steerT = [0,0]; $('#cursor').hidden = true; } });
 
 $('#bLoad').onclick = () => $('#fImg').click();
-$('#fImg').onchange = e => { const f = e.target.files[0]; if (f) loadImageFile(f); e.target.value=''; };
+$('#fImg').onchange = e => { const f = e.target.files[0]; if (f){ if (easyOn()) importFiles([f], 0); else loadImageFile(f); } e.target.value=''; };
 $('#bSample').onclick = () => { makeSample().then(ok => { if (ok) toast('Sacred Tree'); }); };
 $('#bSample2').onclick = () => { makeSample('Tr1ppical Butterfly', 2).then(ok => { if (ok) toast('Tr1ppical Butterfly'); }); };
 $('#bAuto').onclick = () => { pushDepth(); autoDepth($('#depthMode').value); toast('Depth re-guessed'); };
@@ -4804,7 +4847,7 @@ function recKey(){
 window.addEventListener('keydown', e => {
   if (isTyping(e.target)) return;
   const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
-  if (mod && !e.altKey && k === 'f'){ e.preventDefault(); if (sres.hidden) openFind(); else closeSearch(); return; }
+  if (mod && !e.altKey && k === 'f'){ if (easyOn()) return; e.preventDefault(); if (sres.hidden) openFind(); else closeSearch(); return; }
   if (cal && cal.id !== 'bg' && mod && (k === 'z' || k === 'y')){ e.preventDefault(); stepSel(k === 'y' || e.shiftKey ? 1 : -1); return; }
   if (mod && !e.altKey && (k === 'z' || k === 'y')){ e.preventDefault(); if (!e.repeat) histStep(k === 'y' || e.shiftKey ? 1 : -1); return; }
   if (mod || e.altKey) return;
@@ -4812,6 +4855,7 @@ window.addEventListener('keydown', e => {
   if (e.repeat && e.key !== 'ArrowUp' && e.key !== 'ArrowDown'){ if (e.code === 'Space') e.preventDefault(); return; }
   if (e.code === 'Space'){ e.preventDefault(); if (e.target.tagName !== 'SELECT') $('#hPause').click(); return; }
   if (k === 'i' && e.shiftKey){
+    if (easyOn()) return;
     e.preventDefault();
     if (cal && cal.id !== 'bg'){ T.invert = !T.invert; if (T.invert) T.preview = true; syncPreview(); }
     else if (!cal) setGInv(!(P.ginv > .5));
@@ -4822,16 +4866,16 @@ window.addEventListener('keydown', e => {
   if (e.shiftKey) return;
   if (k === 'i') togglePanelKey(pI);
   else if (k === 'l') togglePanelKey(pL);
-  else if (k === 'o') togglePanelKey(pO);
-  else if (k === 's') soloSelected();
+  else if (k === 'o'){ if (!easyOn()) togglePanelKey(pO); }
+  else if (k === 's'){ if (!easyOn()) soloSelected(); }
   else if (k === 't') toggleLookPop();
   else if (k === 'r') recKey();
   else if (k === 'e') hideSelected();
   else if (k === 'h') $('#hPanel').click();
   else if (k === 'z' && !cal) $('#bResetAll').click();
-  else if (k === 'm' && !cal) tapTempo();
+  else if (k === 'm' && !cal){ if (!easyOn()) tapTempo(); }
   else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.target.closest('input,select,textarea,[role="slider"],#xyPad')){ e.preventDefault(); stepLayer(e.key === 'ArrowDown' ? 1 : -1); }
-  else if (e.key === 'Enter' && !e.target.closest('button,a,summary,input,select,textarea,[role="slider"],#xyPad')) calibrateSelected();
+  else if (e.key === 'Enter' && !e.target.closest('button,a,summary,input,select,textarea,[role="slider"],#xyPad') && !easyOn()) calibrateSelected();
 });
 /* layer keys: E hides / shows the selected layer, S solos it, Up / Down move the selection, Enter calibrates it */
 function hideSelected(){
@@ -5324,7 +5368,7 @@ renderOsc();   // the panel starts closed; Osc (O) opens it
 const drawer = document.createElement('div'); drawer.className = 'drawer'; drawer.id = 'srcDrawer';
 drawer.innerHTML = `<button type="button" class="dwbar" id="dwBar" aria-expanded="false" aria-controls="dwBody" title="Source and Depth"><span>Source &amp; Depth</span><svg class="gi-svg chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
 <div class="dwbody" id="dwBody" role="region" aria-label="Source and Depth"><div class="dwin"><div class="dwscroll"><div class="seg dwtabs" id="dwTabs"><button type="button" data-dw="view" aria-pressed="true">Source</button><button type="button" data-dw="depth" aria-pressed="false">Depth</button></div></div></div></div>`;
-pL.appendChild(drawer);
+drawer.setAttribute('data-adv', ''); pL.appendChild(drawer);
 for (const id of ['view', 'depth']){ const c = document.querySelector(`.cat[data-cat="${id}"]`); c.classList.remove('off'); drawer.querySelector('.dwscroll').appendChild(c); }
 function setDrawer(open, tab){
   if (tab) UI.set('drawerTab', tab); tab = UI.get('drawerTab', 'view'); if (tab !== 'view' && tab !== 'depth') tab = 'view';
@@ -5350,7 +5394,7 @@ let shownCats = new Set(UI.get('cats', ['layer']).filter(id => CATS.some(c => c.
 if (!shownCats.size) shownCats.add('layer');
 for (const c of CATS){
   if (c.drawer) continue;
-  const b = document.createElement('button'); b.className = 'cchip'; b.dataset.cat = c.id; b.style.setProperty('--cc', `var(${c.c})`);
+  const b = document.createElement('button'); b.className = 'cchip'; b.dataset.cat = c.id; if (c.id === 'random' || c.id === 'mod') b.setAttribute('data-adv', ''); b.style.setProperty('--cc', `var(${c.c})`);
   b.innerHTML = use(c.icon) + c.name; b.title = c.name + ' · shift-click to show it alongside the others';
   b.onclick = e => {
     if (e.shiftKey || e.metaKey || e.ctrlKey){ if (shownCats.has(c.id) && shownCats.size > 1) shownCats.delete(c.id); else shownCats.add(c.id); }
@@ -5361,10 +5405,13 @@ for (const c of CATS){
 }
 $('#cchips').title = 'Click a category to show it. Shift-click to show several at once.';
 function drawInsp(){
-  for (const c of CATS) if (!c.drawer) catEl(c.id).classList.toggle('off', !shownCats.has(c.id));
-  document.querySelectorAll('.cchip').forEach(b => b.setAttribute('aria-pressed', shownCats.has(b.dataset.cat)));
-  $('#inspBody').classList.toggle('multi', shownCats.size > 1);
-  const one = shownCats.size === 1 ? CATS.find(c => shownCats.has(c.id)) : null;
+  // in Easy the Randomize and Mod tabs are hidden: show the remaining chosen tabs (or Layer), and keep the saved choice untouched
+  const eff = new Set([...shownCats].filter(id => !(easyOn() && (id === 'random' || id === 'mod'))));
+  if (!eff.size) eff.add('layer');
+  for (const c of CATS) if (!c.drawer) catEl(c.id).classList.toggle('off', !eff.has(c.id));
+  document.querySelectorAll('.cchip').forEach(b => b.setAttribute('aria-pressed', eff.has(b.dataset.cat)));
+  $('#inspBody').classList.toggle('multi', eff.size > 1);
+  const one = eff.size === 1 ? CATS.find(c => eff.has(c.id)) : null;
   $('#inspTitle').innerHTML = one
     ? `<span class="hic" style="color:var(${one.c})">${use(one.icon)}</span>${one.id === 'layer' ? 'Layer · ' + ($('#layerCtlName').textContent || '') : one.name}`
     : 'Inspector';
@@ -6012,6 +6059,7 @@ function attachPinDrag(el, id){
 }
 /* the menu on a layer row: rename, duplicate, outline, hide, solo, delete */
 function openRowMenu(id, x, y){
+  if (easyOn()) return;
   closePinMenu();
   const d = layerDefs().find(q => q.id === id), L = d && getL(id); if (!d || !L) return;
   const img = isImageLayer(id), canDel = (img && id !== 'bg') || isExtra(id), canOl = kindOf(id) === 'icon' || (img && id !== 'bg');
@@ -6119,10 +6167,11 @@ document.addEventListener('pointerdown', e => { if (!sres.hidden && !e.target.cl
 const OVER = [['part','Particles'],['icon','Icon'],['obj','3D object']];
 function drawAddMenu(){
   const m = $('#addMenu'); m.innerHTML = '';
-  const add = (icon, label, fn, off) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = use(icon) + '<span>' + label + '</span>'; if (off){ b.disabled = true; b.title = off; } b.onclick = () => { setAddMenu(false); fn(); }; m.appendChild(b); };
-  add('i-plus', 'New layer, then pick its object', addLayer, P.L.layers.length >= MAX_OBJ ? `You can have up to ${MAX_OBJ} layers plus Background` : '');
+  const add = (icon, label, fn, off, adv) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = use(icon) + '<span>' + label + '</span>'; if (adv) b.setAttribute('data-adv', ''); if (off){ b.disabled = true; b.title = off; } b.onclick = () => { setAddMenu(false); fn(); }; m.appendChild(b); };
+  add('i-plus', 'New layer, then pick its object', addLayer, P.L.layers.length >= MAX_OBJ ? `You can have up to ${MAX_OBJ} layers plus Background` : '', true);   // needs calibration, so Easy leaves it out
   add('i-wand', 'Auto layers\u2026', () => toggleAutoLayers(true));
-  add('i-image', 'Import layer images\u2026', () => $('#bLayersImport').click());
+  if (easyOn()) add('i-image', 'Upload a picture\u2026', () => $('#fImg').click());
+  else add('i-image', 'Import layer images\u2026', () => $('#bLayersImport').click());
   const lf = document.createElement('form'); lf.className = 'impLink'; lf.autocomplete = 'off';
   lf.innerHTML = '<input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button>';
   wireImpLink(lf, () => setAddMenu(false)); m.appendChild(lf);
@@ -6317,7 +6366,7 @@ function rollDice(){
     if (performance.now() - t0 > 620){ clearInterval(rollT); setTimeout(() => dice.forEach(d => d.classList.remove('rolling', 'rev')), 220); }
   }, 80);
 }
-$('#bDice').addEventListener('click', () => { if (randSet.size) rollDice(); });
+$('#bDice').addEventListener('click', () => { if (randSet.size || easyOn()) rollDice(); });
 
 /* ---- double-click a layer to calibrate it (image layers); overlays just open their controls ---- */
 // the list re-renders on every click, so a double-click is two clicks on the same layer within 450 ms
@@ -6328,7 +6377,7 @@ $('#layerList').addEventListener('click', e => {
   const id = r.id.slice(4), now = performance.now();
   const dbl = lastRowClick.id === id && now - lastRowClick.t < 450;
   lastRowClick = dbl ? {id:null, t:0} : {id, t:now};
-  if (!dbl) return;
+  if (!dbl || easyOn()) return;   // Easy has no rename or calibration
   if (e.target.closest('.nm')){ beginRename(id); return; }
   if (isImageLayer(id)){ if (!cal || cal.id !== id) startCal(id); }
   else toast('Particles, Icon and 3D object have no selection to calibrate');
@@ -6628,6 +6677,26 @@ $('#lkRemember').onchange = e => store.set(MODE_REM, e.target.checked ? '1' : nu
 }
 syncLookPop(); syncModeUI();
 
+/* ---------- Easy / Full interface: a UI-complexity setting, independent of Lite / Full performance ---------- */
+const EASY_KEY = 'submersion.ui.easy', easyChip = $('#easyChip');
+let easyChipT = 0;
+function hideEasyChip(){ clearTimeout(easyChipT); easyChip.hidden = true; }
+function syncEasyUI(){ $('#lkEasy').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.easy === '1') === easyOn()))); }
+function setEasy(on, persist = true){
+  document.body.classList.toggle('easy', on);
+  if (persist) store.set(EASY_KEY, on ? '1' : '0');
+  if (on){
+    if (cal){ cal = null; showCal(false); }                 // calibration has no controls in Easy
+    if (!pO.hidden) showPanel(pO, false);                   // nor do oscillators
+    try { setAddMenu(false); closeSearch(); } catch(e){}
+  } else hideEasyChip();
+  syncEasyUI(); drawInsp(); renderLayers(); try { setDockH(); applySheet(); } catch(e){}
+}
+lookPop.addEventListener('click', e => { const b = e.target.closest('#lkEasy [data-easy]'); if (!b) return; setEasy(b.dataset.easy === '1'); toast(easyOn() ? 'Easy mode' : 'Full mode'); });
+easyChip.querySelector('button').onclick = () => { setEasy(false); toast('Full mode'); };
+syncEasyUI();
+if (window.__easyFirstRun && easyOn()){ setTimeout(() => { if (!easyOn()) return; easyChip.hidden = false; easyChipT = setTimeout(hideEasyChip, 14000); }, 1500); }
+
 /* ---------- Tutorial: five steps. Dims the screen, spotlights the real controls; Skip / Esc / Done put every panel back as it was ---------- */
 const tutorialMode = (() => {
   const root = $('#tut'), spot = $('#tutSpot'), card = $('#tutCard'), offer = $('#tutOffer');
@@ -6637,21 +6706,32 @@ const tutorialMode = (() => {
   const markSeen = () => { seenMem = true; try { localStorage.setItem(SEEN_KEY, '1'); } catch(e){} };
   const STEPS = [
     {t:'Picture and Layers', targets:['#pLayers'], panel:pL,
+     e:{x:'The picture is built from layers, nearest first. Tap one to select it, and use the eye on its row to hide it. <kbd>L</kbd> opens or closes this panel.',
+        xt:'The picture is built from layers, nearest first. Tap one to select it, and use the eye on its row to hide it. The Layers button in the dock opens or closes this panel.'},
      x:'The picture is built from layers, nearest first. Tap one to select it. <kbd>↑</kbd> <kbd>↓</kbd> change the selection, <kbd>E</kbd> hides it, <kbd>S</kbd> solos it, <kbd>Enter</kbd> calibrates it (hold <kbd>Shift</kbd> while brushing for precision). <kbd>L</kbd> opens or closes this panel.',
      xt:'The picture is built from layers, nearest first. Tap one to select it, then use the buttons on its row. The Layers button in the dock opens or closes this panel.'},
     {t:'Inspector', targets:['#pInsp'], panel:pI,
+     e:{x:'The controls for the selected layer and the whole picture live here. The tabs at the top choose which group to show; drag a slider to change it. <kbd>I</kbd> opens or closes the Inspector.',
+        xt:'The controls for the selected layer and the whole picture live here. The tabs at the top choose which group to show; drag a slider to change it. The Inspector button in the dock opens or closes it.'},
      x:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. <kbd>I</kbd> opens or closes the Inspector.',
      xt:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. The Inspector button in the dock opens or closes it.'},
     {t:'Dock and Theme menu', targets:['#dTheme', '#lookPop'], look:true,
+     e:{x:'<kbd>T</kbd> opens the Theme menu: Easy or Full interface, Lite or Full performance, colours, Shortcuts and this Tutorial. Switch to Full any time to see every control.',
+        xt:'The Theme button in the dock opens the Theme menu: Easy or Full interface, Lite or Full performance, colours, Shortcuts and this Tutorial. Switch to Full any time to see every control.'},
      x:'<kbd>T</kbd> opens the Theme menu: Lite or Full, colours, Pins, Shortcuts for every key, and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.',
      xt:'The Theme button in the dock opens the Theme menu: Lite or Full, colours, Pins, Shortcuts and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.'},
     {t:'Find and Roll', targets:['#dFind', '#dRoll'],
+     e:{t:'Roll', targets:['#dRoll'], x:'<kbd>?</kbd> or <kbd>/</kbd> rolls a random look using the controls you can see, and <kbd>Z</kbd> resets everything. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a roll.',
+        xt:'The dice button rolls a random look using the controls you can see. Undo it from the message that appears.'},
      x:'<kbd>Ctrl</kbd>+<kbd>F</kbd> finds any control by name. <kbd>?</kbd> or <kbd>/</kbd> rolls a random look, <kbd>Z</kbd> resets everything.',
      xt:'The magnifier button finds any control by name. The dice button rolls a random look, and the reset button resets everything.'},
     {t:'Play, record, hide, undo', targets:['#dPlay', '#dHide'],
+     e:{targets:['#dPlay', '#dRec'], x:'<kbd>Space</kbd> plays or pauses. <kbd>R</kbd> records one loop (press again to stop). <kbd>H</kbd> hides all controls; press it again to bring them back. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.',
+        xt:'The play button plays or pauses, and the record button records one loop. Hide UI is in the More menu; tap Show UI to bring the controls back.'},
      x:'<kbd>Space</kbd> plays or pauses. <kbd>R</kbd> records one loop (press again to stop). <kbd>H</kbd> hides all controls; press it again to bring them back. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redoes.',
      xt:'The play button plays or pauses, and the record button records one loop. The hide button hides all controls; tap Show UI to bring them back.'},
   ];
+  const cur = i => easyOn() && STEPS[i].e ? {...STEPS[i], ...STEPS[i].e} : STEPS[i];   // Easy rewords or retargets any step that points at a hidden control
   const snap = () => ({ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])});
   function restore(s){
     try { if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
@@ -6677,7 +6757,7 @@ const tutorialMode = (() => {
   }
   function layout(){
     if (!active) return;
-    const vw = innerWidth, vh = innerHeight, m = 10, pad = 6, r = rectOf(STEPS[idx].targets);
+    const vw = innerWidth, vh = innerHeight, m = 10, pad = 6, r = rectOf(cur(idx).targets);
     let box = null;
     if (r) box = {l: Math.max(0, r.l - pad), t: Math.max(0, r.t - pad), r: Math.min(vw, r.r + pad), b: Math.min(vh, r.b + pad)};
     spot.classList.toggle('none', !box);
@@ -6696,7 +6776,7 @@ const tutorialMode = (() => {
     card.style.left = best.x + 'px'; card.style.top = best.y + 'px';
   }
   function show(i){
-    idx = i; const st = STEPS[i];
+    idx = i; const st = cur(i);
     ensure(st);
     $('#tutT').textContent = st.t; $('#tutX').innerHTML = (matchMedia('(hover: none) and (pointer: coarse)').matches && st.xt) || st.x; $('#tutN').textContent = (i + 1) + ' / ' + STEPS.length;
     $('#tutBack').style.visibility = i ? 'visible' : 'hidden';
@@ -7339,12 +7419,12 @@ async function placeItems(items, notes){
   const scene = !!(imgW && imgH);
   if (items.length === 1){
     const it = items[0]; let ch = 'replace';
-    if (scene){
+    if (scene && !easyOn()){   // Easy skips the question: it replaces the picture and separates it into layers
       const full = P.L.layers.length >= MAX_OBJ;
       ch = await askChoice(`Where should “${it.name}” go?`, [['layer', 'Add as new layer', full ? `All ${MAX_OBJ} layer slots are in use` : '', !full], ['replace', 'Replace the picture', '', full]], notes);
       if (!ch) return;
     }
-    if (ch === 'replace'){ const before = capProject(); if (await loadImageFile(new File([it.blob], it.fname, {type: it.blob.type}))) pushImport(before, 'image load'); }
+    if (ch === 'replace'){ const before = capProject(); if (await loadImageFile(new File([it.blob], it.fname, {type: it.blob.type}))){ pushImport(before, 'image load'); if (easyOn()) easySeparate(); } }
     else addAsLayers(items);
   } else {
     const ok = await askChoice(`Add ${items.length} images as layers?`, [['yes', 'Add', '', true]], notes);
