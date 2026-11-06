@@ -806,7 +806,8 @@ body.easy .moreMenu .onlyCmp{display:flex}
   .sheet .stage,.sheetT .stage{bottom:calc(var(--dockH,118px) + var(--stH,52vh))}
   .fp{bottom:var(--dockH,118px);height:var(--shH,52vh);overflow:hidden}
   .fp.folded{height:auto}
-  body:not(.shDrag) .fp,body:not(.shDrag) .lookpop{transition:height .2s ease}
+  body:not(.shDrag):not(.shOpen) .fp,body:not(.shDrag):not(.shOpen) .lookpop{transition:height .2s ease}
+  #pOsc{bottom:var(--dockH,118px)}
   .fph{position:relative;touch-action:none;cursor:grab;padding-top:14px}
   .shHandle{display:block;position:absolute;left:50%;top:0;transform:translateX(-50%);width:72px;height:20px;border:0;background:transparent;padding:0;cursor:grab}
   .shHandle::before{content:"";position:absolute;left:50%;top:7px;width:36px;height:4px;border-radius:2px;background:var(--dim);opacity:.55;transform:translateX(-50%)}
@@ -5109,17 +5110,28 @@ for (const p of [pL, pI, pO, pM]){
   p.querySelector('[data-close]').onclick = () => showPanel(p, false);
 }
 addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); });
+/* one shared way to open a phone sheet: its state is set from defaults, nothing animates from a stale size, and the same tap cannot toggle twice */
+let shOpenT = 0;
+function sheetNoAnim(){
+  document.body.classList.add('shOpen'); cancelAnimationFrame(shOpenT);
+  shOpenT = requestAnimationFrame(() => { shOpenT = requestAnimationFrame(() => document.body.classList.remove('shOpen')); });
+}
+const tapOnce = (fn, ms = 220) => { let t = -1e9; return function(...a){ const n = performance.now(); if (n - t < ms) return; t = n; return fn.apply(this, a); }; };
 function showPanel(p, on){
+  let wasOpen = !pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden;
+  try { wasOpen = wasOpen || !lookPop.hidden; } catch(e){}
+  if (on && phone.matches){ try { sheetOpening(!wasOpen); } catch(e){} }
   p.hidden = !on;
   if (on){ if (phone.matches || landscape.matches) for (const o of [pL, pI, pO, pM]) if (o !== p) o.hidden = true; p.classList.remove('folded'); try { if (phone.matches && !lookPop.hidden) toggleLookPop(false); } catch(e){} }
   $('#dLayers').setAttribute('aria-pressed', !pL.hidden); $('#dInsp').setAttribute('aria-pressed', !pI.hidden); $('#dOsc').setAttribute('aria-pressed', !pO.hidden);
   document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden));
   syncSides(); try { applySheet(); } catch(e){}
+  if (on && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });   // settle once layout is final
   if (p === pO){ UI.set('oscOpen', !!on); if (on && oscReady) oscDrawSoon(); }
 }
-$('#dLayers').onclick = () => showPanel(pL, pL.hidden);
-$('#dInsp').onclick = () => showPanel(pI, pI.hidden);
-$('#dOsc').onclick = () => showPanel(pO, pO.hidden);
+$('#dLayers').onclick = tapOnce(() => showPanel(pL, pL.hidden));
+$('#dInsp').onclick = tapOnce(() => showPanel(pI, pI.hidden));
+$('#dOsc').onclick = tapOnce(() => showPanel(pO, pO.hidden));
 
 /* ================= Oscillators: up to 8 waves, tempo-locked (Sync) or free (Hz) =================
    Settings live in P.mod.osc, so presets and projects carry them. Running state (phase, last value) lives in OSC_RT. */
@@ -6221,7 +6233,7 @@ dockBtn('dInv', () => setGInv(!(P.ginv > .5)));
 dockBtn('dRec', () => $('#bRec').click());
 dockBtn('dFull', () => $('#hFull').click());
 dockBtn('dHide', () => $('#hPanel').click());
-dockBtn('dTheme', () => toggleLookPop());
+dockBtn('dTheme', tapOnce(() => toggleLookPop()));
 dockBtn('dReset', () => $('#bResetAll').click());
 $('#showUI').onclick = () => $('#hPanel').click();
 function setGInv(on){ P.ginv = on ? 1 : 0; changed(); toast(on ? 'Image layers inverted' : 'Invert off'); }
@@ -6592,9 +6604,11 @@ $('#lkReset').onclick = () => { LOOK.color = LOOK_DEF.color; applyLook(); };
 $('#lkFrost').addEventListener('input', e => { LOOK.frost = +e.target.value; applyFrost(); $('#lkFrostOut').textContent = Math.round(LOOK.frost*100) + '%'; paintFill(e.target); clearTimeout(rDeb); rDeb = setTimeout(() => { refractAll(); try { localStorage.setItem('submersion.look', JSON.stringify(LOOK)); } catch(err){} }, 120); });
 $('#lkFrost').addEventListener('dblclick', e => { e.stopPropagation(); LOOK.frost = LOOK_DEF.frost; applyLook(); }, true);
 function toggleLookPop(on){
+  if ((on ?? lookPop.hidden) && lookPop.hidden && phone.matches){ try { sheetOpening(![pL, pI, pO, pM].some(x => !x.hidden)); } catch(e){} }
   lookPop.hidden = !(on ?? lookPop.hidden); $('#dTheme').setAttribute('aria-expanded', !lookPop.hidden); $('#dTheme').setAttribute('aria-pressed', !lookPop.hidden); if (!lookPop.hidden) syncLookPop();
   if (!lookPop.hidden){ try { setMore(false); } catch(e){} if (phone.matches) for (const p of [pL, pI, pO, pM]) if (!p.hidden) showPanel(p, false); }
   try { applySheet(); } catch(e){}
+  if (!lookPop.hidden && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });
 }
 document.addEventListener('pointerdown', e => { if (!lookPop.hidden && !e.target.closest('#lookPop, #dTheme')) toggleLookPop(false); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lookPop.hidden) toggleLookPop(false); });
@@ -6838,7 +6852,7 @@ function setMore(open){
   moreMenu.hidden = !open; dMore.setAttribute('aria-expanded', open); dMore.setAttribute('aria-pressed', open);
   if (open){ syncMoreLook(); $('#mSave').focus(); }
 }
-dMore.onclick = () => setMore(moreMenu.hidden);
+dMore.onclick = tapOnce(() => setMore(moreMenu.hidden));
 document.addEventListener('pointerdown', e => { if (!moreMenu.hidden && !e.target.closest('#moreMenu, #dMore')) setMore(false); });
 moreMenu.addEventListener('keydown', e => {
   if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); setMore(false); dMore.focus(); return; }
@@ -7191,9 +7205,16 @@ let sheetMode = UI.get('sheetMode', 'half'); if (!SHEET_MODES.includes(sheetMode
 let sheetDrag = null, sheetTapGuard = 0;
 const sheetEl = () => [pL, pI, pO, pM].find(p => !p.hidden) || (!lookPop.hidden ? lookPop : null);
 function sheetHeights(el){
-  const av = innerHeight - Math.ceil(dockEl.getBoundingClientRect().height);
-  const head = el.matches('.fp') ? el.querySelector('.fph') : el.querySelector('h3'), hh = head ? head.getBoundingClientRect().height : 48;
-  return {peek: Math.round(hh + (el.matches('.fp') ? 2 : 36)), half: Math.round(av * .5), full: Math.round(av - 36)};
+  const av = Math.max(160, innerHeight - Math.ceil(dockEl.getBoundingClientRect().height));
+  const head = el.matches('.fp') ? el.querySelector('.fph') : el.querySelector('h3'), hh = (head && head.getBoundingClientRect().height) || 48;   // 0 means not laid out yet: never size from that
+  const peek = Math.round(hh + (el.matches('.fp') ? 2 : 36));
+  return {peek, half: Math.max(peek, Math.round(av * .5)), full: Math.max(peek, Math.round(av - 36))};
+}
+function endSheetDrag(){ sheetDrag = null; document.body.classList.remove('shDrag'); }   // a drag that never saw its pointerup must not swallow the next open
+/* called just before a sheet is shown; a sheet opened from nothing never starts as a header-only strip (peek is kept while switching between sheets) */
+function sheetOpening(fresh){
+  endSheetDrag(); sheetNoAnim();
+  if (fresh && sheetMode === 'peek') setSheetMode('half');
 }
 function applySheet(override){
   const el = sheetEl(), on = phone.matches && !!el, st = document.body.style;
@@ -7224,18 +7245,18 @@ function bindSheet(el, headSel){
     applySheet(Math.max(d.hs.peek, Math.min(d.hs.full, d.h0 + dy)));
   });
   const up = () => {
-    const d = sheetDrag; if (!d) return; sheetDrag = null; document.body.classList.remove('shDrag');
+    const d = sheetDrag; if (!d) return; endSheetDrag();
     if (!d.moved) return;
     sheetTapGuard = performance.now();
     const cur = parseFloat(document.body.style.getPropertyValue('--shH')) || d.h0, proj = cur + d.v * 140;
     let best = 'half', bd = 1e9; for (const m of SHEET_MODES){ const dd = Math.abs(d.hs[m] - proj); if (dd < bd){ bd = dd; best = m; } }
     setSheetMode(best);
   };
-  head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up);
+  head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up); head.addEventListener('touchcancel', up); head.addEventListener('lostpointercapture', up);
 }
 bindSheet(pL, '.fph'); bindSheet(pI, '.fph'); bindSheet(pO, '.fph'); bindSheet(pM, '.fph'); bindSheet(lookPop, 'h3');
 setSheetMode(sheetMode);
-phone.addEventListener('change', () => { applySheet(); syncSides(); });
+phone.addEventListener('change', () => { endSheetDrag(); document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden)); applySheet(); syncSides(); });
 addEventListener('resize', () => { try { applySheet(); } catch(e){} });
 
 /* ---- landscape phone: one panel at a time, Layers on the left, Inspector and Oscillators on the right ---- */
