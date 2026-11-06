@@ -1492,6 +1492,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <div class="tutCard" id="itCard" role="dialog" aria-labelledby="itT" tabindex="-1" hidden>
     <div class="tutHead"><h4 id="itT"></h4><span id="itN"></span></div>
     <p id="itX"></p>
+    <p class="itKey" id="itSl" hidden></p>
     <p class="itTry" id="itTry"></p>
     <span class="itFull" id="itFull" hidden>Full mode only</span>
     <p class="itKey" id="itKey" hidden></p>
@@ -6899,7 +6900,8 @@ const tutorialMode = (() => {
   return {start, end, hideOffer, isActive: () => active};
 })();
 if (phone.matches){ pL.hidden = true; pI.hidden = true; showPanel(pL, false); }
-/* ---------- Interactive tutorial: chapters on a practice scene (Tr1ppical Butterfly). Next-button only, never blocks the app.
+/* ---------- Interactive tutorial: chapters on a practice scene (Tr1ppical Butterfly). Next-button only.
+   Each step locks the app to the controls it is about: other clicks and keys do nothing (Esc exits, the step's own shortcut works).
    On start the current project is copied in memory; Exit, Esc or finishing puts it back through the project-load path.
    Nothing in here saves: the unsaved-changes dot stays quiet, and Save, presets and project files are switched off. ---------- */
 const itut = (() => {
@@ -6909,104 +6911,162 @@ const itut = (() => {
   const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
   const touchy = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
   const catSel = id => `.cat[data-cat="${id}"]`, chip = id => `#cchips [data-cat="${id}"]`;
-  /* steps: sel = what to spotlight, open = what to show first, x = text (xt on touch), tr = the try-it line,
-     key = shortcut-table rows to hint on desktop, full = Full mode only, easyHidden = never shown in Easy, e = Easy overrides */
+  const row = (g, k) => `.ctl:has(#${g}-${k})`, lblOf = id => `.lbl:has(+ #${id})`;
+  /* steps: sel = what to spotlight (and what may be used), allow = more that may be used, open = what to show first,
+     x = text (xt on touch), tr = the try-it line, key = shortcut-table rows (hinted on desktop, and the only keys that work),
+     keys = extra raw key combos that work, list = name the sliders in the section, full = Full mode only,
+     easyHidden = never shown in Easy, e = Easy overrides. A step whose control cannot be shown is skipped. */
   const CH = [
     {id:'layers', t:'Layers', steps:[
       {t:'Add layer', sel:['#bAddLayer', '#addMenu'], open:{panel:'L', add:1},
        x:'Add layer puts something new on top: a picture, a link to an image or folder, or Auto layers.', tr:'Open the menu and look through it.'},
       {t:'Sample scenes', sel:['#bSample', '#bSample2'], open:{drawer:'view'},
        x:'Two ready-made scenes live under Source & Depth. You are practising on Tr1ppical Butterfly right now.', tr:'Tap Sacred Tree, then Tr1ppical Butterfly to come back.'},
-      {t:'Bring in pictures', sel:['#bLoad', '#bLayersImport'], open:{drawer:'view'},
+      {t:'Bring in pictures', sel:['#bLoad', '#bLayersImport'], allow:['#impAsk', '#impBox', '#impProg'], open:{drawer:'view'}, keys:['Ctrl+V'],
        x:'Load image, drag and drop a file, paste with Ctrl+V, or paste a link. With a picture open you choose Add (on top) or Replace.',
        xt:'Load image, paste a picture, or paste a link to an image or folder. With a picture open you choose Add (on top) or Replace.',
        tr:'Bring in any image; your own project comes back when you exit.',
        e:{sel:['#bAddLayer', '#addMenu'], open:{panel:'L', add:1},
           x:'Upload a picture from Add layer, drop or paste one on the page, or paste a link. In Easy a new picture replaces the old one.',
           xt:'Upload a picture from Add layer or paste a link to one. In Easy a new picture replaces the old one.'}},
-      {t:'Layer rows', sel:['#layerList'], open:{panel:'L'}, key:['Hide / show the selected layer', 'Solo the selected layer'],
+      {t:'Layer rows', sel:['#layerList'], open:{panel:'L'}, key:['Hide / show the selected layer', 'Solo the selected layer', 'Select the layer above / below'],
        x:'Each row has an eye to hide it, solo to show only that layer, and duplicate. Double-click a name to rename it.',
        xt:'Each row has an eye to hide it, solo to show only that layer, and duplicate. Double-tap a name to rename it.',
        tr:'Hide the top layer, then show it again.',
        e:{x:'The picture is built from layers, nearest first. Tap the eye on a row to hide or show that layer.'}},
-      {t:'Layer menu', sel:['#layerList .lrow'], open:{panel:'L'}, easyHidden:1,
+      {t:'Layer menu', sel:['#layerList .lrow'], allow:['#layerList', '.pinMenu'], open:{panel:'L'}, easyHidden:1,
        x:'Right-click a row for its menu: Rename, Duplicate, Outline, Hide, Solo and Delete.',
        xt:'Press and hold a row for its menu: Rename, Duplicate, Outline, Hide, Solo and Delete.', tr:'Open the menu on any row.'},
-      {t:'Auto layers', sel:['#bAddLayer', '#addMenu'], open:{panel:'L', add:1},
+      {t:'Auto layers', sel:['#bAddLayer', '#addMenu'], allow:['#autoBox'], open:{panel:'L', add:1},
        x:'Auto layers… finds the objects in a flat picture and splits them into layers by depth for you.', tr:'Choose Auto layers…, then Generate layers or Cancel.'},
-      {t:'Roll colours', sel:['#lcRow'], open:{panel:'L'},
+      {t:'Roll colours', sel:['#lcRow'], allow:['#lcList'], open:{panel:'L'},
        x:'Roll colours recolours the ticked layers with a random scheme. Layers ▾ chooses which ones it touches.', tr:'Tap Roll colours a few times.'},
     ]},
-    {id:'look', t:'Look', steps:[
-      {t:'Layer tab', sel:[chip('layer'), '#pInsp'], open:{cat:'layer'}, key:['Inspector'],
-       x:'The Inspector shows one tab at a time. Layer holds the selected layer’s depth, size, opacity, blend and effects.', tr:'Pick a layer in Layers, then drag one of its sliders.'},
-      {t:'Glow and trails', sel:['#g-lfx'], open:{cat:'layer'}, full:1,
-       x:'Effects add wiggle, glow, melt and trails to the selected layer. Lite softens glow and shortens trails to stay smooth.', tr:'Raise Glow or Trails on the top layer.',
-       e:{x:'Effects add wiggle and glow to the selected layer. Lite softens glow to stay smooth.', tr:'Raise Glow on the top layer.'}},
-      {t:'Symmetry', sel:[chip('sym'), catSel('sym')], open:{cat:'sym'},
-       x:'Symmetry turns the picture into a kaleidoscope: segments, twist, zoom and spin.', tr:'Drag the first slider and watch the pattern change.'},
-      {t:'Color', sel:[chip('color'), catSel('color')], open:{cat:'color'},
-       x:'Color shifts the hue and sets saturation and brightness for the whole picture.', tr:'Drag Hue shift slowly.'},
-      {t:'Motion', sel:[chip('motion'), catSel('motion')], open:{cat:'motion'},
-       x:'Motion sets the loop length and movement. Everything repeats a whole number of times per loop, so exports loop seamlessly.', tr:'Change the loop length and watch the speed.'},
+    {id:'ltab', t:'Layer tab', steps:[
+      {t:'Layer tab', sel:[chip('layer'), '#inspTitle'], open:{cat:'layer', top:1}, key:['Inspector'],
+       x:'The Layer tab holds the controls for the layer selected in Layers. The top layer is selected for you.', tr:'Read the layer name at the top of the Inspector.'},
+      {t:'Depth', sel:[lblOf('g-lpos'), '#g-lpos'], open:{cat:'layer', top:1}, list:1,
+       x:'Places this layer nearer or farther, and gives it relief of its own.', tr:'Drag Depth offset and watch the layer move.'},
+      {t:'Instances', sel:['#instBox'], open:{cat:'layer', top:1}, list:1,
+       x:'Stacks copies of this layer in depth. Offset delays every timed effect on each copy.', tr:'Raise Instances to 3.'},
+      {t:'Dry / wet and blend', sel:[lblOf('g-lmix'), '#g-lmix', '.ctl:has(#layerBlend)'], open:{cat:'layer', top:1}, list:1,
+       x:'Dry / wet mixes this layer’s effects with its plain look. Blend mode sets how it combines with what is behind.', tr:'Try the Screen blend mode.'},
+      {t:'Layer symmetry', sel:[lblOf('g-lsym'), '#g-lsym'], open:{cat:'layer', top:1}, list:1,
+       x:'Gives this layer its own kaleidoscope, on top of the global Symmetry tab.', tr:'Raise this layer’s Symmetry.'},
+      {t:'Layer colour', sel:['#layerInvRow', '#g-lcol'], open:{cat:'layer', top:1}, list:1,
+       x:'Colour for this layer only. Invert flips it black to white.', tr:'Lower the Opacity a little.'},
+      {t:'Recolour', sel:['#rcBox'], open:{cat:'layer', top:1}, list:1,
+       x:'Paints this layer a single colour, handy for white or black PNG layers.', tr:'Turn Recolour on and pick a colour.'},
+      {t:'Effects', sel:['.lbl:has(+ .liteHint)', '.liteHint', '#g-lfx'], open:{cat:'layer', top:1}, list:1, full:1,
+       x:'Effects bend and light this layer. Lite softens glow and shortens trails to stay smooth.', tr:'Raise Glow, then Trails.'},
+      {t:'Outline', sel:['#olBox'], open:{cat:'layer', top:1}, list:1, full:1,
+       x:'Draws a line around this layer’s shape, in any colour and softness.', tr:'Turn the outline on.'},
+    ]},
+    {id:'sym', t:'Symmetry tab', steps:[
+      {t:'Segments and mirror', sel:[chip('sym'), row('g-sym', 'seg'), 'label:has(#p-mirror)'], open:{cat:'sym'},
+       x:'Segments sets how many kaleidoscope slices there are; 1 turns symmetry off. Mirror flips every other slice.', tr:'Drag Segments up and down.'},
+      {t:'Twist', sel:[row('g-sym', 'twist'), row('g-sym', 'twSpeed')], open:{cat:'sym'}, list:1,
+       x:'Twist spirals the slices around the centre; Twist speed keeps them turning.', tr:'Drag Twist slowly.'},
+      {t:'Zoom and orbit', sel:[row('g-sym', 'zoom'), row('g-sym', 'srcOrbit')], open:{cat:'sym'}, list:1,
+       x:'Zoom moves into or out of the pattern; Source orbit slides the picture underneath the slices.', tr:'Zoom in, then back out.'},
+    ]},
+    {id:'color', t:'Color tab', steps:[
+      {t:'Hue', sel:[chip('color'), row('g-color', 'hue'), row('g-color', 'depthHue')], open:{cat:'color'}, list:1,
+       x:'Hue shift turns every colour around the wheel; Depth rainbow colours the picture by depth.', tr:'Drag Hue shift slowly.'},
+      {t:'Saturation and invert', sel:[row('g-color', 'sat'), 'label:has(#gInv)'], open:{cat:'color'}, list:1, key:['Invert all image layers'],
+       x:'Saturation makes colours richer or greyer. Invert flips every image layer, black to white.', tr:'Turn Saturation down, then back up.'},
+      {t:'Depth fog and edges', sel:[row('g-color', 'fog'), row('g-color', 'edges')], open:{cat:'color'}, list:1,
+       x:'Depth fog fades far layers into haze; Depth edges outlines where depths meet.', tr:'Raise Depth fog.'},
+    ]},
+    {id:'motion', t:'Motion tab', steps:[
+      {t:'Loop length', sel:[chip('motion'), row('g-motion', 'loop')], open:{cat:'motion'},
+       x:'Loop length is how long one seamless loop lasts. Everything animated repeats a whole number of times per loop.', tr:'Change the loop length and watch the speed.'},
+      {t:'Drift and spin', sel:[row('g-motion', 'drift'), row('g-motion', 'spin')], open:{cat:'motion'}, list:1,
+       x:'Camera drift sways the view through the layers; Spin turns the whole kaleidoscope.', tr:'Raise Spin.'},
+      {t:'Hue cycle and smoothing', sel:[row('g-motion', 'hueCycle'), row('g-motion', 'glide')], open:{cat:'motion'}, list:1,
+       x:'Hue cycle sweeps the colours during each loop; Global smoothing softens sudden jumps.', tr:'Raise Hue cycle.'},
     ]},
     {id:'osc', t:'Oscillators and Mod', steps:[
       {t:'Oscillators', sel:['#pOsc'], open:{panel:'O'}, key:['Oscillators'], easyHidden:1,
        x:'Oscillators are waves that move sliders for you, locked to the tempo (Sync) or free (Hz). Up to 8 per project.', tr:'Watch the wave in a card move.'},
-      {t:'Add an oscillator', sel:['#pOsc .oadd', '#pOsc .oaddS'], open:{panel:'O'}, easyHidden:1,
+      {t:'Add an oscillator', sel:['#pOsc .oadd', '#pOsc .oaddS'], allow:['#pOsc'], open:{panel:'O'}, easyHidden:1,
        x:'Add oscillator makes a new wave. Its card sets the shape, rate and amount.', tr:'Tap Add oscillator.'},
-      {t:'Map it to a slider', sel:['#pOsc .onode'], open:{panel:'O'}, easyHidden:1,
+      {t:'Map it to a slider', sel:['#pOsc .onode', '#pOsc .oadd'], allow:['#pOsc', '#pInsp', '#dInsp', '.pinMenu'], open:{panel:'O'}, easyHidden:1,
        x:'Tap an oscillator’s node, then tap any slider. That slider now moves with the wave, across its full range to start.', tr:'Tap a node, then a slider in the Inspector.'},
-      {t:'Mod tab', sel:[chip('mod'), catSel('mod')], open:{cat:'mod'}, easyHidden:1,
-       x:'Mod lists every mapping from oscillators and audio bands to sliders. Change amounts, filter, sort or remove them here.', tr:'Find your new mapping and lower its amount.'},
+      {t:'Mod tab', sel:[chip('mod'), catSel('mod') + ' > .note'], open:{cat:'mod'}, easyHidden:1,
+       x:'Mod lists every mapping: what moves what, and how far. Click a target to jump to its slider.', tr:'Read the list of mappings below.'},
+      {t:'Filter and sort', sel:[catSel('mod') + ' .mtool'], open:{cat:'mod'}, easyHidden:1,
+       x:'Show only mappings from one source, on one layer or of one kind, and sort the list.', tr:'Sort by target.'},
+      {t:'Add mapping', sel:[catSel('mod') + ' .madd'], allow:['#pInsp', '.pinMenu'], open:{cat:'mod'}, easyHidden:1,
+       x:'Pick a source here and press Add mapping, then choose the slider it should move.', tr:'Add a mapping from an oscillator.'},
+      {t:'Mappings', sel:['#modList'], open:{cat:'mod'}, easyHidden:1,
+       x:'Each row is one mapping: source, target and amount. Change the amount or remove it here.', tr:'Lower the amount of a mapping.'},
+      {t:'Audio effects', sel:['.lbl:has(+ .note + #modAudio)', '#modAudio'], open:{cat:'mod'}, easyHidden:1,
+       x:'The built-in audio effects. Pick which band drives each one; the amounts match the Audio tab.', tr:'Change which band drives Zoom.'},
     ]},
-    {id:'audio', t:'Audio', steps:[
-      {t:'Load audio', sel:['#bAudio'], open:{cat:'audio'},
+    {id:'audio', t:'Audio tab', steps:[
+      {t:'Load audio', sel:['#bAudio', '#bPlay'], open:{cat:'audio'},
        x:'Load audio plays a song from your device and the picture reacts to it. Nothing is uploaded.', tr:'Optional: load any song you have.'},
       {t:'Microphone and Device audio', sel:[catSel('audio') + ' .lv'], open:{cat:'audio'},
        x:'Microphone reacts to sound in the room. Device audio captures what this computer plays; it works in desktop Chrome or Edge only.',
        tr:'Optional: try Microphone and allow access if asked.',
        e:{sel:['#pMusic .lv'], open:{panel:'M'}}},
-      {t:'Streaming', sel:['#mMusic'], open:{more:1},
+      {t:'Streaming', sel:['#mMusic'], allow:['#pMusic'], open:{more:1},
        x:'More › Streaming plays SoundCloud or Spotify links, playlists and albums too. Listen lets the picture react (desktop Chrome or Edge).',
        tr:'Optional: open it and paste a playlist link.'},
-      {t:'Bands and gates', sel:[catSel('audio') + ' .bands', '#g-aband'], open:{cat:'audio'},
-       x:'Low, Mid and High split the sound. Each gate sets how loud a band must be before it moves the picture.', tr:'With sound playing, watch the three meters.',
+      {t:'Bands and gates', sel:[catSel('audio') + ' .bands', '#bGateSolo', '#g-aband'], open:{cat:'audio'}, list:1,
+       x:'Low, Mid and High split the sound. Crossovers set where they split; each gate sets how loud a band must be to move the picture.',
+       tr:'With sound playing, watch the three meters.',
        e:{x:'Low, Mid and High split the sound into bass, middle and treble. Each meter shows how hard that band drives the picture.'}},
-      {t:'Tempo pulse and tap tempo', sel:['#bTap', '#g-apulse'], open:{cat:'audio'}, key:['Tap tempo'],
+      {t:'Audio effects', sel:['#g-afx', '#bToMod'], open:{cat:'audio'}, list:1,
+       x:'How strongly the sound moves depth, zoom, spin, hue and particles. Zero turns an effect off.', tr:'Raise Zoom amount.'},
+      {t:'Tempo pulse and tap tempo', sel:['#g-audio', '#bTap', '#g-apulse'], open:{cat:'audio'}, key:['Tap tempo'], list:1,
        x:'Tempo pulse beats the picture without any sound. Tap tempo along with your music to set the speed.', tr:'Tap Tap tempo four times in a steady rhythm.'},
     ]},
-    {id:'rand', t:'Randomize and Pins', steps:[
+    {id:'rand', t:'Randomize tab', steps:[
       {t:'Roll', sel:['#dRoll'], key:['Roll'],
        x:'Roll picks a random look from the controls it is allowed to change.', tr:'Roll a few times.',
        e:{x:'Roll picks a random look using the controls you can see.'}},
-      {t:'Undo', sel:['#bDiceUndo'], open:{cat:'random'}, key:['Undo Roll, resets, layer delete, Look preset or project load'],
-       x:'Undo steps back through rolls, resets, layer deletes and preset or project loads. Redo brings them back.', tr:'Roll, then undo it.',
-       e:{sel:['#dRoll'], open:{}, x:'Every roll shows a message with Undo. Tap it to get the previous look back.'}},
-      {t:'Roll presets', sel:['#randPreset'], open:{cat:'random'},
-       x:'Roll presets choose which controls Roll may change. Pick one to change what Roll does.', tr:'Switch presets, then Roll and compare.'},
-      {t:'Layer colours target', sel:['#fltLC'], open:{cat:'random'},
-       x:'Layer colours decides whether Roll also recolours your layers, and which ones.', tr:'Turn it on, then Roll.'},
-      {t:'Pin a slider', sel:[catSel('sym') + ' .pin'], open:{cat:'sym'}, easyHidden:1,
-       x:'The pin next to a slider puts it in the dock bar, so you can drag it with every panel closed.', tr:'Pin a Symmetry slider, then drag it in the dock.'},
-      {t:'Dock slots', sel:['#lkSlots', '#lkAutoPin'], open:{look:1, lkg:['pins']},
+      {t:'Roll, undo and reset', sel:['#bDice', '#bDiceUndo', '#bResetAll'], allow:['#dRoll'], open:{cat:'random'}, key:['Roll', 'Undo Roll, resets, layer delete, Look preset or project load', 'Reset all'],
+       x:'Roll here or in the dock. Undo steps back through rolls and resets; Reset all puts every effect back to its start.', tr:'Roll, then undo it.',
+       e:{sel:['#dRoll'], open:{}, key:['Roll', 'Undo Roll, resets, layer delete, Look preset or project load'], x:'Every roll shows a message with Undo. Tap it to get the previous look back.'}},
+      {t:'Random amount and exposure', sel:['#g-randamt', '#g-exposure'], allow:['#dRoll'], open:{cat:'random'}, list:1,
+       x:'Random amount caps how far a roll can move each slider. Exposure brightens or dims everything, and Roll never changes it.', tr:'Set Random amount low, then Roll.'},
+      {t:'Roll presets', sel:['#bRandAll', '#randPreset', '#bRandSave'], allow:['#dRoll', '#randSaveRow'], open:{cat:'random'},
+       x:'Roll presets choose which sliders and targets Roll may change. Select all, basic or none to start your own.', tr:'Switch presets, then Roll and compare.'},
+      {t:'Effects', sel:['#fltFx'], allow:['#dRoll'], open:{cat:'random'},
+       x:'Tick the effects Roll may change. Untick anything you want to keep as it is.', tr:'Untick a few effects, then Roll.'},
+      {t:'Targets', sel:['#fltTg'], allow:['#dRoll'], open:{cat:'random'},
+       x:'Choose what Roll touches: the global look, each layer, particles, icon and 3D object.', tr:'Untick Global, then Roll.'},
+      {t:'Random pulse timing', sel:['details:has(#randTiming)'], allow:['#dRoll'], open:{cat:'random'},
+       x:'Ticked bands pick a new pulse rate on every beat, for less predictable motion.', tr:'Tick Low.'},
+      {t:'Oscillators', sel:['#fltOsc'], allow:['#dRoll'], open:{cat:'random'},
+       x:'Lets Roll also change oscillator shapes and rates.', tr:'Turn it on, then Roll.'},
+      {t:'Layer colours', sel:['#fltLC'], allow:['#dRoll'], open:{cat:'random'},
+       x:'Lets Roll also recolour your layers, and chooses which ones.', tr:'Turn it on, then Roll.'},
+    ]},
+    {id:'pins', t:'Pins', steps:[
+      {t:'Pin a slider', sel:[row('g-sym', 'zoom')], allow:['#macros', '.pinMenu'], open:{cat:'sym'}, easyHidden:1,
+       x:'The pin next to a slider puts it in the dock bar, so you can drag it with every panel closed.', tr:'Pin Zoom, then drag it in the dock.'},
+      {t:'Dock slots', sel:['#lkSlots', '#lkAutoPin'], allow:['#macros'], open:{look:1, lkg:['pins']},
        x:'Pinned slots sets how many sliders fit in the bar. Auto pin adds the sliders you use; locked pins stay put.', tr:'Set slots to 4 and watch the bar.'},
     ]},
     {id:'dock', t:'Dock and saving', steps:[
       {t:'Play and Record', sel:['#dPlay', '#dRec'], key:['Play / pause', 'Record one loop (press again to stop)'],
        x:'Play pauses or resumes the motion. Record captures exactly one loop as a video that loops seamlessly.', tr:'Pause, then play again.'},
-      {t:'Theme menu', sel:['#dTheme', '#lookPop'], open:{look:1}, key:['Theme menu'],
+      {t:'Theme menu', sel:['#dTheme', '#lookPop'], allow:['#keysSheet'], open:{look:1}, key:['Theme menu'],
        x:'The Theme menu holds performance, interface, colours, pins, Shortcuts and this Tutorial.', tr:'Open and close each group.',
        e:{x:'The Theme menu holds performance, interface, colours, Shortcuts and this Tutorial.'}},
-      {t:'More menu', sel:['#dMore', '#moreMenu'], open:{more:1},
+      {t:'More menu', sel:['#dMore', '#moreMenu'], allow:['#pMusic'], open:{more:1},
        x:'More holds Save project, Streaming, image links and Look presets. A dot on it means unsaved changes.', tr:'Look through it.',
        e:{x:'More holds Save project and Streaming. A dot on it means unsaved changes.'}},
-      {t:'Save, presets, Export and Import', sel:[catSel('project')], open:{cat:'project'}, key:['Save project'],
-       x:'Save keeps everything in a project file; Import opens one. Look presets store a look to reuse or export. Saving is off during the tutorial.',
-       tr:'Scroll through to see Look presets and Output.'},
-      {t:'Output', sel:['#aspectSel', '#qSeg', '#bPng', '#bRec'], open:{cat:'project'},
+      {t:'Projects', sel:[catSel('project') + ' .lbl:has(+ .btns #projName)', catSel('project') + ' .btns:has(> #projName)', catSel('project') + ' .btns:has(> #bProjExport)'], open:{cat:'project'}, key:['Save project'],
+       x:'Name your project, then Export file saves everything to a file; Import file opens one. Saving is off during the tutorial.', tr:'Type a name; nothing is saved.'},
+      {t:'Look presets', sel:[catSel('project') + ' .btns:has(#presetSel)', catSel('project') + ' .btns:has(#presetName)', catSel('project') + ' .btns:has(#bPresetUpdate)'], open:{cat:'project'},
+       x:'Look presets store a look to reuse, update, export or import. Saving them is off during the tutorial.', tr:'Load a different Look preset.'},
+      {t:'Output', sel:['.ctl:has(#aspectSel)', '#qSeg', '#bPng', '#bRec'], open:{cat:'project'},
        x:'Output sets the aspect and quality, then exports a PNG still or a seamless loop video. Lite renders at Normal at most.', tr:'Capture a PNG still.'},
-      {t:'Hide UI', sel:['#dHide'], key:['Hide / show the UI'],
+      {t:'Hide UI', sel:['#dHide'], allow:['#showUI', '#mini'], key:['Hide / show the UI'],
        x:'Hide UI leaves only the picture. A small corner button keeps Roll, Record, Play and Capture handy; Show UI brings everything back.',
        tr:'Hide the UI, then bring it back.',
        e:{sel:['#mHide'], open:{more:1}}},
@@ -7022,16 +7082,17 @@ const itut = (() => {
   ];
   const eff = st => easyOn() && st.e ? {...st, ...st.e} : st;
   const PANELS = {L: pL, I: pI, O: pO, M: pM};
+  const all = s => { try { return [...document.querySelectorAll(s)]; } catch(e){ return []; } };
   function hiddenInEasy(st){
     if (st.easyHidden) return true;
     let found = 0;
-    for (const s of eff(st).sel){ const el = $(s); if (!el) continue; found++; if (!el.closest('[data-adv]')) return false; }
+    for (const s of eff(st).sel) for (const el of all(s)){ found++; if (!el.closest('[data-adv]')) return false; }
     return found > 0;          // every target exists and sits in an advanced-only area
   }
   const stepsOf = ch => easyOn() ? ch.steps.filter(s => !hiddenInEasy(s)) : ch.steps;
   const chapters = () => CH.filter(ch => (ch.easyOnly ? easyOn() : true) && stepsOf(ch).length);
   const doneSet = () => new Set(lsGet(DONE_KEY, []));
-  let active = false, busy = false, SB = null, run = null, pollT = null, backFocus = null, chipShown = false;
+  let active = false, busy = false, SB = null, run = null, pollT = null, backFocus = null, chipShown = false, internal = 0, showTok = 0;
 
   /* ---- sandbox: copy the project in memory, practise on the sample, put it back on exit ---- */
   function sbStart(){
@@ -7039,7 +7100,7 @@ const itut = (() => {
     if (!cap){ toast('The interactive tutorial could not start here'); return false; }
     const lkg = {}; document.querySelectorAll('#lookPop .lkg').forEach(d => { lkg[d.dataset.lkg] = d.open; });
     SB = {cap, dirty: DIRTY, hu: HIST.u, hr: HIST.r, cats: [...shownCats], drOpen: drawer.dataset.open === 'true', drTab: UI.get('drawerTab', 'view'),
-      slots: SLOTS, auto: AUTO_ON, sheet: sheetMode, lkg, chip: easyChip.hidden, clean: document.body.classList.contains('clean'),
+      slots: SLOTS, auto: AUTO_ON, sheet: sheetMode, lkg, det: new Map(), chip: easyChip.hidden, clean: document.body.classList.contains('clean'),
       ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])};
     HIST.u = []; HIST.r = []; syncHist();       // the tour has its own undo history; yours comes back on exit
     TUT_SB = true;
@@ -7058,6 +7119,7 @@ const itut = (() => {
     try { shownCats.clear(); for (const c of s.cats) shownCats.add(c); if (!shownCats.size) shownCats.add('layer'); drawInsp(); } catch(e){}
     try { setDrawer(s.drOpen, s.drTab); } catch(e){}
     try { document.querySelectorAll('#lookPop .lkg').forEach(d => { const o = s.lkg[d.dataset.lkg]; if (o != null && d.open !== o) d.open = o; }); } catch(e){}
+    try { for (const [d, o] of s.det) if (d.isConnected && d.open !== o) d.open = o; } catch(e){}
     try { if (sheetMode !== s.sheet) setSheetMode(s.sheet); } catch(e){}
     try { if (document.body.classList.contains('clean') !== s.clean) $('#hPanel').click(); } catch(e){}
     try {
@@ -7069,60 +7131,134 @@ const itut = (() => {
     if (s.dirty){ DIRTY = false; markDirty(); } else clearDirty(1500);
     toast(ok ? 'Tutorial closed. Your project is back.' : 'Could not bring your project back. Use Ctrl+Z or import your last save.', ok ? 2200 : 5000);
   }
+
+  /* ---- the lock: only the step's own controls (and the tutorial card) take clicks, taps and keys ---- */
+  const ALWAYS = '#itCard, #itList, #atoast, #toast';
+  const curStep = () => run && run.steps ? eff(run.steps[run.i]) : null;
+  function allowedEl(t){
+    if (!t || !t.closest) return false;
+    if (t.closest(ALWAYS)) return true;
+    const st = curStep(); if (!st || !card.dataset.ready) return false;
+    for (const s of [...st.sel, ...(st.allow || [])]) for (const el of all(s)) if (el.contains(t)) return true;
+    return false;
+  }
+  for (const ev of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu', 'touchstart', 'touchend'])
+    window.addEventListener(ev, e => {
+      if (!active || internal || allowedEl(e.target)) return;
+      if (e.cancelable) e.preventDefault(); e.stopImmediatePropagation();
+    }, {capture: true, passive: false});
+  /* wheel over a slider or menu outside the step must not change it; plain scrolling still works */
+  window.addEventListener('wheel', e => {
+    if (!active || allowedEl(e.target)) return;
+    if (e.target.closest && e.target.closest('input, select, .xyPad, canvas')){ e.preventDefault(); e.stopImmediatePropagation(); }
+  }, {capture: true, passive: false});
+  const KEYNAME = {'space': ' ', '↑': 'arrowup', '↓': 'arrowdown'};
+  function comboHit(e, c){
+    const parts = c.split('+'), k = parts.pop().toLowerCase(), ctrl = parts.some(p => /ctrl/i.test(p)), shift = parts.some(p => /shift/i.test(p));
+    const want = KEYNAME[k] || k;
+    if (ctrl !== (e.ctrlKey || e.metaKey) || e.altKey) return false;
+    if (/^[a-z]$/.test(want) && shift !== e.shiftKey) return false;
+    return e.key.toLowerCase() === want;
+  }
+  function stepKeyHit(e, st){
+    const cs = [...(st.keys || [])];
+    for (const lbl of st.key || []){ const r = KEYMAP.find(x => x.length > 1 && x[1] === lbl); if (r) cs.push(...r[0]); }
+    return cs.some(c => comboHit(e, c));
+  }
+  const NAV = new Set(['Tab', 'Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown']);
+
   /* saving is off: Save, project files, Look presets and Roll presets */
   const SAVE_SEL = '#mSave, #bProjExport, #bProjImport, #bPresetSave, #bPresetUpdate, #bPresetDelete, #bPresetImport, #bPresetExport, #bRandSave, #bRandSaveOk, #bRandDel';
   const saveOff = () => toast('Saving is off during the tutorial');
-  document.addEventListener('click', e => { if (SB && e.target.closest && e.target.closest(SAVE_SEL)){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); } }, true);
+  document.addEventListener('click', e => { if (SB && !internal && e.target.closest && e.target.closest(SAVE_SEL)){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); } }, true);
   window.addEventListener('keydown', e => {
     if (!SB) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's'){ e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) saveOff(); return; }
     if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('#presetName, #randPresetName, #projName')){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); return; }
-    if (e.key === 'Escape' && active && !busy && !isTyping(e.target)){ e.preventDefault(); e.stopImmediatePropagation(); exit(); }
+    if (!active || busy) return;
+    const t = e.target, typing = isTyping(t);
+    if (e.key === 'Escape' && !typing){ e.preventDefault(); e.stopImmediatePropagation(); exit(); return; }
+    if (t && t.closest && t.closest('#itCard, #itList')){ e.stopImmediatePropagation(); return; }   // the card's own buttons work; app shortcuts don't fire
+    if (e.key === 'Tab') return;
+    if (allowedEl(t) && (typing || NAV.has(e.key))) return;                                         // operating the step's own control
+    const st = curStep(); if (st && card.dataset.ready && stepKeyHit(e, st)) return;                 // the step's own shortcut
+    e.preventDefault(); e.stopImmediatePropagation();
   }, true);
 
   /* ---- showing a step ---- */
   function hideChip(){ if (chipShown && SB){ easyChip.hidden = SB.chip; } chipShown = false; }
+  function openDetails(st){
+    for (const s of st.sel) for (const el of all(s)){
+      for (let d = el.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')){
+        if (!d.open){ if (SB && !SB.det.has(d) && !d.matches('.lkg')) SB.det.set(d, false); d.open = true; }
+      }
+    }
+  }
   function prep(st){
     const o = st.open || {};
-    try { closePinMenu(); } catch(e){}
-    try { if (!o.add && !$('#addMenu').hidden) setAddMenu(false); } catch(e){}
-    try { if (!o.more && !moreMenu.hidden) setMore(false); } catch(e){}
-    try { if (!o.look && !lookPop.hidden) toggleLookPop(false); } catch(e){}
-    hideChip();
+    internal++;
     try {
-      const p = PANELS[o.panel];
-      if (p){ if (p.hidden) showPanel(p, true); else if (p.classList.contains('folded')) p.querySelector('[data-fold]').click(); }
-      if (o.drawer) openCat(o.drawer);
-      if (o.cat) openCat(o.cat);
-      if (o.add){ if (pL.hidden) showPanel(pL, true); if ($('#addMenu').hidden) setAddMenu(true); }
-      if (o.more && moreMenu.hidden) setMore(true);
-      if (o.look){ if (lookPop.hidden) toggleLookPop(true); for (const g of o.lkg || []){ const d = lookPop.querySelector(`.lkg[data-lkg="${g}"]`); if (d && !d.open) d.open = true; } }
-      if (o.chip){ clearTimeout(easyChipT); easyChip.hidden = false; chipShown = true; }
-    } catch(e){}
-    try { if (phone.matches && sheetMode === 'full') setSheetMode('half'); } catch(e){}   // the card sits above the sheet, never on it
+      try { closePinMenu(); } catch(e){}
+      try { if (!o.add && !$('#addMenu').hidden) setAddMenu(false); } catch(e){}
+      try { if (!o.more && !moreMenu.hidden) setMore(false); } catch(e){}
+      try { if (!o.look && !lookPop.hidden) toggleLookPop(false); } catch(e){}
+      try { closeKeys(); } catch(e){}
+      hideChip();
+      try {
+        const p = PANELS[o.panel];
+        if (p){ if (p.hidden) showPanel(p, true); else if (p.classList.contains('folded')) p.querySelector('[data-fold]').click(); }
+        if (o.drawer) openCat(o.drawer);
+        if (o.cat) openCat(o.cat);
+        if (o.top && (sel === 'bg' || !isImageLayer(sel))){ const r = $('#layerList .lrow[id^="row-L"]'); if (r) r.click(); if (o.cat) openCat(o.cat); }
+        if (o.add){ if (pL.hidden) showPanel(pL, true); if ($('#addMenu').hidden) setAddMenu(true); }
+        if (o.more && moreMenu.hidden) setMore(true);
+        if (o.look){ if (lookPop.hidden) toggleLookPop(true); for (const g of o.lkg || []){ const d = lookPop.querySelector(`.lkg[data-lkg="${g}"]`); if (d && !d.open) d.open = true; } }
+        if (o.chip){ clearTimeout(easyChipT); easyChip.hidden = false; chipShown = true; }
+      } catch(e){}
+      openDetails(st);
+      try { if (phone.matches && sheetMode !== 'half') setSheetMode('half'); } catch(e){}   // the card sits above a half-height sheet, never on it
+    } finally { internal--; }
   }
-  function targetEl(st){ for (const s of st.sel){ const el = $(s); if (el){ const b = el.getBoundingClientRect(); if (b.width > 1 && b.height > 1) return el; } } return null; }
+  const visRect = el => { const b = el.getBoundingClientRect(); return b.width > 1 && b.height > 1 ? b : null; };
+  function scroller(el){
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement){
+      const cs = getComputedStyle(p);
+      if (/(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight + 1) return p;
+    }
+    return null;
+  }
+  /* the part of an element that is actually on screen: clipped by every scrolling box around it and by the window */
+  function clipRect(el){
+    const b = visRect(el); if (!b) return null;
+    let r = {l: b.left, t: b.top, r: b.right, b: b.bottom};
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement){
+      const cs = getComputedStyle(p); if (!/(auto|scroll|hidden|clip)/.test(cs.overflowY + cs.overflowX)) continue;
+      const q = p.getBoundingClientRect(); r = {l: Math.max(r.l, q.left), t: Math.max(r.t, q.top), r: Math.min(r.r, q.right), b: Math.min(r.b, q.bottom)};
+    }
+    r = {l: Math.max(r.l, 0), t: Math.max(r.t, 0), r: Math.min(r.r, innerWidth), b: Math.min(r.b, innerHeight)};
+    return r.r - r.l > 1 && r.b - r.t > 1 ? r : null;
+  }
+  const targets = st => st.sel.flatMap(s => all(s).slice(0, s.includes('.lrow') ? 1 : 99)).filter(el => visRect(el));
   function reveal(st){
-    const el = targetEl(st); if (!el) return;
-    const sc = el.closest('#inspBody, .dwscroll, .fpb, .lookpop, .moreMenu'); if (!sc || sc === el) return;
-    const a = el.getBoundingClientRect(), b = sc.getBoundingClientRect();
-    if (a.top < b.top + 8) sc.scrollTop -= b.top + 8 - a.top;
-    else if (a.bottom > b.bottom - 8) sc.scrollTop += Math.max(0, Math.min(a.bottom - b.bottom + 8, a.top - b.top - 8));
+    const els = targets(st); if (!els.length) return;
+    const top = els.reduce((a, el) => visRect(el).top < visRect(a).top ? el : a), sc = scroller(top); if (!sc) return;
+    let lo = Infinity, hi = -Infinity; for (const el of els){ if (scroller(el) !== sc) continue; const b = visRect(el); lo = Math.min(lo, b.top); hi = Math.max(hi, b.bottom); }
+    const q = sc.getBoundingClientRect();
+    if (hi - lo > q.height - 16 || lo < q.top + 8) sc.scrollTop += lo - q.top - 8;
+    else if (hi > q.bottom - 8) sc.scrollTop += hi - q.bottom + 8;
   }
-  function rectOf(sels){
+  function rectOf(st){
     let r = null;
-    for (const s of sels){
-      const el = $(s); if (!el) continue;
-      const b = el.getBoundingClientRect(); if (b.width < 2 || b.height < 2) continue;
-      r = r ? {l: Math.min(r.l, b.left), t: Math.min(r.t, b.top), r: Math.max(r.r, b.right), b: Math.max(r.b, b.bottom)} : {l: b.left, t: b.top, r: b.right, b: b.bottom};
+    for (const el of targets(st)){
+      const b = clipRect(el); if (!b) continue;
+      r = r ? {l: Math.min(r.l, b.l), t: Math.min(r.t, b.t), r: Math.max(r.r, b.r), b: Math.max(r.b, b.b)} : b;
     }
     return r;
   }
-  const curStep = () => run && run.steps ? eff(run.steps[run.i]) : null;
   function layout(){
     if (!active) return;
-    const vw = innerWidth, vh = innerHeight, m = 10, pad = 6, st = curStep();
-    const r = st ? rectOf(st.sel) : null;
+    const vw = innerWidth, vh = innerHeight, m = 10, pad = 6, st = card.dataset.ready ? curStep() : null;
+    const r = st ? rectOf(st) : null;
     let box = null;
     if (r) box = {l: Math.max(0, r.l - pad), t: Math.max(0, r.t - pad), r: Math.min(vw, r.r + pad), b: Math.min(vh, r.b + pad)};
     spot.classList.toggle('none', !box);
@@ -7151,33 +7287,55 @@ const itut = (() => {
   }
   function keyHint(st){
     if (!st.key || touchy()) return '';
-    return st.key.map(lbl => { const row = KEYMAP.find(r => r.length > 1 && r[1] === lbl); return row ? row[0].map(kbdCombo).join(' or ') + ' ' + escH(lbl) : ''; }).filter(Boolean).join(' · ');
+    return st.key.map(lbl => { const r = KEYMAP.find(x => x.length > 1 && x[1] === lbl); return r ? r[0].map(kbdCombo).join(' or ') + ' ' + escH(lbl) : ''; }).filter(Boolean).join(' · ');
   }
-  function show(){
-    const ch = run.chs[run.c], st = eff(run.steps[run.i]), last = run.i === run.steps.length - 1;
-    root.classList.remove('list'); list.hidden = true; card.hidden = false;
-    prep(st);
+  function sliderNames(st){
+    const names = [];
+    for (const el of targets(st)) for (const r of el.matches('.ctl') ? [el] : el.querySelectorAll('.ctl')){
+      if (!visRect(r)) continue;
+      const l = r.querySelector('label'), n = l && l.textContent.replace(/\s+/g, ' ').trim();
+      if (n && !names.includes(n)) names.push(n);
+    }
+    return names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  }
+  function render(st){
+    const ch = run.chs[run.c], last = run.i === run.steps.length - 1;
     $('#itT').textContent = st.t;
     $('#itN').textContent = ch.t + ' · ' + (run.i + 1) + ' / ' + run.steps.length;
     $('#itX').textContent = (touchy() && st.xt) || st.x;
+    const sl = st.list ? sliderNames(st) : ''; $('#itSl').textContent = sl ? 'Sliders: ' + sl + '.' : ''; $('#itSl').hidden = !sl;
     const liteBlock = st.full && LITE.on;
     $('#itTry').textContent = st.tr || ''; $('#itTry').hidden = liteBlock || !st.tr;
     $('#itFull').hidden = !liteBlock;
     const kh = keyHint(st); $('#itKey').innerHTML = kh; $('#itKey').hidden = !kh;
     $('#itNext').textContent = !last ? 'Next' : run.all && run.c < run.chs.length - 1 ? 'Next chapter' : run.all ? 'Finish' : 'Finish chapter';
     lsSet(POS_KEY, {ch: ch.id, i: run.i, all: !!run.all});
-    requestAnimationFrame(() => { reveal(st); layout(); }); layout(); setTimeout(() => { reveal(st); layout(); }, 300);
+    card.dataset.ready = '1'; card.style.visibility = '';
+    reveal(st); layout(); requestAnimationFrame(() => { reveal(st); layout(); }); setTimeout(() => { if (curStep() === st || card.dataset.ready) layout(); }, 300);
     try { card.focus({preventScroll: true}); } catch(e){}
   }
-  function beginChapter(c, i = 0){
-    const ch = run.chs[c]; run.c = c; run.steps = stepsOf(ch); run.i = Math.min(i, run.steps.length - 1);
-    if (!run.steps.length){ next(); return; }
-    show();
+  /* show a step; a step whose control cannot be shown (not on screen for this layer, mode or size) is skipped in the direction of travel */
+  function show(dir = 1){
+    const tok = ++showTok, st = eff(run.steps[run.i]);
+    root.classList.remove('list'); list.hidden = true; card.hidden = false;
+    delete card.dataset.ready; card.style.visibility = 'hidden';
+    prep(st);
+    const ok = () => targets(st).length > 0;
+    if (ok()){ render(st); return; }
+    setTimeout(() => {
+      if (tok !== showTok || !active || !run || !run.steps) return;
+      if (ok()) render(st); else if (dir < 0) back(); else next(true);
+    }, 220);
+  }
+  function beginChapter(c, i = 0, dir = 1){
+    const ch = run.chs[c]; run.c = c; run.steps = stepsOf(ch); run.i = Math.max(0, Math.min(i, run.steps.length - 1));
+    if (!run.steps.length){ if (dir < 0) back(); else next(true); return; }
+    show(dir);
   }
   function markDone(id){ const d = doneSet(); d.add(id); lsSet(DONE_KEY, [...d]); }
-  function next(){
+  function next(skipping){
     if (!run || !run.steps) return;
-    if (run.i < run.steps.length - 1){ run.i++; show(); return; }
+    if (run.i < run.steps.length - 1){ run.i++; show(1); return; }
     markDone(run.chs[run.c].id);
     if (run.all && run.c < run.chs.length - 1){ beginChapter(run.c + 1); return; }
     lsSet(POS_KEY, null);
@@ -7185,19 +7343,21 @@ const itut = (() => {
   }
   function back(){
     if (!run || !run.steps) return;
-    if (run.i > 0){ run.i--; show(); return; }
-    if (run.all && run.c > 0){ const c = run.c - 1; run.steps = stepsOf(run.chs[c]); beginChapter(c, run.steps.length - 1); return; }
+    if (run.i > 0){ run.i--; show(-1); return; }
+    if (run.all && run.c > 0){ const c = run.c - 1; beginChapter(c, stepsOf(run.chs[c]).length - 1, -1); return; }
     showList();
   }
   /* ---- chapter list ---- */
   function showList(note){
-    hideChip();
+    showTok++; hideChip(); delete card.dataset.ready;
+    internal++;
     try { closePinMenu(); if (!$('#addMenu').hidden) setAddMenu(false); if (!moreMenu.hidden) setMore(false); if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
+    finally { internal--; }
     const chs = chapters(), done = doneSet(), pos = lsGet(POS_KEY, null);
     run = {chs, all: false, c: 0, i: 0, steps: null};
     const host = $('#itChs'); host.innerHTML = '';
-    const pc = pos && chs.findIndex(c => c.id === pos.ch);
-    if (pos && pc >= 0){
+    const pc = pos ? chs.findIndex(c => c.id === pos.ch) : -1;
+    if (pc >= 0){
       const n = stepsOf(chs[pc]).length;
       const b = document.createElement('button'); b.type = 'button'; b.className = 'itCh';
       b.innerHTML = `<span class="ck">›</span><span>Resume: ${escH(chs[pc].t)}</span><small>${Math.min(pos.i, n - 1) + 1} / ${n}</small>`;
@@ -7233,16 +7393,16 @@ const itut = (() => {
   }
   async function exit(){
     if (!active || busy) return;
-    busy = true; active = false; clearInterval(pollT); pollT = null;
+    busy = true; active = false; showTok++; clearInterval(pollT); pollT = null;
     root.hidden = true; root.classList.remove('list'); document.body.classList.remove('itOn');
-    hideChip();
-    try { closePinMenu(); if (!$('#addMenu').hidden) setAddMenu(false); if (!moreMenu.hidden) setMore(false); if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
+    hideChip(); delete card.dataset.ready;
+    try { closePinMenu(); if (!$('#addMenu').hidden) setAddMenu(false); if (!moreMenu.hidden) setMore(false); if (!lookPop.hidden) toggleLookPop(false); closeKeys(); } catch(e){}
     run = null;
     try { await sbEnd(); } finally { busy = false; }
     try { if (backFocus && backFocus.isConnected && backFocus.offsetParent !== null) backFocus.focus({preventScroll: true}); } catch(e){}
     backFocus = null;
   }
-  $('#itNext').onclick = next;
+  $('#itNext').onclick = () => next();
   $('#itBack').onclick = back;
   $('#itExit').onclick = exit;
   $('#itListExit').onclick = exit;
