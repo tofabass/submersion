@@ -217,6 +217,16 @@ body{background:var(--stage)}
 #pMusic .musListen{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 #pMusic .musListen .live{font:600 12px var(--f-ui);color:var(--accent)}
 #pMusic .musListen .live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:baseline}
+.lv{display:grid;gap:6px;margin:6px 0}
+.lv .btns{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.lv [hidden]{display:none!important}
+.lv .live{font:600 12px var(--f-ui);color:var(--accent)}
+.lv .live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:6px}
+.lv .lvMeter{height:6px}
+.lv .lvMeter b{transform:scaleX(0)}
+.lv .lvGain{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font:12px var(--f-ui)}
+.lv .lvNote{margin:0}
+.lv .btn.last{border-color:var(--accent)}
 .fph{display:flex;align-items:center;gap:6px;padding:8px 8px 8px 10px;border-bottom:1px solid var(--line-soft);cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
 .fph:active{cursor:grabbing}
 .fph h2{margin:0;flex:1;min-width:0;display:flex;align-items:center;gap:7px;font:700 14px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1143,6 +1153,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
           <button class="btn" id="bPlay" disabled>Play</button>
           <input type="file" id="fAudio" accept="audio/*" hidden>
         </div>
+        <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
         <div class="lbl">Frequency bands</div>
         <div class="bands">
           <div class="band"><span class="bn">Low</span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
@@ -1320,6 +1331,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
     <div class="musSp" id="musSp" hidden><div class="musSpRow"><button class="btn" id="musSignIn" type="button">Sign in to Spotify</button><button class="btn" id="musReload" type="button">I've signed in, reload player</button></div><p class="note">Full tracks need Spotify Premium, signed in on this browser (desktop). Otherwise Spotify plays 30-second previews.</p></div>
     <div class="musListen" id="musListen" hidden><button class="btn" id="musListenBtn" type="button" title="Share this tab's audio so the picture reacts to the music">Listen</button><button class="btn" id="musStop" type="button" hidden>Stop</button><span class="live" id="musLive" hidden>Listening</span></div>
     <p class="note" id="musListenNote"></p>
+    <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
   </div>
 </section>
 
@@ -4611,6 +4623,7 @@ function buildMonitor(){
   mon = {dry, g, lo, mh, ml, hi};
 }
 function loadAudioFile(f){
+  stopSources();   // one source at a time: live inputs and the embed stop first
   ensureCtx();
   audioEl.src = URL.createObjectURL(f);
   if (!srcNode){ srcNode = actx.createMediaElementSource(audioEl); srcNode.connect(analyser); buildMonitor(); }
@@ -4619,7 +4632,7 @@ function loadAudioFile(f){
 }
 $('#bAudio').onclick = () => $('#fAudio').click();
 $('#fAudio').onchange = e => { const f = e.target.files[0]; if (f) loadAudioFile(f); e.target.value=''; };
-$('#bPlay').onclick = () => { ensureCtx(); if (audioEl.paused){ audioEl.play(); $('#bPlay').textContent='Pause'; } else { audioEl.pause(); $('#bPlay').textContent='Play'; } };
+$('#bPlay').onclick = () => { ensureCtx(); if (audioEl.paused){ stopSources(); audioEl.play(); $('#bPlay').textContent='Pause'; } else { audioEl.pause(); $('#bPlay').textContent='Play'; } };
 BAND_IDS.forEach((id, k) => {
   $('#solo' + id).onclick = () => { bandSolo[k] = !bandSolo[k]; $('#solo' + id).setAttribute('aria-pressed', bandSolo[k]); if (!srcNode) toast('Load a track to hear the bands'); };
 });
@@ -6901,6 +6914,7 @@ async function musLoadSpotify(p){
   } catch(e){ clearTimeout(MUS.timer); plain(); }
 }
 function musLoad(raw){
+  stopSources(true, true);   // one source at a time: stop the mic, device audio and any loaded file (tab Listen follows the embed, so it stays)
   musClear();
   const p = parseMusicLink(raw);
   if (p.err){ musSay(p.err, true); return; }
@@ -6934,6 +6948,7 @@ function stopListen(){
   try { l.node.disconnect(); } catch(e){}
   l.stream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
   musListenUI(false); const an = $('#audioNote'); if (an && an.textContent.startsWith('Listening to this tab')) an.textContent = musAudioNote;
+  lvUI();
 }
 async function startListen(){
   if (musListening || !musCanListen) return;
@@ -6944,10 +6959,11 @@ async function startListen(){
   const at = stream.getAudioTracks();
   if (!at.length){ stream.getTracks().forEach(t => t.stop()); musSay('No audio was shared. Click Listen, choose this tab and tick "Share tab audio".', true); return; }
   try {
+    stopLive();   // one source at a time (the embed stays: it is what this tab plays)
     ensureCtx();
     const node = actx.createMediaStreamSource(new MediaStream(at));
     node.connect(analyser);   // analyser only: the tab already plays its own sound, so nothing is routed to the speakers again
-    musListening = {stream, node}; liveIn = true;
+    musListening = {stream, node}; liveIn = true; lvLast = 'tab'; UI.set('liveSrc', 'tab'); lvUI(); lvStartMeter();
     if (!audioEl.paused){ audioEl.pause(); $('#bPlay').textContent = 'Play'; }
     at[0].addEventListener('ended', stopListen);
     musSay(''); musListenUI(true);
@@ -6955,6 +6971,112 @@ async function startListen(){
   } catch(e){ stream.getTracks().forEach(t => t.stop()); musSay('Could not start listening: ' + ((e && e.message) || 'unknown error'), true); }
 }
 musLB.onclick = startListen; musStopB.onclick = stopListen;
+
+/* ---- live inputs: Device audio and Microphone feed the same analyser as Load audio and Listen, so every audio-reactive setting works unchanged.
+   One source at a time: starting any source stops the previous one and releases its tracks. A click is always needed to start; nothing auto-starts on load. ---- */
+const LV = {src: null, timer: 0, td: null, savedNote: ''};
+const LV_NAMES = {mic: 'Mic', device: 'Device audio', tab: 'This tab'};
+const LV_DEV_NOTE = "Pick Entire screen and turn on 'Share system audio' (Windows), or pick a tab and 'Share tab audio' (Mac).";
+let lvGain = Math.min(4, Math.max(.5, +UI.get('micGain', 1.5) || 1.5)), lvLast = UI.get('liveSrc', '');
+if (!LV_NAMES[lvLast]) lvLast = '';
+const lvRows = [...document.querySelectorAll('.lv')];
+function lvUI(){
+  const live = !!(LV.src || musListening), name = LV.src ? LV_NAMES[LV.src.kind] : (musListening ? LV_NAMES.tab : '');
+  for (const r of lvRows){
+    const inMus = !!r.closest('#pMusic'), q = s => r.querySelector(s);
+    const dev = q('.lvDev'), mic = q('.lvMic'), nm = q('.lvName'), nt = q('.lvNote');
+    dev.hidden = !musCanListen;
+    q('.lvStop').hidden = !(LV.src || (musListening && !inMus));   // the Music panel already has its own Stop for Listen
+    nm.hidden = !(LV.src || (musListening && !inMus)); nm.textContent = name;
+    q('.lvMeter').hidden = !live;
+    q('.lvGain').hidden = !(LV.src ? LV.src.kind === 'mic' : lvLast === 'mic');
+    mic.classList.toggle('last', !live && lvLast === 'mic'); dev.classList.toggle('last', !live && lvLast === 'device');
+    mic.setAttribute('aria-pressed', !!(LV.src && LV.src.kind === 'mic')); dev.setAttribute('aria-pressed', !!(LV.src && LV.src.kind === 'device'));
+    const parts = [];
+    if (!live){ if (musCanListen) parts.push(LV_DEV_NOTE); if (lvLast) parts.push('Last used: ' + LV_NAMES[lvLast] + '.'); }
+    nt.textContent = parts.join(' '); nt.hidden = !parts.length;
+  }
+}
+function lvMeters(l){ for (const b of document.querySelectorAll('.lvMeter b')) b.style.transform = 'scaleX(' + l.toFixed(3) + ')'; }
+function lvTick(){
+  LV.timer = 0;
+  if (!(LV.src || musListening) || !analyser){ lvMeters(0); return; }
+  if (!LV.td || LV.td.length !== analyser.fftSize) LV.td = new Uint8Array(analyser.fftSize);
+  analyser.getByteTimeDomainData(LV.td);
+  let s = 0; for (let i = 0; i < LV.td.length; i++){ const v = (LV.td[i] - 128) / 128; s += v*v; }
+  const db = 20 * Math.log10(Math.max(1e-5, Math.sqrt(s / LV.td.length)));
+  lvMeters(Math.min(1, Math.max(0, (db + 60) / 60)));
+  LV.timer = setTimeout(lvTick, 70);
+}
+function lvStartMeter(){ if (!LV.timer) lvTick(); }
+function stopLive(){
+  const l = LV.src; if (!l) return; LV.src = null; liveIn = false;
+  try { l.node.disconnect(); } catch(e){}
+  try { if (l.gain) l.gain.disconnect(); } catch(e){}
+  l.stream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
+  const an = $('#audioNote'); if (an && an.textContent.startsWith('Listening to ') && !an.textContent.startsWith('Listening to this tab')) an.textContent = LV.savedNote;
+  lvUI();
+}
+function stopSources(keepTab, keepEmbed){
+  stopLive(); if (!keepTab) stopListen();
+  if (!audioEl.paused){ audioEl.pause(); $('#bPlay').textContent = 'Play'; }
+  if (!keepEmbed) musClear();
+}
+function lvBegin(kind, stream, node, gain){
+  LV.src = {kind, stream, node, gain}; liveIn = true; lvLast = kind; UI.set('liveSrc', kind);
+  const an = $('#audioNote'); if (an){ LV.savedNote = an.textContent; an.textContent = 'Listening to ' + LV_NAMES[kind] + '. Press Stop to end it.'; }
+  stream.getAudioTracks().forEach(t => t.addEventListener('ended', () => { if (LV.src && LV.src.stream === stream) stopLive(); }));
+  lvUI(); lvStartMeter();
+}
+async function startMic(){
+  if (LV.src && LV.src.kind === 'mic') return;
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){ toast('The microphone is not available in this browser.', 3500); return; }
+  try { ensureCtx(); } catch(e){}   // inside the click, so the audio context may start
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}}); }
+  catch(e){ toast(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError' || e.name === 'PermissionDeniedError') ? "Microphone blocked. Allow it in the browser's site settings." : 'Could not start the microphone: ' + ((e && e.message) || 'unknown error'), 4200); return; }
+  const at = stream.getAudioTracks();
+  if (!at.length){ stream.getTracks().forEach(t => t.stop()); toast('No microphone was found.', 3500); return; }
+  try {
+    stopSources();
+    ensureCtx();
+    const node = actx.createMediaStreamSource(new MediaStream(at)), gain = actx.createGain();
+    gain.gain.value = lvGain; node.connect(gain); gain.connect(analyser);   // analyser only, never the speakers: no feedback
+    lvBegin('mic', stream, node, gain);
+  } catch(e){ stream.getTracks().forEach(t => t.stop()); toast('Could not start the microphone: ' + ((e && e.message) || 'unknown error'), 3500); }
+}
+async function startDevice(){
+  if (!musCanListen || (LV.src && LV.src.kind === 'device')) return;
+  try { ensureCtx(); } catch(e){}
+  let stream;
+  try { stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true, systemAudio: 'include'}); }
+  catch(e){ toast(e && (e.name === 'NotAllowedError' || e.name === 'AbortError') ? 'Device audio was cancelled or blocked.' : 'Could not start device audio: ' + ((e && e.message) || 'unknown error'), 3500); return; }
+  stream.getVideoTracks().forEach(t => t.stop());   // only the sound is wanted
+  const at = stream.getAudioTracks();
+  if (!at.length){ stream.getTracks().forEach(t => t.stop()); toast('No audio was shared. Try again and turn on audio sharing.', 4200); return; }
+  try {
+    stopSources();
+    ensureCtx();
+    const node = actx.createMediaStreamSource(new MediaStream(at));
+    node.connect(analyser);   // analyser only: the device already plays its own sound
+    lvBegin('device', stream, node, null);
+  } catch(e){ stream.getTracks().forEach(t => t.stop()); toast('Could not start device audio: ' + ((e && e.message) || 'unknown error'), 3500); }
+}
+function lvSetGain(v, from){
+  lvGain = Math.min(4, Math.max(.5, v)); UI.set('micGain', lvGain);
+  for (const r of lvRows){
+    const i = r.querySelector('.lvGainIn'); if (i !== from) i.value = lvGain;
+    i.style.setProperty('--fill', ((lvGain - .5) / 3.5 * 100) + '%'); r.querySelector('.lvGv').textContent = lvGain.toFixed(1) + 'x';
+  }
+  if (LV.src && LV.src.gain) LV.src.gain.gain.setTargetAtTime(lvGain, actx.currentTime, .02);
+}
+for (const r of lvRows){
+  r.querySelector('.lvMic').onclick = startMic;
+  r.querySelector('.lvDev').onclick = startDevice;
+  r.querySelector('.lvStop').onclick = () => { stopLive(); stopListen(); };
+  r.querySelector('.lvGainIn').addEventListener('input', e => lvSetGain(+e.target.value, e.target));
+}
+lvSetGain(lvGain); lvUI();   // restores the saved choice and gain; capture itself never starts without a click
 $('#mLook').addEventListener('change', e => { const ps = $('#presetSel'); ps.value = e.target.value; ps.dispatchEvent(new Event('change')); });
 function syncMoreLook(){
   const a = $('#presetSel'), b = document.getElementById('mLook'); if (!a || !b) return;
