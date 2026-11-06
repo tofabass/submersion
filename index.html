@@ -582,6 +582,10 @@ body[data-ac="cat"] :is(.cchip[aria-pressed="true"],.dk[aria-pressed="true"],.to
 .itut.list .tutSpot{box-shadow:0 0 0 9999px rgba(8,14,11,.62);outline-color:transparent}
 .itut .tutCard{pointer-events:auto}
 .itut .tutCard[hidden]{display:none}
+.itut .tutCard{transition:opacity .12s}
+.itut.hold .tutCard{opacity:0;pointer-events:none}
+.itut.hold .tutSpot{box-shadow:none}
+.itLock{overscroll-behavior:contain}
 .itTry{font-weight:600}
 .itTry::before{content:"Try it: ";color:var(--accent)}
 .itFull[hidden]{display:none}
@@ -616,9 +620,9 @@ body.itOn .toast,body.itOn .atoast{z-index:9100}
 .liteHint{display:none}
 body.lite .liteOnly{display:inline-block} body.lite .liteHint{display:block}
 body.lite #olBox .check,body.lite #olColRow,body.lite #g-lol{opacity:.45;pointer-events:none}
-.modeScrim{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.modeScrim{position:fixed;inset:0;z-index:80;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:16px;box-sizing:border-box;background:rgba(0,0,0,.45)}
 .modeScrim[hidden]{display:none}
-.modeBox{width:420px;max-width:100%;display:grid;gap:10px;padding:18px;border-radius:16px;background:var(--menu-surface,var(--panel));border:1px solid var(--glass-border,var(--line));box-shadow:var(--shadow);color:var(--ink)}
+.modeBox{box-sizing:border-box;width:min(420px,100%);max-width:100%;display:grid;gap:10px;padding:18px;border-radius:16px;background:var(--menu-surface,var(--panel));border:1px solid var(--glass-border,var(--line));box-shadow:var(--shadow);color:var(--ink)}
 .modeBox h3{margin:0;font:700 16px var(--f-ui)}
 .modeReq{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px}
 .modeBox .btns{justify-content:flex-end}
@@ -1504,7 +1508,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <p class="itTry" id="itTry"></p>
     <span class="itFull" id="itFull" hidden>Full mode only</span>
     <p class="itKey" id="itKey" hidden></p>
-    <div class="tutBtns"><button class="btn" id="itExit" type="button">Exit</button><button class="btn" id="itBack" type="button">Back</button><button class="btn primary" id="itNext" type="button">Next</button></div>
+    <div class="tutBtns"><button class="btn" id="itExit" type="button">Chapters</button><button class="btn" id="itBack" type="button">Back</button><button class="btn primary" id="itNext" type="button">Next</button></div>
   </div>
   <div class="tutCard itList" id="itList" role="dialog" aria-labelledby="itListT" tabindex="-1" hidden>
     <div class="tutHead"><h4 id="itListT">Interactive tutorial</h4><span id="itListN"></span></div>
@@ -7198,6 +7202,9 @@ const itut = (() => {
     for (const s of [...st.sel, ...(st.allow || [])]) for (const el of all(s)) if (el.contains(t)) return true;
     return false;
   }
+  /* a finger lifted anywhere ends a slider hold; listed before the guard below, which swallows events outside the step */
+  const holdOff = () => root.classList.remove('hold');
+  for (const ev of ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'blur']) window.addEventListener(ev, holdOff, true);
   for (const ev of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu', 'touchstart', 'touchend'])
     window.addEventListener(ev, e => {
       if (!active || internal || allowedEl(e.target)) return;
@@ -7341,6 +7348,26 @@ const itut = (() => {
     }
     card.style.left = best.x + 'px'; card.style.top = best.y + 'px';
   }
+  /* phones: while a finger is on a slider the card and dim step aside, so the scene can be seen */
+  addEventListener('pointerdown', e => {
+    if (!active || !run || root.classList.contains('list') || card.hidden || !(phone.matches || touchy())) return;
+    const t = e.target; if (t && t.closest && t.closest('input[type=range]') && !card.contains(t)) root.classList.add('hold');
+  }, true);
+  /* phones: the scrolling sheet may only show what the step is about; scrolling stops at the highlighted controls */
+  let lock = null;
+  function unlockScroll(){ if (lock){ lock.sc.removeEventListener('scroll', lock.fn); lock.sc.classList.remove('itLock'); lock = null; } }
+  function lockScroll(st){
+    unlockScroll(); if (!st || !phone.matches) return;
+    const els = targets(st); if (!els.length) return;
+    const top = els.reduce((a, el) => visRect(el).top < visRect(a).top ? el : a), sc = scroller(top); if (!sc) return;
+    const q = sc.getBoundingClientRect(); let lo = Infinity, hi = -Infinity;
+    for (const el of els){ if (scroller(el) !== sc) continue; const b = visRect(el); lo = Math.min(lo, b.top - q.top + sc.scrollTop); hi = Math.max(hi, b.bottom - q.top + sc.scrollTop); }
+    const view = sc.clientHeight, pad = 8, maxTop = Math.max(0, sc.scrollHeight - view);
+    let a, z; if (hi - lo <= view - 2*pad){ a = hi + pad - view; z = lo - pad; } else { a = lo - pad; z = hi + pad - view; }
+    a = Math.max(0, Math.min(maxTop, a)); z = Math.max(a, Math.min(maxTop, z));
+    const fn = () => { if (sc.scrollTop < a - .5) sc.scrollTop = a; else if (sc.scrollTop > z + .5) sc.scrollTop = z; };
+    sc.addEventListener('scroll', fn, {passive: true}); sc.classList.add('itLock'); lock = {sc, fn}; fn();
+  }
   function keyHint(st){
     if (!st.key || touchy()) return '';
     return st.key.map(lbl => { const r = KEYMAP.find(x => x.length > 1 && x[1] === lbl); return r ? r[0].map(kbdCombo).join(' or ') + ' ' + escH(lbl) : ''; }).filter(Boolean).join(' · ');
@@ -7367,12 +7394,12 @@ const itut = (() => {
     $('#itNext').textContent = !last ? 'Next' : run.all && run.c < run.chs.length - 1 ? 'Next chapter' : run.all ? 'Finish' : 'Finish chapter';
     lsSet(POS_KEY, {ch: ch.id, i: run.i, all: !!run.all});
     card.dataset.ready = '1'; card.style.visibility = '';
-    reveal(st); layout(); requestAnimationFrame(() => { reveal(st); layout(); }); setTimeout(() => { if (curStep() === st || card.dataset.ready) layout(); }, 300);
+    reveal(st); layout(); requestAnimationFrame(() => { reveal(st); lockScroll(st); layout(); }); setTimeout(() => { if (card.dataset.ready && run){ reveal(st); lockScroll(st); layout(); } }, 350);
     try { card.focus({preventScroll: true}); } catch(e){}
   }
   /* show a step; a step whose control cannot be shown (not on screen for this layer, mode or size) is skipped in the direction of travel */
   function show(dir = 1){
-    const tok = ++showTok, st = eff(run.steps[run.i]);
+    const tok = ++showTok, st = eff(run.steps[run.i]); unlockScroll(); holdOff();
     root.classList.remove('list'); list.hidden = true; card.hidden = false;
     delete card.dataset.ready; card.style.visibility = 'hidden';
     prep(st);
@@ -7405,7 +7432,7 @@ const itut = (() => {
   }
   /* ---- chapter list ---- */
   function showList(note){
-    showTok++; hideChip(); delete card.dataset.ready;
+    showTok++; hideChip(); delete card.dataset.ready; unlockScroll(); holdOff();
     internal++;
     try { closePinMenu(); if (!$('#addMenu').hidden) setAddMenu(false); if (!moreMenu.hidden) setMore(false); if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
     finally { internal--; }
@@ -7449,7 +7476,7 @@ const itut = (() => {
   }
   async function exit(){
     if (!active || busy) return;
-    busy = true; active = false; showTok++; clearInterval(pollT); pollT = null;
+    busy = true; active = false; showTok++; clearInterval(pollT); pollT = null; unlockScroll(); holdOff();
     root.hidden = true; root.classList.remove('list'); document.body.classList.remove('itOn');
     hideChip(); delete card.dataset.ready;
     try { closePinMenu(); if (!$('#addMenu').hidden) setAddMenu(false); if (!moreMenu.hidden) setMore(false); if (!lookPop.hidden) toggleLookPop(false); closeKeys(); } catch(e){}
@@ -7460,7 +7487,7 @@ const itut = (() => {
   }
   $('#itNext').onclick = () => next();
   $('#itBack').onclick = back;
-  $('#itExit').onclick = exit;
+  $('#itExit').onclick = () => { if (active && !busy) showList(); };   // back to the chapter list; Exit tutorial lives there
   $('#itListExit').onclick = exit;
   $('#itAll').onclick = () => { run.all = true; lsSet(POS_KEY, null); beginChapter(0); };
   /* the card is the tutorial's own: its taps must not count as clicks outside the app's open menus */
