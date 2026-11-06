@@ -209,7 +209,9 @@ body{background:var(--stage)}
 #pMusic .musMsg{margin:0;min-height:1.2em}
 #pMusic .musMsg.err{color:var(--c-warn,#c0553f)}
 #pMusic .musPlayer iframe{display:block;width:100%;border:0;border-radius:12px;background:transparent}
-#pMusic .musPlayer[hidden],#pMusic .musCtl[hidden],#pMusic .musListen[hidden]{display:none}
+#pMusic .musPlayer[hidden],#pMusic .musCtl[hidden],#pMusic .musListen[hidden],#pMusic .musSp[hidden]{display:none}
+#pMusic .musSp{display:flex;flex-direction:column;gap:6px}
+#pMusic .musSpRow{display:flex;flex-wrap:wrap;gap:6px}
 #pMusic .musCtl{display:flex;align-items:center;gap:6px}
 #pMusic .musCtl .ttl{flex:1;min-width:0;font:500 12px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pMusic .musListen{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
@@ -1295,9 +1297,9 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
     <p class="note musMsg" id="musMsg" role="status"></p>
     <div class="musCtl" id="musCtl" hidden><button class="ib" id="musPrev" type="button" aria-label="Previous track" title="Previous track"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true" style="transform:scaleX(-1)"><use href="#i-next"/></svg></button><button class="ib" id="musPlay" type="button" aria-label="Play" title="Play / pause"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg></button><button class="ib" id="musNext" type="button" aria-label="Next track" title="Next track"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-next"/></svg></button><span class="ttl" id="musTitle" aria-live="polite"></span></div>
     <div class="musPlayer" id="musPlayer" hidden></div>
+    <div class="musSp" id="musSp" hidden><div class="musSpRow"><button class="btn" id="musSignIn" type="button">Sign in to Spotify</button><button class="btn" id="musReload" type="button">I've signed in, reload player</button></div><p class="note">Full tracks need Spotify Premium, signed in on this browser (desktop). Otherwise Spotify plays 30-second previews.</p></div>
     <div class="musListen" id="musListen" hidden><button class="btn" id="musListenBtn" type="button" title="Share this tab's audio so the picture reacts to the music">Listen</button><button class="btn" id="musStop" type="button" hidden>Stop</button><span class="live" id="musLive" hidden>Listening</span></div>
     <p class="note" id="musListenNote"></p>
-    <p class="note">Spotify plays 30-second previews unless you are logged in to Spotify in this browser.</p>
   </div>
 </section>
 
@@ -6708,7 +6710,9 @@ $('#mHide').onclick = () => { setMore(false); $('#hPanel').click(); };
 
 /* ---- Music: SoundCloud and Spotify players (playlists and albums included) in the Music panel; Listen feeds this tab's audio to the same analyser as Load audio ---- */
 const musUrl = $('#musUrl'), musMsg = $('#musMsg'), musPlayer = $('#musPlayer'), musCtl = $('#musCtl'), musTitle = $('#musTitle'), musPlayBtn = $('#musPlay');
-const MUS = {gen: 0, svc: '', widget: null, ctrl: null, paused: true, timer: 0, n: 0};
+const musSp = $('#musSp'), musSignIn = $('#musSignIn'), musReload = $('#musReload');
+const MUS = {gen: 0, svc: '', widget: null, ctrl: null, paused: true, timer: 0, n: 0, sp: null};
+let musPrevToasted = false;   // the "previews" toast shows once per session
 const musSay = (t, err) => { musMsg.textContent = t || ''; musMsg.classList.toggle('err', !!err); };
 const musIcon = paused => { musPlayBtn.innerHTML = `<svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#${paused ? 'i-play' : 'i-pause'}"/></svg>`; musPlayBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause'); };
 function musClear(){
@@ -6716,6 +6720,7 @@ function musClear(){
   try { if (MUS.ctrl && MUS.ctrl.destroy) MUS.ctrl.destroy(); } catch(e){}
   MUS.widget = MUS.ctrl = null; MUS.paused = true; MUS.n = 0; MUS.svc = '';
   musPlayer.innerHTML = ''; musPlayer.hidden = true; musCtl.hidden = true; musTitle.textContent = ''; musIcon(true);
+  musSp.hidden = true; musSignIn.classList.remove('primary');
 }
 function parseMusicLink(raw){
   let s = (raw || '').trim();
@@ -6811,12 +6816,12 @@ function loadSpotifyApi(){
 async function musLoadSpotify(p){
   const g = MUS.gen, tall = p.type === 'playlist' || p.type === 'album' || p.type === 'show', h = tall ? 352 : 152, uri = 'spotify:' + p.type + ':' + p.id;
   const label = p.type === 'playlist' ? 'This playlist must be public to play here.' : 'Spotify could not find that ' + p.type + '. It may be private or removed.';
-  musSay('Loading Spotify…'); musPlayer.innerHTML = ''; musPlayer.hidden = false;
+  musSay('Loading Spotify…'); musPlayer.innerHTML = ''; musPlayer.hidden = false; MUS.sp = p; musSp.hidden = false;
   // a private or removed item answers 404 from Spotify's public oEmbed; if the check cannot run, the player simply loads
   try {
     const r = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/' + p.type + '/' + p.id));
     if (g !== MUS.gen) return;
-    if (r.status === 404 || r.status === 400){ musPlayer.hidden = true; musSay(label, true); return; }
+    if (r.status === 404 || r.status === 400){ musPlayer.hidden = true; musSp.hidden = true; musSay(label, true); return; }
   } catch(e){ if (g !== MUS.gen) return; }
   const plain = () => {   // fallback: plain embed, Spotify's own buttons do the playing
     if (g !== MUS.gen) return; musPlayer.innerHTML = ''; musPlayer.appendChild(musFrame('https://open.spotify.com/embed/' + p.type + '/' + p.id, h, 'Spotify player'));
@@ -6833,7 +6838,14 @@ async function musLoadSpotify(p){
       const fr = musPlayer.querySelector('iframe');
       if (fr){ fr.title = 'Spotify player'; fr.loading = 'lazy'; if (!/autoplay/.test(fr.getAttribute('allow') || '')) fr.setAttribute('allow', 'autoplay; encrypted-media'); }
       ctrl.addListener('ready', () => { if (g !== MUS.gen) return; clearTimeout(MUS.timer); musSay(''); musCtl.hidden = false; $('#musPrev').hidden = $('#musNext').hidden = true; });
-      ctrl.addListener('playback_update', e => { if (g !== MUS.gen) return; MUS.paused = !!(e && e.data && e.data.isPaused); musIcon(MUS.paused); });
+      ctrl.addListener('playback_update', e => {
+        if (g !== MUS.gen) return; MUS.paused = !!(e && e.data && e.data.isPaused); musIcon(MUS.paused);
+        const d = e && e.data && +e.data.duration;   // milliseconds; about 30 s means Spotify is serving a preview
+        if (d > 0 && d <= 31000){
+          musSignIn.classList.add('primary');
+          if (!musPrevToasted){ musPrevToasted = true; toast('Spotify is playing previews. Sign in for full tracks.', 4000); }
+        }
+      });
     });
   } catch(e){ clearTimeout(MUS.timer); plain(); }
 }
@@ -6843,6 +6855,8 @@ function musLoad(raw){
   if (p.err){ musSay(p.err, true); return; }
   if (p.svc === 'spotify') musLoadSpotify(p); else musLoadSC(p);
 }
+musSignIn.onclick = () => { try { window.open('https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F', '_blank', 'noopener'); } catch(e){} };
+musReload.onclick = () => { const p = MUS.sp; if (!p) return; musClear(); musLoadSpotify(p); };
 $('#musForm').addEventListener('submit', e => { e.preventDefault(); musLoad(musUrl.value); });
 musUrl.addEventListener('paste', () => setTimeout(() => { if (musUrl.value.trim()) musLoad(musUrl.value); }, 0));
 musPlayBtn.onclick = () => { try { if (MUS.svc === 'soundcloud' && MUS.widget) MUS.widget.toggle(); else if (MUS.svc === 'spotify' && MUS.ctrl) MUS.ctrl.togglePlay(); } catch(e){} };
