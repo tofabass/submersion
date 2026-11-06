@@ -500,6 +500,24 @@ body[data-ac="cat"] :is(.cchip[aria-pressed="true"],.dk[aria-pressed="true"],.to
 .lookpop{max-height:calc(100vh - 110px);overflow:auto}
 .lkTop{display:flex;gap:6px;flex-wrap:wrap}
 .lkTop .btn{display:inline-flex;align-items:center;gap:6px}
+/* tutorial: dim the screen, spotlight the real control, small card with Skip on every step */
+.tut{position:fixed;inset:0;z-index:9000;touch-action:none}
+.tut[hidden],.tutOffer[hidden]{display:none}
+.tutSpot{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:14px;box-shadow:0 0 0 9999px rgba(8,14,11,.62);outline:2px solid var(--accent);pointer-events:none;transition:left .22s ease,top .22s ease,width .22s ease,height .22s ease}
+.tutSpot.none{outline-color:transparent}
+.tutCard,.tutOffer{box-sizing:border-box;padding:12px 14px;border-radius:14px;background:var(--menu-surface,var(--panel));color:var(--ink);border:1px solid var(--glass-border,var(--line));box-shadow:0 10px 30px rgba(0,0,0,.35);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);font:12.5px/1.45 var(--f-ui)}
+.tutCard{position:fixed;left:10px;top:10px;width:min(320px,calc(100vw - 20px));max-height:calc(100vh - 20px);overflow:auto;display:grid;gap:8px;touch-action:auto}
+.tutHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.tutHead h4{margin:0;font:600 13px var(--f-ui)}
+.tutHead span{color:var(--dim);font-size:11px}
+.tutCard p{margin:0}
+.tutCard kbd{font:600 11px var(--f-num,monospace);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--raise)}
+.tutBtns{display:flex;align-items:center;gap:8px}
+.tutBtns .btn{min-height:38px}
+.tutBtns #tutSkip{margin-right:auto;text-decoration:underline}
+.tutOffer{position:fixed;left:50%;bottom:calc(var(--dockH,64px) + 24px);transform:translateX(-50%);z-index:62;display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:8px;max-width:calc(100vw - 24px)}
+.clean .tutOffer{display:none!important}
+@media (prefers-reduced-motion:reduce){ .tutSpot{transition:none} }
 .lkg{border-top:1px solid var(--sep,var(--line-soft))}
 .lkg>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 2px 2px;font:700 12.5px var(--f-ui);color:var(--ink)}
 .lkg>summary::-webkit-details-marker{display:none}
@@ -1289,7 +1307,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 </div></div>
 <div class="lookpop" id="lookPop" role="dialog" aria-label="Theme menu" hidden>
   <h3>Look <span class="meta">Submersion</span></h3>
-  <div class="lkTop" id="lkTop"><!-- the Tutorial button goes first here (added in a later session) --><button class="btn" id="lkKeys" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-keys"/></svg>Shortcuts</button></div>
+  <div class="lkTop" id="lkTop"><button class="btn" id="lkTut" type="button" title="A five-step tour of the controls"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg>Tutorial</button><button class="btn" id="lkKeys" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-keys"/></svg>Shortcuts</button></div>
   <details class="lkg" data-lkg="perf" open><summary>Performance</summary><div class="lkgb">
   <div class="lrowp"><span>Mode</span><div class="seg" id="lkMode" role="group" aria-label="Performance mode"><button data-mode="lite">Lite</button><button data-mode="full">Full</button></div><label class="check"><input type="checkbox" id="lkRemember"> Remember my device choice (skip the start-up question)</label><p class="note" id="lkModeNote">Lite caps resolution and frame rate for phones. Your saved settings are untouched.</p></div>
   </div></details>
@@ -1312,6 +1330,13 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 </div></div>
 <div class="atoast" id="atoast" role="status" hidden><span id="atoastMsg"></span><button class="btn" id="atoastBtn">Undo</button></div>
 <button class="btn showui" id="showUI">Show UI · H</button>
+<div class="tutOffer" id="tutOffer" role="status" hidden><span>New here? Take a quick tour of the controls.</span><button class="btn primary" id="tutOfferGo" type="button">Show me</button><button class="btn" id="tutOfferNo" type="button">No thanks</button></div>
+<div class="tut" id="tut" hidden><div class="tutSpot" id="tutSpot"></div>
+  <div class="tutCard" id="tutCard" role="dialog" aria-labelledby="tutT" tabindex="-1">
+    <div class="tutHead"><h4 id="tutT"></h4><span id="tutN"></span></div>
+    <p id="tutX"></p>
+    <div class="tutBtns"><button class="btn" id="tutSkip" type="button">Skip tutorial</button><button class="btn" id="tutBack" type="button">Back</button><button class="btn primary" id="tutNext" type="button">Next</button></div>
+  </div></div>
 <audio id="audioEl" loop hidden></audio>
 
 <script>
@@ -6382,6 +6407,117 @@ $('#lkRemember').onchange = e => store.set(MODE_REM, e.target.checked ? '1' : nu
   }
 }
 syncLookPop(); syncModeUI();
+
+/* ---------- Tutorial: five steps. Dims the screen, spotlights the real controls; Skip / Esc / Done put every panel back as it was ---------- */
+const tutorialMode = (() => {
+  const root = $('#tut'), spot = $('#tutSpot'), card = $('#tutCard'), offer = $('#tutOffer');
+  const SEEN_KEY = 'submersion.ui.tutorialSeen';
+  let seenMem = false, active = false, idx = 0, snapState = null, backFocus = null, pollT = null, offerT = null;
+  const seen = () => { if (seenMem) return true; try { return localStorage.getItem(SEEN_KEY) === '1'; } catch(e){ return false; } };
+  const markSeen = () => { seenMem = true; try { localStorage.setItem(SEEN_KEY, '1'); } catch(e){} };
+  const STEPS = [
+    {t:'Picture and Layers', targets:['#pLayers'], panel:pL,
+     x:'The picture is built from layers, nearest first. Tap one to select it. <kbd>↑</kbd> <kbd>↓</kbd> change the selection, <kbd>E</kbd> hides it, <kbd>S</kbd> solos it, <kbd>Enter</kbd> calibrates it (hold <kbd>Shift</kbd> while brushing for precision). <kbd>L</kbd> opens or closes this panel.'},
+    {t:'Inspector', targets:['#pInsp'], panel:pI,
+     x:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. <kbd>I</kbd> opens or closes the Inspector.'},
+    {t:'Dock and Theme menu', targets:['#dTheme', '#lookPop'], look:true,
+     x:'<kbd>T</kbd> opens the Theme menu: Lite or Full, colours, Pins, Shortcuts for every key, and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.'},
+    {t:'Find and Roll', targets:['#dFind', '#dRoll'],
+     x:'<kbd>Ctrl</kbd>+<kbd>F</kbd> finds any control by name. <kbd>?</kbd> or <kbd>/</kbd> rolls a random look, <kbd>Z</kbd> resets everything.'},
+    {t:'Play, record, hide, undo', targets:['#dPlay', '#dHide'],
+     x:'<kbd>Space</kbd> plays or pauses. <kbd>R</kbd> records one loop (press again to stop). <kbd>H</kbd> hides all controls; press it again to bring them back. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redoes.'},
+  ];
+  const snap = () => ({ps: [pL, pI, pO].map(p => [p, p.hidden, p.classList.contains('folded')])});
+  function restore(s){
+    try { if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
+    for (const [p, h] of s.ps) if (h && !p.hidden) showPanel(p, false);
+    for (const [p, h] of s.ps) if (!h && p.hidden) showPanel(p, true);
+    for (const [p, h, f] of s.ps) if (!h && p.classList.contains('folded') !== f) p.querySelector('[data-fold]').click();
+  }
+  function ensure(st){
+    try {
+      if (st.look){ if (lookPop.hidden) toggleLookPop(true); return; }
+      if (!lookPop.hidden) toggleLookPop(false);
+      if (st.panel){ if (st.panel.hidden) showPanel(st.panel, true); else if (st.panel.classList.contains('folded')) st.panel.querySelector('[data-fold]').click(); }
+    } catch(e){}
+  }
+  function rectOf(sels){
+    let r = null;
+    for (const s of sels){
+      const el = $(s); if (!el || el.hidden) continue;
+      const b = el.getBoundingClientRect(); if (b.width < 2 || b.height < 2) continue;
+      r = r ? {l: Math.min(r.l, b.left), t: Math.min(r.t, b.top), r: Math.max(r.r, b.right), b: Math.max(r.b, b.bottom)} : {l: b.left, t: b.top, r: b.right, b: b.bottom};
+    }
+    return r;
+  }
+  function layout(){
+    if (!active) return;
+    const vw = innerWidth, vh = innerHeight, m = 10, pad = 6, r = rectOf(STEPS[idx].targets);
+    let box = null;
+    if (r) box = {l: Math.max(0, r.l - pad), t: Math.max(0, r.t - pad), r: Math.min(vw, r.r + pad), b: Math.min(vh, r.b + pad)};
+    spot.classList.toggle('none', !box);
+    const q = box || {l: vw / 2, t: vh / 2, r: vw / 2, b: vh / 2};
+    spot.style.left = q.l + 'px'; spot.style.top = q.t + 'px'; spot.style.width = (q.r - q.l) + 'px'; spot.style.height = (q.b - q.t) + 'px';
+    const cw = card.offsetWidth, ch = card.offsetHeight, cx = (q.l + q.r) / 2, cy = (q.t + q.b) / 2, c = [];
+    if (box) c.push([q.l, q.b + 12], [q.l, q.t - 12 - ch], [q.r + 12, q.t], [q.l - 12 - cw, q.t], [cx - cw / 2, q.b + 12], [cx - cw / 2, q.t - 12 - ch]);
+    c.push([(vw - cw) / 2, vh - ch - m], [(vw - cw) / 2, m], [m, m], [vw - cw - m, m], [m, vh - ch - m], [vw - cw - m, vh - ch - m]);
+    let best = null;
+    for (const p of c){
+      const x = Math.max(m, Math.min(vw - cw - m, p[0])), y = Math.max(m, Math.min(vh - ch - m, p[1]));
+      const ov = box ? Math.max(0, Math.min(x + cw, q.r) - Math.max(x, q.l)) * Math.max(0, Math.min(y + ch, q.b) - Math.max(y, q.t)) : 0;
+      const sc = ov * 1000 + Math.hypot(x + cw / 2 - cx, y + ch / 2 - cy);
+      if (!best || sc < best.sc) best = {x, y, sc};
+    }
+    card.style.left = best.x + 'px'; card.style.top = best.y + 'px';
+  }
+  function show(i){
+    idx = i; const st = STEPS[i];
+    ensure(st);
+    $('#tutT').textContent = st.t; $('#tutX').innerHTML = st.x; $('#tutN').textContent = (i + 1) + ' / ' + STEPS.length;
+    $('#tutBack').style.visibility = i ? 'visible' : 'hidden';
+    $('#tutNext').textContent = i === STEPS.length - 1 ? 'Done' : 'Next';
+    layout(); requestAnimationFrame(layout); setTimeout(layout, 280);
+  }
+  function end(){
+    if (!active) return;
+    active = false; clearInterval(pollT); pollT = null; root.hidden = true;
+    try { restore(snapState); } catch(e){}
+    snapState = null;
+    try { if (backFocus && backFocus.isConnected && backFocus.offsetParent !== null) backFocus.focus({preventScroll: true}); } catch(e){}
+    backFocus = null;
+  }
+  function hideOffer(){ clearTimeout(offerT); offer.hidden = true; }
+  function start(){
+    if (active || !$('#modePrompt').hidden || !$('#keysSheet').hidden) return;
+    hideOffer(); markSeen();
+    try { if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
+    snapState = snap(); backFocus = document.activeElement; active = true;
+    root.hidden = false; show(0);
+    pollT = setInterval(layout, 250);
+    try { card.focus({preventScroll: true}); } catch(e){}
+  }
+  $('#tutSkip').onclick = end;
+  $('#tutBack').onclick = () => { if (idx > 0) show(idx - 1); };
+  $('#tutNext').onclick = () => { if (idx < STEPS.length - 1) show(idx + 1); else end(); };
+  /* the dim layer must not leak clicks to the app (outside-click handlers would close the menu being shown) */
+  for (const ev of ['pointerdown', 'click']) root.addEventListener(ev, e => e.stopPropagation());
+  window.addEventListener('keydown', e => { if (active && e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); end(); } }, true);
+  addEventListener('resize', layout); addEventListener('orientationchange', () => setTimeout(layout, 200));
+  $('#lkTut').onclick = start;
+  $('#tutOfferGo').onclick = start;
+  $('#tutOfferNo').onclick = hideOffer;
+  /* offered once on first run, after the Lite / Full question is answered; never forced */
+  if (!seen()){
+    let tries = 0;
+    const wait = setInterval(() => {
+      if (++tries > 120){ clearInterval(wait); return; }
+      if (!$('#modePrompt').hidden || active) return;
+      clearInterval(wait);
+      setTimeout(() => { if (active || seen()) return; markSeen(); offer.hidden = false; offerT = setTimeout(hideOffer, 20000); }, 1200);
+    }, 1000);
+  }
+  return {start, end};
+})();
 if (phone.matches){ pL.hidden = true; pI.hidden = true; showPanel(pL, false); }
 
 /* ================= UI-2: more menu, save, phone sheets, landscape ================= */
