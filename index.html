@@ -198,6 +198,21 @@ body{background:var(--stage)}
 .fp[hidden]{display:none}
 #pLayers{left:16px;top:16px;width:372px}
 #pInsp{right:16px;top:16px;width:404px}
+/* Music panel: docked bottom right, hidden until opened from the dock "more" menu */
+#pMusic{right:16px;bottom:84px;width:340px;z-index:21;max-height:min(680px,calc(100% - 110px))}
+#pMusic .musBody{padding:10px;display:grid;gap:8px;overflow:auto;min-height:0}
+#pMusic .musIn{display:flex;gap:6px}
+#pMusic .musIn input{flex:1;min-width:0;min-height:36px;font:500 13px var(--f-ui);color:var(--ink);background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+#pMusic .musIn input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#pMusic .musMsg{margin:0;min-height:1.2em}
+#pMusic .musMsg.err{color:var(--c-warn,#c0553f)}
+#pMusic .musPlayer iframe{display:block;width:100%;border:0;border-radius:12px;background:transparent}
+#pMusic .musPlayer[hidden],#pMusic .musCtl[hidden],#pMusic .musListen[hidden]{display:none}
+#pMusic .musCtl{display:flex;align-items:center;gap:6px}
+#pMusic .musCtl .ttl{flex:1;min-width:0;font:500 12px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pMusic .musListen{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#pMusic .musListen .live{font:600 12px var(--f-ui);color:var(--accent)}
+#pMusic .musListen .live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:baseline}
 .fph{display:flex;align-items:center;gap:6px;padding:8px 8px 8px 10px;border-bottom:1px solid var(--line-soft);cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
 .fph:active{cursor:grabbing}
 .fph h2{margin:0;flex:1;min-width:0;display:flex;align-items:center;gap:7px;font:700 14px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -773,7 +788,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   .lsR .stage{right:calc(var(--lsW) + 16px)}
   .fp{top:8px!important;bottom:calc(var(--dockH,64px) + 16px)!important;max-height:none!important;width:var(--lsW)!important;height:auto}
   #pLayers{left:8px!important;right:auto!important}
-  #pInsp,#pOsc{right:8px!important;left:auto!important}
+  #pInsp,#pOsc,#pMusic{right:8px!important;left:auto!important}
   #pOsc{--ow:var(--lsW)!important}
   #pOsc .oresize,#oscClock{display:none}
   #pOsc .oscRow{flex-wrap:nowrap;align-items:start}
@@ -1251,6 +1266,20 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   <div class="fpb oscRow" id="oscRow" role="list" aria-label="Oscillators"></div>
 </section>
 
+<section class="fp" id="pMusic" aria-label="Music panel" hidden>
+  <div class="fph"><span class="grip" aria-hidden="true"></span><h2><span class="hic" style="color:var(--c-motion)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg></span>Music</h2>
+    <button class="ib" data-fold aria-label="Fold the Music panel" title="Fold the Music panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-fold"/></svg></button><button class="ib" data-close aria-label="Hide the Music panel" title="Hide the Music panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+  <div class="fpb musBody">
+    <form class="musIn" id="musForm" autocomplete="off"><input type="text" id="musUrl" inputmode="url" spellcheck="false" placeholder="Paste a SoundCloud or Spotify link" aria-label="Paste a SoundCloud or Spotify link" data-typing><button class="btn primary" id="musGo" type="submit">Load</button></form>
+    <p class="note musMsg" id="musMsg" role="status"></p>
+    <div class="musCtl" id="musCtl" hidden><button class="ib" id="musPrev" type="button" aria-label="Previous track" title="Previous track"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true" style="transform:scaleX(-1)"><use href="#i-next"/></svg></button><button class="ib" id="musPlay" type="button" aria-label="Play" title="Play / pause"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg></button><button class="ib" id="musNext" type="button" aria-label="Next track" title="Next track"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-next"/></svg></button><span class="ttl" id="musTitle" aria-live="polite"></span></div>
+    <div class="musPlayer" id="musPlayer" hidden></div>
+    <div class="musListen" id="musListen" hidden><button class="btn" id="musListenBtn" type="button" title="Share this tab's audio so the picture reacts to the music">Listen</button><button class="btn" id="musStop" type="button" hidden>Stop</button><span class="live" id="musLive" hidden>Listening</span></div>
+    <p class="note" id="musListenNote"></p>
+    <p class="note">Spotify plays 30-second previews unless you are logged in to Spotify in this browser.</p>
+  </div>
+</section>
+
 <div class="calbar" id="calbar" role="toolbar" aria-label="Calibrate layer" hidden>
   <span class="who" id="calWho"></span>
   <span class="cgroup" id="calTools">
@@ -1292,6 +1321,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 </nav>
 <div class="moreMenu" id="moreMenu" role="dialog" aria-label="More" hidden>
   <button class="mi" id="mSave" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg><span>Save project</span><i class="dirtyDot" id="mSaveDot" hidden></i><kbd class="kbd-i">Ctrl S</kbd></button>
+  <button class="mi" id="mMusic" type="button" aria-controls="pMusic"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg><span>Music</span></button>
   <label class="mrow" for="mLook"><span class="lbl">Look presets</span><select id="mLook" aria-label="Look presets"></select></label>
   <button class="mi onlyCmp" id="mInv" type="button" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg><span>Invert image layers</span></button>
   <button class="mi onlyCmp" id="mReset" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-reset"/></svg><span>Reset all effects</span></button>
@@ -4404,7 +4434,7 @@ window.addEventListener('paste', e => {
 
 /* ---------- audio: three bands with adjustable crossovers, gates, smoothing and solo monitoring ---------- */
 const audioEl = $('#audioEl');
-let actx, analyser, freq, srcNode, mon = null;
+let actx, analyser, freq, srcNode, mon = null, liveIn = false;   // liveIn: tab audio from the Music panel's Listen button feeds the same analyser
 const env = [0,0,0], avg = [0,0,0], peak = [.1,.1,.1], band = [0,0,0], gateOpen = [false,false,false];
 const bandSolo = [false,false,false]; let gateSolo = false, spinVel = 0;
 const BAND_IDS = ['B','M','H'], ROUTE_IDX = {low:0, mid:1, high:2};
@@ -4481,7 +4511,7 @@ function bandAvg(lo, hi){
 }
 function updateAudio(t, dt){
   const edges = bandEdges(), gates = [P.gateLow, P.gateMid, P.gateHigh];
-  const playing = analyser && !audioEl.paused;
+  const playing = analyser && (!audioEl.paused || liveIn);
   let raw = null;
   if (playing){
     analyser.getByteFrequencyData(freq);
@@ -4806,7 +4836,7 @@ function frame(now){
   if (!paused) t += dt;
   if (oscReady) modTick(now, dt);
   updateAudio(t, dt);
-  const reactive = (analyser && !audioEl.paused) || P.bpm > 0;
+  const reactive = (analyser && (!audioEl.paused || liveIn)) || P.bpm > 0;
   if (!paused) audioRot += spinVel*dt;
   if (!reactive && audioRot){ audioRot *= Math.pow(.02, dt); if (Math.abs(audioRot) < 1e-4) audioRot = 0; }   // settle back upright when the sound stops
   if (depthDirty) uploadDepth();
@@ -4842,7 +4872,7 @@ const UI = {
 const use = (k, cls = 'gi-svg') => `<svg class="${cls}" viewBox="0 0 16 16" aria-hidden="true"><use href="#${k}"/></svg>`;
 const phone = matchMedia('(max-width:760px)');
 const landscape = matchMedia('(orientation:landscape) and (max-height:520px) and (min-width:761px)');   // a phone held sideways
-const pL = $('#pLayers'), pI = $('#pInsp'), pO = $('#pOsc');
+const pL = $('#pLayers'), pI = $('#pInsp'), pO = $('#pOsc'), pM = $('#pMusic');
 
 /* ---- panels: drag by the header, fold, hide; positions remembered per browser ---- */
 function clampPanel(p){
@@ -4851,9 +4881,9 @@ function clampPanel(p){
   p.style.left = Math.max(0, Math.min(innerWidth - 120, r.left)) + 'px';
   p.style.top = Math.max(0, Math.min(innerHeight - 60, r.top)) + 'px';
 }
-const PANEL_NAMES = {pLayers:'the Layers panel', pInsp:'the Inspector', pOsc:'the Oscillators panel'};
+const PANEL_NAMES = {pLayers:'the Layers panel', pInsp:'the Inspector', pOsc:'the Oscillators panel', pMusic:'the Music panel'};
 if (!UI.get('oscPos3', false)){ UI.set('pos.pOsc', null); UI.set('oscPos3', true); }   // the panel's default place moved
-for (const p of [pL, pI, pO]){
+for (const p of [pL, pI, pO, pM]){
   const h = p.querySelector('.fph'), pos = UI.get('pos.' + p.id, null);
   if (pos && !phone.matches){ p.style.left = pos[0] + 'px'; p.style.top = pos[1] + 'px'; p.style.right = p.style.bottom = 'auto'; clampPanel(p); }
   h.addEventListener('pointerdown', e => {
@@ -4870,12 +4900,12 @@ for (const p of [pL, pI, pO]){
   setFold(UI.get('fold.' + p.id, false));
   p.querySelector('[data-close]').onclick = () => showPanel(p, false);
 }
-addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); });
+addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); });
 function showPanel(p, on){
   p.hidden = !on;
-  if (on){ if (phone.matches || landscape.matches) for (const o of [pL, pI, pO]) if (o !== p) o.hidden = true; p.classList.remove('folded'); try { if (phone.matches && !lookPop.hidden) toggleLookPop(false); } catch(e){} }
+  if (on){ if (phone.matches || landscape.matches) for (const o of [pL, pI, pO, pM]) if (o !== p) o.hidden = true; p.classList.remove('folded'); try { if (phone.matches && !lookPop.hidden) toggleLookPop(false); } catch(e){} }
   $('#dLayers').setAttribute('aria-pressed', !pL.hidden); $('#dInsp').setAttribute('aria-pressed', !pI.hidden); $('#dOsc').setAttribute('aria-pressed', !pO.hidden);
-  document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden));
+  document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden));
   syncSides(); try { applySheet(); } catch(e){}
   if (p === pO){ UI.set('oscOpen', !!on); if (on && oscReady) oscDrawSoon(); }
 }
@@ -5224,7 +5254,7 @@ function setPins(o){                                     // from a preset or pro
 }
 // audio-driven sliders: the ones a band route is moving right now
 const AUDIO_DRIVEN = {'g-depth-strength':['bassDepth','rDepth'], 'g-sym-zoom':['bassZoom','rZoom'], 'g-sym-spin':['highSpin','rSpin'], 'g-color-hue':['midHue','rHue'], 'g-part-count':['pCountAmt','rPCount'], 'g-part-psize':['pSizeAmt','rPSize']};
-const audioDriven = id => { const a = AUDIO_DRIVEN[id]; return !!a && P[a[0]] > 0 && P[a[1]] !== 'off' && ((!!analyser && !audioEl.paused) || P.bpm > 0); };  // only while sound or tempo is actually running
+const audioDriven = id => { const a = AUDIO_DRIVEN[id]; return !!a && P[a[0]] > 0 && P[a[1]] !== 'off' && ((!!analyser && (!audioEl.paused || liveIn)) || P.bpm > 0); };  // only while sound or tempo is actually running
 function autoPin(id){
   if (!AUTO_ON || PINS.includes(id) || audioDriven(id) || (mapReady && modDriven(id))) return; if (LOCKED.size >= SLOTS) return;
   const U = PINS.filter(i => !LOCKED.has(i)); U.unshift(id); AUTOPIN.add(id); arrange(U);
@@ -6325,7 +6355,7 @@ $('#lkFrost').addEventListener('input', e => { LOOK.frost = +e.target.value; app
 $('#lkFrost').addEventListener('dblclick', e => { e.stopPropagation(); LOOK.frost = LOOK_DEF.frost; applyLook(); }, true);
 function toggleLookPop(on){
   lookPop.hidden = !(on ?? lookPop.hidden); $('#dTheme').setAttribute('aria-expanded', !lookPop.hidden); $('#dTheme').setAttribute('aria-pressed', !lookPop.hidden); if (!lookPop.hidden) syncLookPop();
-  if (!lookPop.hidden){ try { setMore(false); } catch(e){} if (phone.matches) for (const p of [pL, pI, pO]) if (!p.hidden) showPanel(p, false); }
+  if (!lookPop.hidden){ try { setMore(false); } catch(e){} if (phone.matches) for (const p of [pL, pI, pO, pM]) if (!p.hidden) showPanel(p, false); }
   try { applySheet(); } catch(e){}
 }
 document.addEventListener('pointerdown', e => { if (!lookPop.hidden && !e.target.closest('#lookPop, #dTheme')) toggleLookPop(false); });
@@ -6428,7 +6458,7 @@ const tutorialMode = (() => {
     {t:'Play, record, hide, undo', targets:['#dPlay', '#dHide'],
      x:'<kbd>Space</kbd> plays or pauses. <kbd>R</kbd> records one loop (press again to stop). <kbd>H</kbd> hides all controls; press it again to bring them back. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redoes.'},
   ];
-  const snap = () => ({ps: [pL, pI, pO].map(p => [p, p.hidden, p.classList.contains('folded')])});
+  const snap = () => ({ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])});
   function restore(s){
     try { if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
     for (const [p, h] of s.ps) if (h && !p.hidden) showPanel(p, false);
@@ -6547,6 +6577,191 @@ $('#mSave').onclick = () => { setMore(false); saveKey(); };
 $('#mInv').onclick = () => setGInv(!(P.ginv > .5));
 $('#mReset').onclick = () => { setMore(false); $('#bResetAll').click(); };
 $('#mHide').onclick = () => { setMore(false); $('#hPanel').click(); };
+
+/* ---- Music: SoundCloud and Spotify players (playlists and albums included) in the Music panel; Listen feeds this tab's audio to the same analyser as Load audio ---- */
+const musUrl = $('#musUrl'), musMsg = $('#musMsg'), musPlayer = $('#musPlayer'), musCtl = $('#musCtl'), musTitle = $('#musTitle'), musPlayBtn = $('#musPlay');
+const MUS = {gen: 0, svc: '', widget: null, ctrl: null, paused: true, timer: 0, n: 0};
+const musSay = (t, err) => { musMsg.textContent = t || ''; musMsg.classList.toggle('err', !!err); };
+const musIcon = paused => { musPlayBtn.innerHTML = `<svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#${paused ? 'i-play' : 'i-pause'}"/></svg>`; musPlayBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause'); };
+function musClear(){
+  MUS.gen++; clearTimeout(MUS.timer);
+  try { if (MUS.ctrl && MUS.ctrl.destroy) MUS.ctrl.destroy(); } catch(e){}
+  MUS.widget = MUS.ctrl = null; MUS.paused = true; MUS.n = 0; MUS.svc = '';
+  musPlayer.innerHTML = ''; musPlayer.hidden = true; musCtl.hidden = true; musTitle.textContent = ''; musIcon(true);
+}
+function parseMusicLink(raw){
+  let s = (raw || '').trim();
+  if (!s) return {err: 'Paste a SoundCloud or Spotify link.'};
+  let m = s.match(/^spotify:(track|album|playlist|episode|show):([A-Za-z0-9]{10,})$/i);
+  if (m) return {svc: 'spotify', type: m[1].toLowerCase(), id: m[2]};
+  if (/^spotify:/i.test(s)) return {err: 'Paste a Spotify track, album, playlist, episode or show.'};
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = 'https://' + s;
+  let u; try { u = new URL(s); } catch(e){ return {err: 'That does not look like a link. Paste a SoundCloud or Spotify link.'}; }
+  if (!/^https?:$/.test(u.protocol)) return {err: 'That does not look like a link. Paste a SoundCloud or Spotify link.'};
+  const h = u.hostname.toLowerCase().replace(/^(www|m)\./, ''), parts = u.pathname.split('/').filter(Boolean);
+  if (h === 'open.spotify.com' || h === 'play.spotify.com'){
+    if (parts[0] && /^intl-[a-z-]+$/i.test(parts[0])) parts.shift();
+    if (parts[0] === 'user' && parts[2] === 'playlist') parts.splice(0, 2);
+    const t = (parts[0] || '').toLowerCase(), id = parts[1] || '';
+    if (/^(track|album|playlist|episode|show)$/.test(t) && /^[A-Za-z0-9]{10,}$/.test(id)) return {svc: 'spotify', type: t, id};
+    return {err: 'Paste a Spotify track, album, playlist, episode or show link.'};
+  }
+  if (h === 'spotify.link' || h === 'spoti.fi') return {err: 'Spotify short links cannot be played here. Open it, then paste the open.spotify.com link.'};
+  if (h === 'on.soundcloud.com'){
+    if (!parts.length) return {err: 'Paste a SoundCloud track or set link.'};
+    return {svc: 'soundcloud', kind: 'short', url: 'https://on.soundcloud.com/' + parts.join('/')};
+  }
+  if (h === 'soundcloud.com' || h === 'snd.sc'){
+    if (h === 'snd.sc') return {err: 'Paste a soundcloud.com link.'};
+    if (!parts.length || ['discover', 'stream', 'upload', 'you', 'search', 'charts', 'pages', 'feed', 'people', 'terms-of-use', 'imprint', 'jobs', 'mobile', 'settings', 'notifications', 'messages'].includes(parts[0].toLowerCase())) return {err: 'Paste a SoundCloud track or set link.'};
+    const tok = u.searchParams.get('secret_token'), path = 'https://soundcloud.com/' + parts.join('/') + (tok ? '?secret_token=' + encodeURIComponent(tok) : '');
+    const p1 = (parts[1] || '').toLowerCase();
+    let kind = 'track';
+    if (parts.length === 1 || ['likes', 'albums', 'reposts', 'tracks', 'popular-tracks', 'following', 'followers', 'comments'].includes(p1)) kind = p1 === 'likes' ? 'likes' : 'artist';
+    else if (p1 === 'sets') { if (parts.length < 3) return {err: 'Paste a SoundCloud track or set link.'}; kind = 'set'; }
+    return {svc: 'soundcloud', kind, url: path};
+  }
+  return {err: 'Only SoundCloud and Spotify links work here. Paste a soundcloud.com or open.spotify.com link.'};
+}
+function musFrame(src, h, title){
+  const f = document.createElement('iframe');
+  f.src = src; f.title = title; f.loading = 'lazy'; f.height = h; f.setAttribute('allow', 'autoplay; encrypted-media'); f.setAttribute('allowtransparency', 'true'); f.setAttribute('scrolling', 'no');
+  return f;
+}
+let scApi = null;
+function loadSCApi(){
+  if (window.SC && window.SC.Widget) return Promise.resolve();
+  return scApi || (scApi = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = 'https://w.soundcloud.com/player/api.js'; s.async = true;
+    s.onload = () => res(); s.onerror = () => { scApi = null; rej(new Error('SoundCloud player script did not load')); }; document.head.appendChild(s);
+  }));
+}
+function musSCTitle(){
+  const w = MUS.widget; if (!w) return; const g = MUS.gen;
+  try {
+    w.getCurrentSound(snd => {
+      if (g !== MUS.gen) return;
+      const t = snd && snd.title ? snd.title : '';
+      if (MUS.n > 1) w.getCurrentSoundIndex(i => { if (g === MUS.gen) musTitle.textContent = (t ? (i + 1) + '/' + MUS.n + ' · ' + t : ''); }); else musTitle.textContent = t;
+      musTitle.title = t;
+    });
+  } catch(e){}
+}
+async function musLoadSC(p){
+  const g = MUS.gen, multi = p.kind === 'set' || p.kind === 'artist' || p.kind === 'likes';
+  const src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(p.url) + '&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false';
+  musSay('Loading SoundCloud…');
+  const fr = musFrame(src, multi ? 380 : 166, 'SoundCloud player'); musPlayer.innerHTML = ''; musPlayer.appendChild(fr); musPlayer.hidden = false;
+  try { await loadSCApi(); } catch(e){ if (g === MUS.gen){ musSay('SoundCloud could not be reached. Check your connection or any content blocker.', true); } return; }
+  if (g !== MUS.gen) return;
+  const E = SC.Widget.Events, w = SC.Widget(fr); MUS.widget = w; MUS.svc = 'soundcloud';
+  MUS.timer = setTimeout(() => {
+    if (g !== MUS.gen) return;
+    musSay(p.kind === 'short' ? 'This SoundCloud short link did not load here. Open it, then paste the full soundcloud.com link.' : (p.kind === 'artist' || p.kind === 'likes') ? 'Paste a track or set link.' : 'SoundCloud could not load that link. It may be private or removed.', true);
+  }, 10000);
+  w.bind(E.READY, () => {
+    if (g !== MUS.gen) return; clearTimeout(MUS.timer); musSay('');
+    musCtl.hidden = false; $('#musPrev').hidden = $('#musNext').hidden = !multi;
+    try { w.getSounds(l => { if (g !== MUS.gen) return; MUS.n = (l || []).length; $('#musPrev').hidden = $('#musNext').hidden = MUS.n < 2; musSCTitle(); if (!MUS.n && multi) musSay('Paste a track or set link.', true); }); } catch(e){}
+    musSCTitle();
+  });
+  w.bind(E.PLAY, () => { if (g !== MUS.gen) return; MUS.paused = false; musIcon(false); musSCTitle(); });
+  w.bind(E.PAUSE, () => { if (g !== MUS.gen) return; MUS.paused = true; musIcon(true); });
+  w.bind(E.FINISH, () => { if (g !== MUS.gen) return; MUS.paused = true; musIcon(true); });   // the widget moves on to the next track in a set by itself
+  w.bind(E.ERROR, () => { if (g !== MUS.gen) return; clearTimeout(MUS.timer); musSay('SoundCloud could not play that link. It may be private or removed.', true); });
+}
+let spApi = null;
+function loadSpotifyApi(){
+  if (window.__spIFrameAPI) return Promise.resolve(window.__spIFrameAPI);
+  return spApi || (spApi = new Promise((res, rej) => {
+    window.onSpotifyIframeApiReady = api => { window.__spIFrameAPI = api; res(api); };
+    const s = document.createElement('script'); s.src = 'https://open.spotify.com/embed/iframe-api/v1'; s.async = true;
+    s.onerror = () => { spApi = null; rej(new Error('Spotify script did not load')); }; document.head.appendChild(s);
+    setTimeout(() => { if (!window.__spIFrameAPI){ spApi = null; rej(new Error('Spotify script timed out')); } }, 8000);
+  }));
+}
+async function musLoadSpotify(p){
+  const g = MUS.gen, tall = p.type === 'playlist' || p.type === 'album' || p.type === 'show', h = tall ? 352 : 152, uri = 'spotify:' + p.type + ':' + p.id;
+  const label = p.type === 'playlist' ? 'This playlist must be public to play here.' : 'Spotify could not find that ' + p.type + '. It may be private or removed.';
+  musSay('Loading Spotify…'); musPlayer.innerHTML = ''; musPlayer.hidden = false;
+  // a private or removed item answers 404 from Spotify's public oEmbed; if the check cannot run, the player simply loads
+  try {
+    const r = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/' + p.type + '/' + p.id));
+    if (g !== MUS.gen) return;
+    if (r.status === 404 || r.status === 400){ musPlayer.hidden = true; musSay(label, true); return; }
+  } catch(e){ if (g !== MUS.gen) return; }
+  const plain = () => {   // fallback: plain embed, Spotify's own buttons do the playing
+    if (g !== MUS.gen) return; musPlayer.innerHTML = ''; musPlayer.appendChild(musFrame('https://open.spotify.com/embed/' + p.type + '/' + p.id, h, 'Spotify player'));
+    musSay('Use the buttons in the player to play.'); setTimeout(() => { if (g === MUS.gen) musSay(''); }, 4000);
+  };
+  let api; try { api = await loadSpotifyApi(); } catch(e){ plain(); return; }
+  if (g !== MUS.gen) return;
+  const holder = document.createElement('div'); musPlayer.appendChild(holder); MUS.svc = 'spotify';
+  MUS.timer = setTimeout(() => { if (g === MUS.gen && p.type === 'playlist') musSay(label.replace('.', ' (or it is empty).'), true); }, 12000);
+  try {
+    api.createController(holder, {uri, width: '100%', height: h}, ctrl => {
+      if (g !== MUS.gen){ try { ctrl.destroy(); } catch(e){} return; }
+      MUS.ctrl = ctrl;
+      const fr = musPlayer.querySelector('iframe');
+      if (fr){ fr.title = 'Spotify player'; fr.loading = 'lazy'; if (!/autoplay/.test(fr.getAttribute('allow') || '')) fr.setAttribute('allow', 'autoplay; encrypted-media'); }
+      ctrl.addListener('ready', () => { if (g !== MUS.gen) return; clearTimeout(MUS.timer); musSay(''); musCtl.hidden = false; $('#musPrev').hidden = $('#musNext').hidden = true; });
+      ctrl.addListener('playback_update', e => { if (g !== MUS.gen) return; MUS.paused = !!(e && e.data && e.data.isPaused); musIcon(MUS.paused); });
+    });
+  } catch(e){ clearTimeout(MUS.timer); plain(); }
+}
+function musLoad(raw){
+  musClear();
+  const p = parseMusicLink(raw);
+  if (p.err){ musSay(p.err, true); return; }
+  if (p.svc === 'spotify') musLoadSpotify(p); else musLoadSC(p);
+}
+$('#musForm').addEventListener('submit', e => { e.preventDefault(); musLoad(musUrl.value); });
+musUrl.addEventListener('paste', () => setTimeout(() => { if (musUrl.value.trim()) musLoad(musUrl.value); }, 0));
+musPlayBtn.onclick = () => { try { if (MUS.svc === 'soundcloud' && MUS.widget) MUS.widget.toggle(); else if (MUS.svc === 'spotify' && MUS.ctrl) MUS.ctrl.togglePlay(); } catch(e){} };
+$('#musPrev').onclick = () => { try { if (MUS.widget) MUS.widget.prev(); } catch(e){} };
+$('#musNext').onclick = () => { try { if (MUS.widget) MUS.widget.next(); } catch(e){} };
+musIcon(true);
+$('#mMusic').onclick = () => { setMore(false); showPanel(pM, true); if (!matchMedia('(hover:none)').matches) musUrl.focus(); musListenNote(); };
+
+/* Listen: capture this tab's audio (desktop Chrome or Edge) and feed the analyser the Load audio button uses. The video track is stopped at once; no picture is kept. */
+const UA = navigator.userAgent || '';
+const musCanListen = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && /Chrome\/|Edg\//.test(UA) && !/Mobile|Android|Firefox|FxiOS|CriOS|OPR\//.test(UA);
+const musLB = $('#musListenBtn'), musStopB = $('#musStop'), musLive = $('#musLive');
+let musListening = null, musAudioNote = '';
+function musListenNote(){
+  const n = $('#musListenNote');
+  if (!musCanListen){ n.textContent = 'Beat reactivity needs desktop Chrome or Edge.'; return; }
+  n.textContent = document.body.classList.contains('lite') ? 'Listen reacts to this tab\'s sound. Lite mode: it uses more battery.' : 'Listen makes the picture react to the music. Choose this tab and tick "Share tab audio".';
+}
+$('#musListen').hidden = !musCanListen; musListenNote();
+new MutationObserver(musListenNote).observe(document.body, {attributes: true, attributeFilter: ['class']});
+function musListenUI(on){ musLB.hidden = on; musStopB.hidden = !on; musLive.hidden = !on; }
+function stopListen(){
+  const l = musListening; if (!l) return; musListening = null; liveIn = false;
+  try { l.node.disconnect(); } catch(e){}
+  l.stream.getTracks().forEach(t => { try { t.stop(); } catch(e){} });
+  musListenUI(false); const an = $('#audioNote'); if (an && an.textContent.startsWith('Listening to this tab')) an.textContent = musAudioNote;
+}
+async function startListen(){
+  if (musListening || !musCanListen) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: true, preferCurrentTab: true, systemAudio: 'exclude'}); }
+  catch(e){ musSay(e && (e.name === 'NotAllowedError' || e.name === 'AbortError') ? 'Listening was cancelled or blocked. Click Listen, choose this tab and tick "Share tab audio".' : 'Could not start listening: ' + ((e && e.message) || 'unknown error'), true); return; }
+  stream.getVideoTracks().forEach(t => t.stop());   // only the sound is wanted
+  const at = stream.getAudioTracks();
+  if (!at.length){ stream.getTracks().forEach(t => t.stop()); musSay('No audio was shared. Click Listen, choose this tab and tick "Share tab audio".', true); return; }
+  try {
+    ensureCtx();
+    const node = actx.createMediaStreamSource(new MediaStream(at));
+    node.connect(analyser);   // analyser only: the tab already plays its own sound, so nothing is routed to the speakers again
+    musListening = {stream, node}; liveIn = true;
+    if (!audioEl.paused){ audioEl.pause(); $('#bPlay').textContent = 'Play'; }
+    at[0].addEventListener('ended', stopListen);
+    musSay(''); musListenUI(true);
+    const an = $('#audioNote'); if (an){ musAudioNote = an.textContent; an.textContent = 'Listening to this tab. Stop it in the Music panel.'; }
+  } catch(e){ stream.getTracks().forEach(t => t.stop()); musSay('Could not start listening: ' + ((e && e.message) || 'unknown error'), true); }
+}
+musLB.onclick = startListen; musStopB.onclick = stopListen;
 $('#mLook').addEventListener('change', e => { const ps = $('#presetSel'); ps.value = e.target.value; ps.dispatchEvent(new Event('change')); });
 function syncMoreLook(){
   const a = $('#presetSel'), b = document.getElementById('mLook'); if (!a || !b) return;
@@ -6579,7 +6794,7 @@ window.addEventListener('keydown', e => {
 const SHEET_MODES = ['peek', 'half', 'full'];
 let sheetMode = UI.get('sheetMode', 'half'); if (!SHEET_MODES.includes(sheetMode)) sheetMode = 'half';
 let sheetDrag = null, sheetTapGuard = 0;
-const sheetEl = () => [pL, pI, pO].find(p => !p.hidden) || (!lookPop.hidden ? lookPop : null);
+const sheetEl = () => [pL, pI, pO, pM].find(p => !p.hidden) || (!lookPop.hidden ? lookPop : null);
 function sheetHeights(el){
   const av = innerHeight - Math.ceil(dockEl.getBoundingClientRect().height);
   const head = el.matches('.fp') ? el.querySelector('.fph') : el.querySelector('h3'), hh = head ? head.getBoundingClientRect().height : 48;
@@ -6623,7 +6838,7 @@ function bindSheet(el, headSel){
   };
   head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up);
 }
-bindSheet(pL, '.fph'); bindSheet(pI, '.fph'); bindSheet(pO, '.fph'); bindSheet(lookPop, 'h3');
+bindSheet(pL, '.fph'); bindSheet(pI, '.fph'); bindSheet(pO, '.fph'); bindSheet(pM, '.fph'); bindSheet(lookPop, 'h3');
 setSheetMode(sheetMode);
 phone.addEventListener('change', () => { applySheet(); syncSides(); });
 addEventListener('resize', () => { try { applySheet(); } catch(e){} });
@@ -6631,9 +6846,9 @@ addEventListener('resize', () => { try { applySheet(); } catch(e){} });
 /* ---- landscape phone: one panel at a time, Layers on the left, Inspector and Oscillators on the right ---- */
 function syncSides(){
   const b = document.body.classList, L = landscape.matches;
-  b.toggle('lsL', L && !pL.hidden); b.toggle('lsR', L && (!pI.hidden || !pO.hidden));
+  b.toggle('lsL', L && !pL.hidden); b.toggle('lsR', L && (!pI.hidden || !pO.hidden || !pM.hidden));
 }
-function oneSidePanel(){ if (!landscape.matches) return; const first = [pL, pI, pO].find(p => !p.hidden); if (first) showPanel(first, true); else syncSides(); }
+function oneSidePanel(){ if (!landscape.matches) return; const first = [pL, pI, pO, pM].find(p => !p.hidden); if (first) showPanel(first, true); else syncSides(); }
 landscape.addEventListener('change', oneSidePanel);
 oneSidePanel();
 clearDirty(3000);   // the start-up scene is not an unsaved change
