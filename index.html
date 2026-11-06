@@ -1109,6 +1109,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
         <div class="btns">
           <button class="btn primary" id="bLoad">Load image</button>
           <button class="btn" id="bSample">Sample scene</button>
+          <button class="btn" id="bSample2">Sample scene 2</button>
           <button class="btn" id="bLayersImport">Import layer images</button>
           <input type="file" id="fImg" accept="image/*" hidden>
           <input type="file" id="fLayers" accept="image/*" multiple hidden>
@@ -1797,110 +1798,100 @@ function both(path, fc, fd){
   cctx.beginPath(); path(cctx); cctx.fillStyle = fc; cctx.fill();
   dctx.beginPath(); path(dctx); dctx.fillStyle = fd; dctx.fill();
 }
-/* ---------- sample scene: six named layers, drawn from one seeded SVG (mock-up scene10) ---------- */
+/* ---------- sample scene: seven named layers, drawn from one seeded SVG (mock-up scene12). Particles are the app's own particle layer ---------- */
 function sampleSVG(){
-  const R = rng(11), f = n => n.toFixed(1), gy = x => 852 + 10*Math.sin(x/170) + 5*Math.sin(x/61+1);
+  // palette = app defaults: forest #153126, pine #2E5A44, sage #9BC17A, cream #F4F1EA, charcoal #2A2D2F
+  const C = {forest:'#153126', pine:'#2E5A44', sage:'#9BC17A', cream:'#F4F1EA', char:'#2A2D2F', sageHi:'#C8E0AE', pineHi:'#4F8466'};
+  let seed = 7; const R = () => { seed = (seed*16807) % 2147483647; return seed/2147483647; };
+  const f = n => n.toFixed(1), CX = 800, CY = 385, FR = 108;
   const defs = `<defs>
-<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a2a40"/><stop offset=".45" stop-color="#12506b"/><stop offset=".78" stop-color="#2a9a94"/><stop offset="1" stop-color="#7fd8b0"/></linearGradient>
-<radialGradient id="glowR"><stop offset="0" stop-color="#ff3b30" stop-opacity=".5"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
-<linearGradient id="stem" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b59a8c"/><stop offset=".35" stop-color="#fbf4ea"/><stop offset=".7" stop-color="#eadccf"/><stop offset="1" stop-color="#a58878"/></linearGradient>
-<linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd98a" stop-opacity="0"/><stop offset="1" stop-color="#fff0c0" stop-opacity=".16"/></linearGradient>
-<linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e4a3c"/><stop offset=".25" stop-color="#08302d"/><stop offset="1" stop-color="#041a1e"/></linearGradient>
-<radialGradient id="iris"><stop offset="0" stop-color="#0a2230"/><stop offset=".28" stop-color="#0a2230"/><stop offset=".32" stop-color="#ffe08a"/><stop offset=".6" stop-color="#ffb347"/><stop offset=".85" stop-color="#e0782a"/><stop offset="1" stop-color="#0d3b46"/></radialGradient>
-<radialGradient id="capR" cx=".38" cy=".28" r=".85"><stop offset="0" stop-color="#ff9a80"/><stop offset=".45" stop-color="#f0302f"/><stop offset="1" stop-color="#a3122a"/></radialGradient>
-<clipPath id="gillClip"><path d="M-98 -107 C-62 -121 62 -121 98 -107 C62 -93 -62 -93 -98 -107 Z"/></clipPath>
+<radialGradient id="iris"><stop offset="0" stop-color="${C.forest}"/><stop offset=".3" stop-color="${C.forest}"/><stop offset=".34" stop-color="${C.sageHi}"/><stop offset=".62" stop-color="${C.sage}"/><stop offset=".86" stop-color="${C.pineHi}"/><stop offset="1" stop-color="${C.pine}"/></radialGradient>
+<linearGradient id="skin" gradientUnits="userSpaceOnUse" x1="0" y1="-280" x2="0" y2="320"><stop offset="0" stop-color="${C.pineHi}"/><stop offset=".55" stop-color="${C.pine}"/><stop offset="1" stop-color="${C.forest}"/></linearGradient>
+<linearGradient id="fadeW" x1="0" y1="0" x2="0" y2="1"><stop offset=".72" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+<mask id="wristFade" maskUnits="userSpaceOnUse" x="-400" y="-400" width="800" height="800"><rect x="-400" y="-330" width="800" height="640" fill="url(#fadeW)"/></mask>
 <clipPath id="ec"><path d="M-105 4 C-70 -66 70 -66 105 4 C70 58 -70 58 -105 4 Z"/></clipPath>
-<filter id="blur10"><feGaussianBlur stdDeviation="10"/></filter>
+<clipPath id="folClip"><circle cx="${CX}" cy="${CY}" r="${3*FR}"/></clipPath>
+<filter id="blur14"><feGaussianBlur stdDeviation="14"/></filter>
 <filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-<filter id="glowG" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="5" result="b1"/><feGaussianBlur stdDeviation="1.5" result="b2"/><feMerge><feMergeNode in="b1"/><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="glowG" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="5" result="b1"/><feGaussianBlur stdDeviation="1.4" result="b2"/><feMerge><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 <filter id="glowS"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
   const wrap = body => `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">${defs}${body}</svg>`;
-  // 1 BACKGROUND: sky, stars, aurora, sparkles (no moon)
-  let o = `<rect width="1600" height="900" fill="url(#sky)"/>`;
-  for (let i=0;i<120;i++) o += `<circle cx="${f(R()*1600)}" cy="${f(R()*420)}" r="${f(.4+R()*1.1)}" fill="#fff" opacity="${f(.2+R()*.6)}"/>`;
-  for (const [c,y0,amp,op] of [['#5fe8c8',190,40,.22],['#3fa8e0',270,50,.18],['#ffe38a',340,34,.12]]){
-    let p = `M0 ${y0}`; for (let x=0;x<=1600;x+=100) p += ` L${x} ${f(y0+Math.sin(x/230+y0)*amp)}`;
-    p += ` L1600 ${y0+110} L0 ${y0+110} Z`; o += `<path d="${p}" fill="${c}" opacity="${op}" filter="url(#blur10)"/>`;
-  }
-  for (let i=0;i<16;i++){ const x=R()*1600, y=R()*430, s=4+R()*7;
-    o += `<path d="M${f(x)} ${f(y-s)} Q${f(x)} ${f(y)} ${f(x+s)} ${f(y)} Q${f(x)} ${f(y)} ${f(x)} ${f(y+s)} Q${f(x)} ${f(y)} ${f(x-s)} ${f(y)} Q${f(x)} ${f(y)} ${f(x)} ${f(y-s)} Z" fill="#fff6c8" opacity="${f(.5+R()*.5)}"/>`; }
-  const bg = o;
-  // 2 SACRED GEOMETRY: flower of life, double ring, two triangles (~750 px across)
-  const cx = 800, cy = 410, r = 94; let sg = `<g opacity=".9" fill="none" stroke="#ffe9a8" stroke-width="2.6" filter="url(#glowG)">`;
-  const pts = [[0,0]];
-  for (let ring=1; ring<=3; ring++) for (let k=0;k<6;k++){ const a = k*Math.PI/3, a2 = (k+2)*Math.PI/3;
-    for (let j=0;j<ring;j++) pts.push([ring*r*Math.cos(a)+j*r*(Math.cos(a2)-Math.cos(a)), ring*r*Math.sin(a)+j*r*(Math.sin(a2)-Math.sin(a))]); }
-  const seen = new Set();
-  for (const [x,y] of pts){ const key = Math.round(x)+','+Math.round(y); if (seen.has(key)) continue; seen.add(key); sg += `<circle cx="${f(cx+x)}" cy="${f(cy+y)}" r="${r}"/>`; }
-  sg += `<circle cx="${cx}" cy="${cy}" r="${f(r*3.9)}" stroke-width="3.8"/><circle cx="${cx}" cy="${cy}" r="${f(r*4.15)}" stroke-width="1.8"/>`;
-  for (const rot of [0,180]){ const R2 = r*3.9, p = [0,1,2].map(i => { const a = (rot+i*120-90)*Math.PI/180; return f(cx+R2*Math.cos(a))+','+f(cy+R2*Math.sin(a)); }); sg += `<polygon points="${p.join(' ')}" stroke-width="2.4"/>`; }
-  sg += '</g>';
-  // 3 TREE OF LIFE: one tree, grown on the right and mirrored
-  let tree = '';
-  { const BY = 858, leafCols = ['#46c9a8','#7fe8c4','#c9fbe9','#46c9a8','#7fe8c4','#ffe08a']; let half = '', leaves = '';
-    const gen = (x,y,ang,len,wd,depth) => {
-      const ex = x+Math.cos(ang)*len, ey = y+Math.sin(ang)*len, bend = len*.14*(R()-.25), qx = (x+ex)/2+Math.cos(ang+Math.PI/2)*bend, qy = (y+ey)/2+Math.sin(ang+Math.PI/2)*bend;
-      half += `<path d="M${f(x)} ${f(y)} Q${f(qx)} ${f(qy)} ${f(ex)} ${f(ey)}" stroke-width="${f(wd)}"/>`;
-      if (depth>=3) half += `<path d="M${f(x+wd*.22)} ${f(y)} Q${f(qx+wd*.22)} ${f(qy)} ${f(ex+wd*.12)} ${f(ey)}" stroke="#3fb89c" stroke-width="${f(Math.max(1,wd*.18))}" opacity=".55"/>`;
+  // 1 BACKGROUND: flat charcoal
+  const bg = `<rect width="1600" height="900" fill="${C.char}"/>`;
+  // 2 FLOWER OF LIFE: 19 full circles on a hex lattice plus the next ring, clipped to the enclosing circle
+  let fol; { const r = FR, hex = n => { const pts = [[0,0]]; for (let ring=1; ring<=n; ring++) for (let k=0;k<6;k++){ const a = k*Math.PI/3, a2 = (k+2)*Math.PI/3; for (let j=0;j<ring;j++) pts.push([ring*r*Math.cos(a)+j*r*(Math.cos(a2)-Math.cos(a)), ring*r*Math.sin(a)+j*r*(Math.sin(a2)-Math.sin(a))]); } return pts; };
+    const rot = p => [p[0]*Math.cos(Math.PI/2)-p[1]*Math.sin(Math.PI/2), p[0]*Math.sin(Math.PI/2)+p[1]*Math.cos(Math.PI/2)];
+    let g = `<g id="flower-of-life" fill="none" stroke="${C.sage}" stroke-width="2.4" opacity=".9" filter="url(#glowG)"><g clip-path="url(#folClip)">`;
+    for (const p of hex(3).slice(19).map(rot)) g += `<circle cx="${f(CX+p[0])}" cy="${f(CY+p[1])}" r="${r}"/>`;
+    g += '</g>';
+    for (const p of hex(2).map(rot)) g += `<circle cx="${f(CX+p[0])}" cy="${f(CY+p[1])}" r="${r}"/>`;
+    g += `<circle cx="${CX}" cy="${CY}" r="${3*r}" stroke-width="3.6"/><circle cx="${CX}" cy="${CY}" r="${f(3*r+13)}" stroke-width="1.5"/></g>`;
+    fol = g; }
+  // 3 METATRON'S CUBE: 13 circles, every connecting line (cream)
+  let met; { const s = 44, P = [[0,0]];
+    for (let k=0;k<6;k++){ const a = (k*60-90)*Math.PI/180; P.push([2*s*Math.cos(a), 2*s*Math.sin(a)]); }
+    for (let k=0;k<6;k++){ const a = (k*60-90)*Math.PI/180; P.push([4*s*Math.cos(a), 4*s*Math.sin(a)]); }
+    let g = `<g id="metatrons-cube" fill="none" stroke="${C.cream}" opacity=".75" filter="url(#glowG)">`;
+    for (let i=0;i<P.length;i++) for (let j=i+1;j<P.length;j++) g += `<line x1="${f(CX+P[i][0])}" y1="${f(CY+P[i][1])}" x2="${f(CX+P[j][0])}" y2="${f(CY+P[j][1])}" stroke-width="1.3"/>`;
+    for (const [x,y] of P) g += `<circle cx="${f(CX+x)}" cy="${f(CY+y)}" r="${s}" stroke-width="2"/>`;
+    met = g + '</g>'; }
+  // 4 TREE OF LIFE with roots, mirrored
+  let tree; { const TOP = 375, BASE = 620, leafCols = [C.sage, C.sageHi, C.cream, C.sage, C.pineHi];
+    let half = '', leaves = '', roots = '';
+    const gen = (x,y,ang,len,wd,depth,isRoot) => {
+      const ex = x+Math.cos(ang)*len, ey = y+Math.sin(ang)*len, bend = len*.14*(R()-.3), mx = (x+ex)/2+Math.cos(ang+Math.PI/2)*bend, my = (y+ey)/2+Math.sin(ang+Math.PI/2)*bend;
+      const seg = `<path d="M${f(x)} ${f(y)} Q${f(mx)} ${f(my)} ${f(ex)} ${f(ey)}" stroke-width="${f(wd)}"/>`;
+      if (isRoot) roots += seg; else half += seg;
       if (depth<=0){
-        for (let i=0;i<6;i++){ const la = ang+(R()-.5)*2.4, d = 6+R()*14, lx = ex+Math.cos(la)*d, ly = ey+Math.sin(la)*d;
-          leaves += `<ellipse cx="${f(lx)}" cy="${f(ly)}" rx="3.6" ry="${f(8+R()*4)}" fill="${leafCols[Math.floor(R()*leafCols.length)]}" opacity=".92" transform="rotate(${f(la*180/Math.PI+90)} ${f(lx)} ${f(ly)})"/>`; }
-        if (R()<.22) leaves += `<circle cx="${f(ex)}" cy="${f(ey-4)}" r="${f(4+R()*2.5)}" fill="#ffe9a8" filter="url(#glowS)"/>`;
+        if (isRoot){ if (R()<.35) roots += `<circle cx="${f(ex)}" cy="${f(ey)}" r="${f(1.6+R()*1.4)}" fill="${C.sage}" stroke="none" opacity=".8"/>`; return; }
+        for (let i=0;i<7;i++){ const la = ang+(R()-.5)*2.4, d = 5+R()*12, lx = ex+Math.cos(la)*d, ly = ey+Math.sin(la)*d;
+          leaves += `<ellipse cx="${f(lx)}" cy="${f(ly)}" rx="3.3" ry="${f(7+R()*4)}" fill="${leafCols[Math.floor(R()*leafCols.length)]}" opacity=".92" transform="rotate(${f(la*180/Math.PI+90)} ${f(lx)} ${f(ly)})"/>`; }
+        if (R()<.2) leaves += `<circle cx="${f(ex)}" cy="${f(ey-4)}" r="${f(3.5+R()*2.5)}" fill="${C.cream}" filter="url(#glowS)"/>`;
         return;
       }
       const n = depth>=3 ? 2 : (R()<.5 ? 2 : 3);
-      for (let k=0;k<n;k++) gen(ex,ey,ang+(k-(n-1)/2)*(.62+R()*.14)+(R()-.5)*.2,len*(.76+R()*.06),wd*.68,depth-1);
+      for (let k=0;k<n;k++) gen(ex,ey,ang+(k-(n-1)/2)*(.6+R()*.14)+(R()-.5)*.2,len*(.75+R()*.07),wd*.68,depth-1,isRoot);
     };
-    const TOP = BY-250;
-    gen(0,TOP,-Math.PI/2+.30,150,15,5); gen(0,TOP+14,-Math.PI/2+.85,135,14,5); gen(0,TOP+34,-Math.PI/2+1.35,110,12,4);
-    let roots = ''; for (const [dx,dy,w] of [[120,10,16],[220,6,12],[300,0,8]]) roots += `<path d="M0 ${BY-46} Q${f(dx*.45)} ${BY-26} ${dx} ${BY+dy}" stroke-width="${w}"/>`;
-    const trunk = `<path stroke="none" d="M-44 ${BY} C-32 ${BY-70} -20 ${BY-170} -17 ${TOP+8} L17 ${TOP+8} C20 ${BY-170} 32 ${BY-70} 44 ${BY} Z"/>`;
-    const bark = [-.55,-.2,.2,.55].map(k => `<path fill="none" stroke="${k>0?'#4fc9ae':'#000'}" stroke-width="1.3" opacity=".3" d="M${f(k*40)} ${BY-6} C${f(k*28)} ${BY-80} ${f(k*18)} ${BY-170} ${f(k*12)} ${TOP+12}"/>`).join('');
-    const grp = `<g fill="none" stroke="#0a3b36" stroke-linecap="round">${half}${roots}</g>`;
-    tree = `<ellipse cx="800" cy="${TOP-70}" rx="340" ry="300" fill="#ffe9a8" opacity=".14" filter="url(#blur10)"/><g transform="translate(800 0)"><g fill="#0a3b36">${trunk}</g>${bark}${grp}${leaves}<g transform="scale(-1 1)">${grp}${leaves}</g></g>`; }
-  // 4 MUSHROOMS (amanita muscaria) + rolling ground
-  const mush = (x,sc,rot) => {
-    const by = gy(x)+8; let g = `<g transform="translate(${x} ${f(by)}) rotate(${rot}) scale(${sc})">`;
-    g += `<ellipse cx="0" cy="-80" rx="150" ry="120" fill="url(#glowR)" opacity=".4"/>`;
-    g += `<path d="M-34 8 C-42 -10 -28 -28 -15 -36 L15 -36 C28 -28 42 -10 34 8 Z" fill="url(#stem)"/>`;
-    for (let i=0;i<3;i++){ const y = -4-i*9, w = 31-i*5; g += `<path d="M${-w} ${y} q${f(w/3)} 7 ${f(w*2/3)} 0 q${f(w/3)} 7 ${f(w*2/3)} 0 q${f(w/3)} 7 ${f(w*2/3)} 0" fill="none" stroke="#b79b88" stroke-width="1.2" opacity=".75"/>`; }
-    g += `<path d="M-16 -32 C-14 -62 -12 -92 -11 -114 L11 -114 C12 -92 14 -62 16 -32 Z" fill="url(#stem)"/>`;
-    for (const dx of [-5,0,5]) g += `<path d="M${dx} -34 C${dx*.8} -64 ${dx*.6} -92 ${dx*.5} -112" fill="none" stroke="#9b7c6c" stroke-width=".9" opacity=".3"/>`;
-    g += `<path d="M-13 -102 C-34 -86 -37 -68 -31 -57 C-14 -52 14 -52 31 -57 C37 -68 34 -86 13 -102 Z" fill="#fdf8f0"/>`;
-    for (let i=-6;i<=6;i++) g += `<path d="M${i*2} -98 L${f(i*5.2)} -56" stroke="#dccbb9" stroke-width=".9" opacity=".8"/>`;
-    g += `<path d="M-31 -57 C-14 -52 14 -52 31 -57" fill="none" stroke="#b89c8a" stroke-width="1.4"/>`;
-    g += `<path d="M-98 -107 C-104 -190 -46 -238 0 -238 C46 -238 104 -190 98 -107 C62 -93 -62 -93 -98 -107 Z" fill="url(#capR)"/>`;
-    g += `<g clip-path="url(#gillClip)"><rect x="-100" y="-124" width="200" height="34" fill="#f6ecd8"/><rect x="-100" y="-124" width="200" height="12" fill="#c9b79a" opacity=".55"/>`;
-    for (let i=-22;i<=22;i++) g += `<path d="M${f(i*1.8)} -118 L${f(i*4.4)} -92" stroke="#b79f7e" stroke-width=".8" opacity=".6"/>`;
-    g += `</g><path d="M-98 -107 C-62 -121 62 -121 98 -107" fill="none" stroke="#a3122a" stroke-width="2" opacity=".7"/>`;
-    const warts = []; let tries = 0;
-    while (warts.length<7 && tries++<200){ const wx = (R()-.5)*150, wy = -132-R()*92; if (Math.pow(wx/88,2)+Math.pow((wy+150)/84,2)>1) continue; if (warts.some(q => Math.hypot(q[0]-wx,q[1]-wy)<34)) continue; warts.push([wx,wy,4+R()*7]); }
-    for (const [wx,wy,sr] of warts){ const fl = .55+Math.min(1,(-wy-120)/110)*.35; g += `<ellipse cx="${f(wx)}" cy="${f(wy)}" rx="${f(sr)}" ry="${f(sr*fl)}" fill="#fffaf2" stroke="#e6d6c2" stroke-width=".8" transform="rotate(${f((R()-.5)*50)} ${f(wx)} ${f(wy)})"/>`; }
-    g += `<path d="M-92 -140 C-82 -192 -42 -226 0 -230 C42 -226 82 -192 92 -140" fill="none" stroke="#ff9a80" stroke-width="3" opacity=".6" filter="url(#glowS)"/>`;
-    g += `<path d="M-62 -172 C-48 -196 -26 -210 -4 -214" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".3"/>`;
+    gen(0,TOP,-Math.PI/2+.26,84,14,5); gen(0,TOP+12,-Math.PI/2+.85,86,13,5); gen(0,TOP+32,-Math.PI/2+1.35,78,11,4);
+    gen(0,BASE-4,Math.PI/2-.25,80,13,4,true); gen(0,BASE-12,Math.PI/2-.8,88,12,4,true); gen(0,BASE-22,Math.PI/2-1.3,82,10,4,true);
+    const trunk = `<path d="M-40 ${BASE} C-27 ${BASE-60} -18 ${TOP+90} -15 ${TOP+8} L15 ${TOP+8} C18 ${TOP+90} 27 ${BASE-60} 40 ${BASE} Z"/>`;
+    const bark = [-.55,-.2,.2,.55].map(k => `<path fill="none" stroke="${k>0?C.sage:C.forest}" stroke-width="1.3" opacity=".45" d="M${f(k*36)} ${BASE-4} C${f(k*26)} ${BASE-70} ${f(k*18)} ${TOP+90} ${f(k*12)} ${TOP+12}"/>`).join('');
+    const thin = s => s.replace(/stroke-width="([\d.]+)"/g, (m,w) => `stroke-width="${f(Math.max(.8,w*.22))}"`);
+    const wood = `<g fill="none" stroke="${C.pine}" stroke-linecap="round">${half}${roots}</g>`;
+    const rim = `<g fill="none" stroke="${C.sage}" stroke-linecap="round" opacity=".35" transform="translate(1.5 -1)">${thin(half)}${thin(roots)}</g>`;
+    tree = `<g id="tree-of-life"><ellipse cx="${CX}" cy="${TOP+110}" rx="330" ry="320" fill="${C.sage}" opacity=".08" filter="url(#blur14)"/><g transform="translate(${CX} 0)"><g fill="${C.pine}">${trunk}</g>${bark}${wood}${rim}${leaves}<g transform="scale(-1 1)">${wood}${rim}${leaves}</g></g></g>`; }
+  // 6 HANDS: open palms, fingers together, thumb toward the centre, wrists fading out
+  const hand = (x,y,sc,flip) => {
+    const fingers = [[-118,-58,-238],[-58,0,-276],[0,58,-266],[58,114,-224]], shapes = [];
+    shapes.push(`<rect x="-122" y="-80" width="240" height="240" rx="44"/>`);
+    shapes.push(`<path d="M-112 100 C-104 170 -96 230 -94 330 L90 330 C92 230 100 170 108 100 Z"/>`);
+    for (const [a,b,t] of fingers) shapes.push(`<rect x="${a}" y="${t}" width="${b-a}" height="${-t-30}" rx="${(b-a)/2}"/>`);
+    shapes.push(`<rect x="-30" y="-150" width="60" height="185" rx="30" transform="translate(104 112) rotate(24)"/>`);
+    const S = shapes.join('');
+    let g = `<g transform="translate(${x} ${y}) scale(${flip?-sc:sc} ${sc})" mask="url(#wristFade)">`;
+    g += `<g fill="${C.sage}" opacity=".22" filter="url(#blur14)">${S}</g>`;
+    g += `<g fill="none" stroke="${C.sage}" stroke-width="7" stroke-linejoin="round">${S}</g>`;
+    g += `<g fill="url(#skin)">${S}</g>`;
+    for (const [a] of fingers.slice(1)) g += `<path d="M${a} -66 L${a} -205" stroke="${C.forest}" stroke-width="3" opacity=".7"/>`;
+    for (const [a,b,t] of fingers){ const m = (a+b)/2, h = -t-30; for (const k of [.38,.66]) g += `<path d="M${f(m-17)} ${f(t+h*k)} Q${f(m)} ${f(t+h*k+5)} ${f(m+17)} ${f(t+h*k)}" fill="none" stroke="${C.sage}" stroke-width="1.6" opacity=".45"/>`; }
+    g += `<path d="M112 120 Q96 40 118 -18" fill="none" stroke="${C.forest}" stroke-width="3" opacity=".6"/>`;
+    g += `<g fill="none" stroke="${C.sage}" stroke-width="1.8" opacity=".35"><path d="M-100 -40 Q0 -20 100 -48"/><path d="M-104 70 Q-10 60 60 112"/><path d="M60 -10 Q10 60 30 150"/></g>`;
     return g + '</g>';
   };
-  let mu = '';
-  for (const m of [[760,.8,3],[905,.65,-5],[330,.95,8],[1070,1.25,5],[520,1.1,-3],[1450,1.05,6],[170,1.55,-6],[1260,1.7,-8]]) mu += mush(m[0],m[1],m[2]) + mush(m[0]+m[1]*92,m[1]*.3,10) + mush(m[0]-m[1]*84,m[1]*.22,-12);
-  let gp = `M0 900 L0 ${f(gy(0))}`; for (let x=20;x<=1620;x+=20) gp += ` L${x} ${f(gy(x))}`; gp += ' L1600 900 Z';
-  mu += `<rect y="${gy(800)-60}" width="1600" height="90" fill="url(#mist)"/><path d="${gp}" fill="url(#ground)"/>`;
-  let ml = `M0 ${f(gy(0))}`; for (let x=10;x<=1610;x+=10) ml += ` L${x} ${f(gy(x)+1)}`;
-  mu += `<path d="${ml}" fill="none" stroke="#d8ff9a" stroke-width="1.4" opacity=".55" filter="url(#glowS)"/>`;
-  for (let i=0;i<150;i++){ const x = R()*1600; mu += `<line x1="${f(x)}" y1="${f(gy(x)+2)}" x2="${f(x+(R()-.5)*5)}" y2="${f(gy(x)-3-R()*9)}" stroke="#7ee0a8" stroke-width="1.1" stroke-linecap="round" opacity="${f(.35+R()*.4)}"/>`; }
-  for (let i=0;i<9;i++){ const x0 = R()*1500, y0 = gy(x0)+14+R()*28; mu += `<path d="M${f(x0)} ${f(y0)} q${f(40+R()*60)} ${f(-6-R()*8)} ${f(90+R()*90)} ${f(R()*10-5)}" fill="none" stroke="#fff1b0" stroke-width=".8" opacity=".25" filter="url(#glowS)"/>`; }
-  // 6 EYES: all open, amber iris, deep-teal rim, no lashes
-  const eye = (x,y,sc,rot,sh) => {
-    let g = `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})">`;
-    g += `<ellipse cx="0" cy="26" rx="120" ry="64" fill="#ffd98a" opacity=".22" filter="url(#blur10)"/>`;
-    g += `<ellipse cx="-78" cy="40" rx="22" ry="10" fill="#ff9a8a" opacity=".4" filter="url(#blur10)"/><ellipse cx="78" cy="40" rx="22" ry="10" fill="#ff9a8a" opacity=".4" filter="url(#blur10)"/>`;
-    g += `<g filter="url(#glow)"><path d="M-105 4 C-70 -66 70 -66 105 4 C70 58 -70 58 -105 4 Z" fill="#fffaf0"/><g clip-path="url(#ec)"><circle cx="${sh}" cy="0" r="50" fill="url(#iris)"/>`;
-    for (let i=0;i<28;i++){ const a = i/28*Math.PI*2; g += `<line x1="${f(sh+Math.cos(a)*20)}" y1="${f(Math.sin(a)*20)}" x2="${f(sh+Math.cos(a)*48)}" y2="${f(Math.sin(a)*48)}" stroke="#fff6c0" stroke-width=".9" opacity=".4"/>`; }
-    g += `<circle cx="${sh}" cy="0" r="19" fill="#0a2230"/><circle cx="${sh-15}" cy="-17" r="9" fill="#fff"/><circle cx="${sh+11}" cy="13" r="4.5" fill="#fff" opacity=".9"/><circle cx="${sh-2}" cy="24" r="2.4" fill="#fff" opacity=".8"/></g>`;
-    g += `<path d="M-105 4 C-70 -66 70 -66 105 4 C70 58 -70 58 -105 4 Z" fill="none" stroke="#0d3b46" stroke-width="3.5"/>`;
+  const hands = `<g id="hands">` + hand(255,438,.95,false) + hand(1345,438,.95,true) + '</g>';
+  // 7 EYES: one on each palm, looking toward the centre
+  const eye = (x,y,sc,sh) => {
+    let g = `<g transform="translate(${x} ${y}) scale(${sc})">`;
+    g += `<ellipse cx="0" cy="4" rx="130" ry="74" fill="${C.sage}" opacity=".18" filter="url(#blur14)"/>`;
+    g += `<g filter="url(#glow)"><path d="M-105 4 C-70 -66 70 -66 105 4 C70 58 -70 58 -105 4 Z" fill="${C.cream}"/>`;
+    g += `<g clip-path="url(#ec)"><circle cx="${sh}" cy="0" r="50" fill="url(#iris)"/>`;
+    for (let i=0;i<28;i++){ const a = i/28*Math.PI*2; g += `<line x1="${f(sh+Math.cos(a)*20)}" y1="${f(Math.sin(a)*20)}" x2="${f(sh+Math.cos(a)*47)}" y2="${f(Math.sin(a)*47)}" stroke="${C.cream}" stroke-width=".9" opacity=".35"/>`; }
+    g += `<circle cx="${sh}" cy="0" r="18" fill="${C.forest}"/><circle cx="${sh-14}" cy="-16" r="8" fill="#fff"/><circle cx="${sh+10}" cy="12" r="4" fill="#fff" opacity=".85"/></g>`;
+    g += `<path d="M-105 4 C-70 -66 70 -66 105 4 C70 58 -70 58 -105 4 Z" fill="none" stroke="${C.pine}" stroke-width="3.5"/>`;
     return g + '</g></g>';
   };
-  const ey = eye(520,250,1.0,-8,5)+eye(1080,330,1.3,6,-6)+eye(820,560,.7,0,0)+eye(260,470,.55,-14,3)+eye(1420,520,.6,12,-4)+eye(1330,150,.45,-6,0);
-  return {bg: wrap(bg), sg: wrap(sg), tree: wrap(tree), mush: wrap(mu), eyes: wrap(ey)};
+  const eyes = `<g id="eyes">` + eye(253,438,.92,10) + eye(1347,438,.92,-10) + '</g>';
+  return {bg: wrap(bg), fol: wrap(fol), met: wrap(met), tree: wrap(tree), hands: wrap(hands), eyes: wrap(eyes)};
 }
 function svgToCanvas(svg){
   return new Promise((res, rej) => {
@@ -1910,28 +1901,25 @@ function svgToCanvas(svg){
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   });
 }
-/* instant stand-in so the first frame has an image while the six layers are drawn */
+/* instant stand-in so the first frame has an image while the layers are drawn */
 function samplePlaceholder(){
   imgW = 1600; imgH = 900; colorC.width = depthC.width = imgW; colorC.height = depthC.height = imgH;
-  const g = cctx.createLinearGradient(0,0,0,imgH); g.addColorStop(0,'#0a2a40'); g.addColorStop(.45,'#12506b'); g.addColorStop(.78,'#2a9a94'); g.addColorStop(1,'#7fd8b0');
-  cctx.fillStyle = g; cctx.fillRect(0,0,imgW,imgH); dctx.fillStyle = gray(.3); dctx.fillRect(0,0,imgW,imgH);
+  cctx.fillStyle = '#2A2D2F'; cctx.fillRect(0,0,imgW,imgH); dctx.fillStyle = gray(.3); dctx.fillRect(0,0,imgW,imgH);
   imageReady('Sample scene');
 }
 let sampleTok = 0;
-async function makeSample(){
+async function makeSample(name = 'Sample scene'){
   const tok = ++sampleTok, S = sampleSVG();
-  let cv; try { cv = await Promise.all([S.bg, S.sg, S.tree, S.mush, S.eyes].map(svgToCanvas)); } catch(e){ toast('The sample scene could not be drawn'); return false; }
+  let cv; try { cv = await Promise.all([S.bg, S.fol, S.met, S.tree, S.hands, S.eyes].map(svgToCanvas)); } catch(e){ toast('The sample scene could not be drawn'); return false; }
   if (tok !== sampleTok) return false;
-  const [bgC, ...lay] = cv, info = [['Sacred Geometry','accent'], ['Tree of Life','fg'], ['Mushrooms','fg'], ['Eyes','fg']];
+  const [bgC, ...lay] = cv, info = [['Flower of Life','accent'], ["Metatron's Cube",'accent'], ['Tree of Life','fg'], ['Hands','fg'], ['Eyes','fg']];
   imgW = 1600; imgH = 900; colorC.width = depthC.width = imgW; colorC.height = depthC.height = imgH;
   if (cal){ cal = null; showCal(false); }
   cctx.clearRect(0,0,imgW,imgH); cctx.drawImage(bgC, 0, 0); for (const c of lay) cctx.drawImage(c, 0, 0);
-  // depth: far sky, then each layer on its own plane (mushrooms and ground come forward with height on the page)
-  let g = dctx.createLinearGradient(0,0,0,imgH); g.addColorStop(0,gray(.03)); g.addColorStop(1,gray(.24));
-  dctx.fillStyle = g; dctx.fillRect(0,0,imgW,imgH);
+  // depth: background furthest, the two geometry layers behind the tree, hands and eyes nearest
+  dctx.fillStyle = gray(.04); dctx.fillRect(0,0,imgW,imgH);
   const plane = (c, fill) => { const t = scratch(imgW, imgH); t.drawImage(c, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = fill; t.fillRect(0,0,imgW,imgH); dctx.drawImage(t.canvas, 0, 0); };
-  const ramp = (y0, a, y1, b) => { const q = dctx.createLinearGradient(0,y0,0,y1); q.addColorStop(0,gray(a)); q.addColorStop(1,gray(b)); return q; };
-  plane(lay[0], gray(.3)); plane(lay[1], ramp(150,.46,860,.6)); plane(lay[2], ramp(480,.56,900,.84)); plane(lay[3], gray(.92));
+  [.2, .3, .5, .74, .9].forEach((d, k) => plane(lay[k], gray(d)));
   softenDepth(2);
   P.L.layers = []; masks.clear(); medians.clear(); ownCols.clear(); P.L.xs = [];
   plateC = bgC; [MW, MH] = maskDims();
@@ -1941,9 +1929,9 @@ async function makeSample(){
     P.L.layers.push({...LD, relief: .3, id, name: info[k][0], type: info[k][1]}); masks.set(id, m); ownCols.set(id, bleed(c, imgW, imgH));
   });
   P.L.bg.relief = .3;      // low inner depth: a layer hidden behind another must not tie with it, or the two blend half and half
-  // Spores: the built-in particle layer, tiny (under 2 px), cream to gold to mint
-  P.L.part = {...defLayers().part, name:'Spores', vis:true, count:170, psize:1.6, psizeVar:.3, pspeed:.4, pspread:.5, pturb:.35, ptwinkle:.6, phue:105, phueVar:.17, psat:.4, pbright:1.1, pseed:11, pshape:'soft'};
-  imageReady('Sample scene', true); uploadIcon(); syncUI();
+  // Particles: the built-in particle layer, small sage and cream spores
+  P.L.part = {...defLayers().part, name:'Particles', vis:true, count:160, psize:1.5, psizeVar:.3, pspeed:.4, pspread:.5, pturb:.35, ptwinkle:.6, phue:93, phueVar:.1, psat:.35, pbright:1.1, pseed:7, pshape:'soft'};
+  imageReady(name, true); uploadIcon(); syncUI();
   return true;
 }
 function softenDepth(f){
@@ -4382,6 +4370,7 @@ cv.addEventListener('pointerleave', () => { if (!painting && !calPainting) vrx =
 $('#bLoad').onclick = () => $('#fImg').click();
 $('#fImg').onchange = e => { const f = e.target.files[0]; if (f) loadImageFile(f); e.target.value=''; };
 $('#bSample').onclick = () => { makeSample().then(ok => { if (ok) toast('Sample scene'); }); };
+$('#bSample2').onclick = () => { makeSample('Sample scene 2').then(ok => { if (ok) toast('Sample scene 2'); }); };
 $('#bAuto').onclick = () => { pushDepth(); autoDepth($('#depthMode').value); toast('Depth re-guessed'); };
 $('#bInvert').onclick = () => { pushDepth(); dctx.save(); dctx.globalCompositeOperation='difference'; dctx.fillStyle='#fff'; dctx.fillRect(0,0,imgW,imgH); dctx.restore(); markDepth(); scheduleMedians(); };
 $('#bSmooth').onclick = () => { pushDepth(); softenDepth(6); markDepth(); scheduleMedians(); };
