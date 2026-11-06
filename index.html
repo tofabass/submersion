@@ -3075,8 +3075,22 @@ $('#bLayerDelete').onclick = () => {
   resetLayerDelete(); deleteLayerById(sel);
 };
 let atoastT;
+/* keep the Undo toast off the Roll buttons: when it would cover one, it sits just above the top edge of the panel that holds the button */
+function dodgeToast(a){
+  a.style.top = a.style.bottom = a.style.left = '';
+  const btns = [...document.querySelectorAll('#bRollCols, #bDice')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.height; });
+  const hit = () => { const t = a.getBoundingClientRect(); return btns.find(b => { const r = b.getBoundingClientRect(); return r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top; }); };
+  const b = hit(); if (!b) return;
+  const pn = b.closest('.fp') || b, pr = pn.getBoundingClientRect(), h = a.getBoundingClientRect().height;
+  a.style.top = 'auto';
+  if (pr.top >= h + 16){                                   // room above the panel: centre the toast over it
+    a.style.bottom = Math.round(innerHeight - pr.top + 8) + 'px'; a.style.left = Math.round(pr.left + pr.width/2) + 'px';
+    const t = a.getBoundingClientRect(); if (t.left < 8) a.style.left = Math.round(8 + t.width/2) + 'px'; else if (t.right > innerWidth - 8) a.style.left = Math.round(innerWidth - 8 - t.width/2) + 'px';
+  } else { a.style.bottom = Math.max(8, Math.round(innerHeight - b.getBoundingClientRect().top + 8)) + 'px'; }   // panel reaches the top: sit just above the button
+}
 function actionToast(msg, label, fn){
   const a = $('#atoast'); $('#atoastMsg').textContent = msg; $('#atoastBtn').textContent = label; a.hidden = false;
+  dodgeToast(a);
   $('#atoastBtn').onclick = () => { a.hidden = true; clearTimeout(atoastT); fn(); };
   clearTimeout(atoastT); atoastT = setTimeout(() => { a.hidden = true; }, 7000);
 }
