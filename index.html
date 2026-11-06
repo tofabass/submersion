@@ -1320,9 +1320,9 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   <div class="fpb oscRow" id="oscRow" role="list" aria-label="Oscillators"></div>
 </section>
 
-<section class="fp" id="pMusic" aria-label="Music panel" hidden>
-  <div class="fph"><span class="grip" aria-hidden="true"></span><h2><span class="hic" style="color:var(--c-motion)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg></span>Music</h2>
-    <button class="ib" data-fold aria-label="Fold the Music panel" title="Fold the Music panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-fold"/></svg></button><button class="ib" data-close aria-label="Hide the Music panel" title="Hide the Music panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+<section class="fp" id="pMusic" aria-label="Streaming panel" hidden>
+  <div class="fph"><span class="grip" aria-hidden="true"></span><h2><span class="hic" style="color:var(--c-motion)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg></span>Streaming</h2>
+    <button class="ib" data-fold aria-label="Fold the Streaming panel" title="Fold the Streaming panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-fold"/></svg></button><button class="ib" data-close aria-label="Hide the Streaming panel" title="Hide the Streaming panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
   <div class="fpb musBody">
     <form class="musIn" id="musForm" autocomplete="off"><input type="text" id="musUrl" inputmode="url" spellcheck="false" placeholder="Paste a SoundCloud or Spotify link" aria-label="Paste a SoundCloud or Spotify link" data-typing><button class="btn primary" id="musGo" type="submit">Load</button></form>
     <p class="note musMsg" id="musMsg" role="status"></p>
@@ -1376,7 +1376,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 </nav>
 <div class="moreMenu" id="moreMenu" role="dialog" aria-label="More" hidden>
   <button class="mi" id="mSave" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg><span>Save project</span><i class="dirtyDot" id="mSaveDot" hidden></i><kbd class="kbd-i">Ctrl S</kbd></button>
-  <button class="mi" id="mMusic" type="button" aria-controls="pMusic"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg><span>Music</span></button>
+  <button class="mi" id="mMusic" type="button" aria-controls="pMusic"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg><span>Streaming</span></button>
   <form class="impLink" id="mImpLink" autocomplete="off"><input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button></form>
   <label class="mrow" for="mLook"><span class="lbl">Look presets</span><select id="mLook" aria-label="Look presets"></select></label>
   <button class="mi onlyCmp" id="mInv" type="button" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg><span>Invert image layers</span></button>
@@ -5045,7 +5045,7 @@ function clampPanel(p){
   p.style.left = Math.max(0, Math.min(innerWidth - 120, r.left)) + 'px';
   p.style.top = Math.max(0, Math.min(innerHeight - 60, r.top)) + 'px';
 }
-const PANEL_NAMES = {pLayers:'the Layers panel', pInsp:'the Inspector', pOsc:'the Oscillators panel', pMusic:'the Music panel'};
+const PANEL_NAMES = {pLayers:'the Layers panel', pInsp:'the Inspector', pOsc:'the Oscillators panel', pMusic:'the Streaming panel'};
 if (!UI.get('oscPos3', false)){ UI.set('pos.pOsc', null); UI.set('oscPos3', true); }   // the panel's default place moved
 for (const p of [pL, pI, pO, pM]){
   const h = p.querySelector('.fph'), pos = UI.get('pos.' + p.id, null);
@@ -6967,7 +6967,7 @@ async function startListen(){
     if (!audioEl.paused){ audioEl.pause(); $('#bPlay').textContent = 'Play'; }
     at[0].addEventListener('ended', stopListen);
     musSay(''); musListenUI(true);
-    const an = $('#audioNote'); if (an){ musAudioNote = an.textContent; an.textContent = 'Listening to this tab. Stop it in the Music panel.'; }
+    const an = $('#audioNote'); if (an){ musAudioNote = an.textContent; an.textContent = 'Listening to this tab. Stop it in the Streaming panel.'; }
   } catch(e){ stream.getTracks().forEach(t => t.stop()); musSay('Could not start listening: ' + ((e && e.message) || 'unknown error'), true); }
 }
 musLB.onclick = startListen; musStopB.onclick = stopListen;
