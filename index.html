@@ -381,6 +381,26 @@ body{background:var(--stage)}
 .showui:hover,.showui:focus-visible{opacity:1}
 .clean .fp,.clean .dock,.clean .calbar,.clean .badge,.clean .atoast,.clean .lookpop{display:none!important}
 .clean .showui{display:inline-flex}
+.clean .stage{inset:0!important}
+/* mini menu: only while the UI is hidden */
+.mini{display:none}
+.clean .mini{display:block}
+.miniTab,.miniBtn{box-sizing:border-box;display:grid;place-items:center;padding:0;cursor:pointer;color:var(--ink);background:var(--menu-surface);border:1px solid var(--glass-border);-webkit-tap-highlight-color:transparent}
+.miniTab{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(62px + env(safe-area-inset-bottom));z-index:41;width:32px;height:22px;border-radius:999px;opacity:.4;transition:opacity .5s ease;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.miniTab.faded{opacity:.07}
+.miniTab:hover,.miniTab:focus-visible,.miniTab[aria-expanded="true"]{opacity:1}
+.miniMenu{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(90px + env(safe-area-inset-bottom));z-index:57;display:flex;flex-direction:column;gap:4px;padding:4px;border-radius:14px;background:var(--menu-surface);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%)}
+.miniMenu[hidden]{display:none}
+.miniBtn{width:36px;height:36px;border-radius:10px;border-color:transparent;background:transparent}
+.miniBtn:hover:not(:disabled){background:var(--accent-soft)}
+.miniBtn:disabled{opacity:.4;cursor:default}
+.miniBtn .gi-svg{width:18px;height:18px}
+#mnRec .gi-svg{color:var(--rec)}
+#mnRec.on{background:var(--rec)}
+#mnRec.on .gi-svg{color:#fff;animation:mnPulse 1s ease-in-out infinite}
+@keyframes mnPulse{50%{opacity:.45}}
+@media (pointer:coarse),(max-width:760px){ .miniTab{width:44px;height:44px;bottom:calc(60px + env(safe-area-inset-bottom))} .miniBtn{width:44px;height:44px} .miniMenu{bottom:calc(112px + env(safe-area-inset-bottom))} }
+@media (prefers-reduced-motion:reduce){ .miniTab{transition:none} #mnRec.on .gi-svg{animation:none} }
 @media (max-width:1700px){ .calbar .tool span{display:none} .calbar .tool{min-width:38px} }
 @media (max-width:1600px){ .calbar .who{display:none} }
 @media (max-width:1180px){ .dk span{display:none} .dk{min-width:38px} .srch>input{width:140px} }
@@ -1387,6 +1407,15 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 <div class="modeScrim impAsk" id="impAsk" hidden><div class="modeBox" role="dialog" aria-modal="true" aria-labelledby="impAskT"><h3 id="impAskT"></h3><p class="note" id="impAskN" hidden></p><div class="btns" id="impAskB"></div></div></div>
 <div class="atoast" id="atoast" role="status" hidden><span id="atoastMsg"></span><button class="btn" id="atoastBtn">Undo</button></div>
 <button class="btn showui" id="showUI">Show UI · H</button>
+<div class="mini" id="mini">
+  <button class="miniTab" id="miniTab" type="button" aria-label="Quick controls" aria-expanded="false" aria-controls="miniMenu" title="Quick controls"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 10 4-4 4 4"/></svg></button>
+  <div class="miniMenu" id="miniMenu" role="toolbar" aria-label="Quick controls" hidden>
+    <button class="miniBtn" id="mnRoll" type="button" aria-label="Roll" title="Roll (?)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-dice"/></svg></button>
+    <button class="miniBtn" id="mnRec" type="button" aria-label="Record one loop" title="Record (R)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rec"/></svg></button>
+    <button class="miniBtn" id="mnPlay" type="button" aria-label="Pause" title="Play / pause (Space)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-pause"/></svg></button>
+    <button class="miniBtn" id="mnCap" type="button" aria-label="Capture still (PNG)" title="Capture still (PNG)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-image"/></svg></button>
+  </div>
+</div>
 <div class="tutOffer" id="tutOffer" role="status" hidden><span>New here? Take a quick tour of the controls.</span><button class="btn primary" id="tutOfferGo" type="button">Show me</button><button class="btn" id="tutOfferNo" type="button">No thanks</button></div>
 <div class="tut" id="tut" hidden><div class="tutSpot" id="tutSpot"></div>
   <div class="tutCard" id="tutCard" role="dialog" aria-labelledby="tutT" tabindex="-1">
@@ -4745,7 +4774,7 @@ $('#hFull').onclick = () => {
   else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => toast('Fullscreen is not available here'));
   else toast('Fullscreen is not available here');
 };
-$('#hPanel').onclick = () => { const on = document.body.classList.toggle('clean'); $('#hPanel').textContent = on ? 'Show controls' : 'Hide controls'; if (on) toast('Press H to bring the controls back'); };
+$('#hPanel').onclick = () => { const on = document.body.classList.toggle('clean'); $('#hPanel').textContent = on ? 'Show controls' : 'Hide controls'; miniClose(); try { setDockH(); applySheet(); } catch(e){} if (on) toast('Press H to bring the controls back'); };
 /* ---- keys: hotkeys are off only while typing in a text-entry field (data-typing marks in-place editors such as the rename box) ---- */
 const TEXT_INPUT = /^(text|number|search|url|email|password|tel|)$/i;
 function isTyping(t){
@@ -6141,6 +6170,28 @@ function syncDock(){
   $('#dInv').setAttribute('aria-pressed', P.ginv > .5); $('#mInv').setAttribute('aria-pressed', P.ginv > .5); $('#gInv').checked = P.ginv > .5;
   $('#dRec').disabled = $('#bRec').disabled && !rec; $('#dRec').classList.toggle('on', !!rec);
   $('#dPng') && ($('#dPng').disabled = $('#bPng').disabled);
+  miniSync();
+}
+/* ---- mini menu (only visible while the UI is hidden): same actions as ?, R, Space and Save still ---- */
+const miniEl = $('#mini'), miniTab = $('#miniTab'), miniMenu = $('#miniMenu');
+let miniFadeT = 0, miniCloseT = 0;
+function miniWake(){ miniTab.classList.remove('faded'); clearTimeout(miniFadeT); miniFadeT = setTimeout(() => { if (miniMenu.hidden) miniTab.classList.add('faded'); }, 2000); }
+function miniClose(){ miniMenu.hidden = true; miniTab.setAttribute('aria-expanded', 'false'); clearTimeout(miniCloseT); miniWake(); }
+function miniIdle(){ clearTimeout(miniCloseT); miniCloseT = setTimeout(miniClose, 4000); }
+function miniOpen(){ miniMenu.hidden = false; miniTab.setAttribute('aria-expanded', 'true'); miniTab.classList.remove('faded'); clearTimeout(miniFadeT); miniIdle(); }
+miniTab.addEventListener('click', () => { if (miniMenu.hidden) miniOpen(); else miniClose(); miniTab.blur(); });
+for (const [id, fn] of [['mnRoll', () => $('#bDice').click()], ['mnRec', recKey], ['mnPlay', () => $('#hPause').click()], ['mnCap', () => $('#bPng').click()]]){
+  const b = $('#' + id); b.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') e.preventDefault(); });
+  b.addEventListener('click', () => { if (!b.disabled) fn(); b.blur(); miniIdle(); });
+}
+window.addEventListener('pointerdown', e => { if (!document.body.classList.contains('clean')) return; if (!miniMenu.hidden && !miniEl.contains(e.target)) miniClose(); else miniWake(); }, true);
+window.addEventListener('pointermove', () => { if (document.body.classList.contains('clean')) miniWake(); }, {passive:true});
+function miniSync(){
+  if (!document.body.classList.contains('clean')) return;
+  const paused = $('#hPause').textContent === 'Play', pb = $('#mnPlay');
+  if (pb._p !== paused){ pb._p = paused; pb.innerHTML = use(paused ? 'i-play' : 'i-pause'); pb.title = (paused ? 'Play' : 'Pause') + ' (Space)'; pb.setAttribute('aria-label', paused ? 'Play' : 'Pause'); }
+  $('#mnRec').disabled = $('#bRec').disabled && !rec; $('#mnRec').classList.toggle('on', !!rec);
+  $('#mnCap').disabled = $('#bPng').disabled;
 }
 /* ---- the "double-click a layer" paragraph shows until the first calibration, then folds into a small ? tip ---- */
 var calTipMem = false, calTipOpen = false;
