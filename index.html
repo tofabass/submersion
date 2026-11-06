@@ -6448,15 +6448,20 @@ const tutorialMode = (() => {
   const markSeen = () => { seenMem = true; try { localStorage.setItem(SEEN_KEY, '1'); } catch(e){} };
   const STEPS = [
     {t:'Picture and Layers', targets:['#pLayers'], panel:pL,
-     x:'The picture is built from layers, nearest first. Tap one to select it. <kbd>↑</kbd> <kbd>↓</kbd> change the selection, <kbd>E</kbd> hides it, <kbd>S</kbd> solos it, <kbd>Enter</kbd> calibrates it (hold <kbd>Shift</kbd> while brushing for precision). <kbd>L</kbd> opens or closes this panel.'},
+     x:'The picture is built from layers, nearest first. Tap one to select it. <kbd>↑</kbd> <kbd>↓</kbd> change the selection, <kbd>E</kbd> hides it, <kbd>S</kbd> solos it, <kbd>Enter</kbd> calibrates it (hold <kbd>Shift</kbd> while brushing for precision). <kbd>L</kbd> opens or closes this panel.',
+     xt:'The picture is built from layers, nearest first. Tap one to select it, then use the buttons on its row. The Layers button in the dock opens or closes this panel.'},
     {t:'Inspector', targets:['#pInsp'], panel:pI,
-     x:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. <kbd>I</kbd> opens or closes the Inspector.'},
+     x:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. <kbd>I</kbd> opens or closes the Inspector.',
+     xt:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. The Inspector button in the dock opens or closes it.'},
     {t:'Dock and Theme menu', targets:['#dTheme', '#lookPop'], look:true,
-     x:'<kbd>T</kbd> opens the Theme menu: Lite or Full, colours, Pins, Shortcuts for every key, and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.'},
+     x:'<kbd>T</kbd> opens the Theme menu: Lite or Full, colours, Pins, Shortcuts for every key, and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.',
+     xt:'The Theme button in the dock opens the Theme menu: Lite or Full, colours, Pins, Shortcuts and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.'},
     {t:'Find and Roll', targets:['#dFind', '#dRoll'],
-     x:'<kbd>Ctrl</kbd>+<kbd>F</kbd> finds any control by name. <kbd>?</kbd> or <kbd>/</kbd> rolls a random look, <kbd>Z</kbd> resets everything.'},
+     x:'<kbd>Ctrl</kbd>+<kbd>F</kbd> finds any control by name. <kbd>?</kbd> or <kbd>/</kbd> rolls a random look, <kbd>Z</kbd> resets everything.',
+     xt:'The magnifier button finds any control by name. The dice button rolls a random look, and the reset button resets everything.'},
     {t:'Play, record, hide, undo', targets:['#dPlay', '#dHide'],
-     x:'<kbd>Space</kbd> plays or pauses. <kbd>R</kbd> records one loop (press again to stop). <kbd>H</kbd> hides all controls; press it again to bring them back. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redoes.'},
+     x:'<kbd>Space</kbd> plays or pauses. <kbd>R</kbd> records one loop (press again to stop). <kbd>H</kbd> hides all controls; press it again to bring them back. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redoes.',
+     xt:'The play button plays or pauses, and the record button records one loop. The hide button hides all controls; tap Show UI to bring them back.'},
   ];
   const snap = () => ({ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])});
   function restore(s){
@@ -6504,7 +6509,7 @@ const tutorialMode = (() => {
   function show(i){
     idx = i; const st = STEPS[i];
     ensure(st);
-    $('#tutT').textContent = st.t; $('#tutX').innerHTML = st.x; $('#tutN').textContent = (i + 1) + ' / ' + STEPS.length;
+    $('#tutT').textContent = st.t; $('#tutX').innerHTML = (matchMedia('(hover: none) and (pointer: coarse)').matches && st.xt) || st.x; $('#tutN').textContent = (i + 1) + ' / ' + STEPS.length;
     $('#tutBack').style.visibility = i ? 'visible' : 'hidden';
     $('#tutNext').textContent = i === STEPS.length - 1 ? 'Done' : 'Next';
     layout(); requestAnimationFrame(layout); setTimeout(layout, 280);
