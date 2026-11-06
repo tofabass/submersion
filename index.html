@@ -799,6 +799,14 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   .lookpop{bottom:calc(var(--dockH,64px) + 16px);max-height:calc(100vh - var(--dockH,64px) - 28px)}
 }
 
+/* F2: image import (link box, progress, placement choice) */
+.impLink{display:flex;gap:6px;padding:6px 8px}
+.impLink input{flex:1;min-width:0;min-height:36px;font:500 13px var(--f-ui);color:var(--ink);background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.impLink input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.impProg{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:75;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:10px;background:var(--scrim);color:var(--scrim-ink);font-size:12.5px;box-shadow:var(--shadow)}
+.impProg[hidden]{display:none}
+.impAsk .btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.drop.on{box-shadow:inset 0 0 0 6px var(--accent-soft)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -869,7 +877,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   <div class="toast" id="toast" role="status"></div>
   <div class="cursor" id="cursor" hidden></div>
   <canvas class="pip" id="pip" hidden aria-hidden="true"></canvas>
-  <div class="drop" id="drop" hidden>Drop an image, audio or .obj file</div>
+  <div class="drop" id="drop" hidden>Drop images, audio or an .obj file</div>
   <div hidden><button id="hPause">Pause</button><button id="hFull">Fullscreen</button><button id="hPanel">Hide controls</button></div>
 </div>
 
@@ -1322,6 +1330,7 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 <div class="moreMenu" id="moreMenu" role="dialog" aria-label="More" hidden>
   <button class="mi" id="mSave" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg><span>Save project</span><i class="dirtyDot" id="mSaveDot" hidden></i><kbd class="kbd-i">Ctrl S</kbd></button>
   <button class="mi" id="mMusic" type="button" aria-controls="pMusic"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg><span>Music</span></button>
+  <form class="impLink" id="mImpLink" autocomplete="off"><input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button></form>
   <label class="mrow" for="mLook"><span class="lbl">Look presets</span><select id="mLook" aria-label="Look presets"></select></label>
   <button class="mi onlyCmp" id="mInv" type="button" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg><span>Invert image layers</span></button>
   <button class="mi onlyCmp" id="mReset" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-reset"/></svg><span>Reset all effects</span></button>
@@ -1359,6 +1368,8 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   <p class="note">Keys work whenever you are not typing in a text box.</p>
   <div class="keysGrid" id="keysGrid"></div>
 </div></div>
+<div class="impProg" id="impProg" role="status" aria-live="polite" hidden><span id="impProgMsg">Importing…</span><button class="btn" id="impProgX" type="button">Cancel</button></div>
+<div class="modeScrim impAsk" id="impAsk" hidden><div class="modeBox" role="dialog" aria-modal="true" aria-labelledby="impAskT"><h3 id="impAskT"></h3><p class="note" id="impAskN" hidden></p><div class="btns" id="impAskB"></div></div></div>
 <div class="atoast" id="atoast" role="status" hidden><span id="atoastMsg"></span><button class="btn" id="atoastBtn">Undo</button></div>
 <button class="btn showui" id="showUI">Show UI · H</button>
 <div class="tutOffer" id="tutOffer" role="status" hidden><span>New here? Take a quick tour of the controls.</span><button class="btn primary" id="tutOfferGo" type="button">Show me</button><button class="btn" id="tutOfferNo" type="button">No thanks</button></div>
@@ -1371,6 +1382,8 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 <audio id="audioEl" loop hidden></audio>
 
 <script>
+/* Google Drive API key for Drive links (restricted to this site and the Drive API) */
+const GOOGLE_API_KEY = 'AIzaSyDqGIB72YRcUTVVAf-0ZZRYNX2WfI0FsvI';
 (() => {
 const $ = s => document.querySelector(s);
 const TAU = Math.PI * 2;
@@ -1999,7 +2012,7 @@ function autoDepth(mode){
   dctx.imageSmoothingQuality='high'; dctx.drawImage(tc.canvas,0,0,imgW,imgH);
   markDepth(); scheduleMedians();
 }
-function loadImageFile(file){
+function loadImageFile(file){ return new Promise(done => {
   const url = URL.createObjectURL(file), img = new Image();
   img.onload = () => {
     const s = Math.min(1, 1600/Math.max(img.naturalWidth, img.naturalHeight));
@@ -2007,11 +2020,11 @@ function loadImageFile(file){
     colorC.width = depthC.width = imgW; colorC.height = depthC.height = imgH;
     cctx.drawImage(img,0,0,imgW,imgH);
     autoDepth($('#depthMode').value);
-    imageReady(file.name.replace(/\.[^.]+$/,'')); URL.revokeObjectURL(url); toast('Image loaded');
+    imageReady(file.name.replace(/\.[^.]+$/,'')); URL.revokeObjectURL(url); toast('Image loaded'); done(true);
   };
-  img.onerror = () => toast('That file could not be read as an image');
+  img.onerror = () => { toast('That file could not be read as an image'); done(false); };
   img.src = url;
-}
+}); }
 /* a new image invalidates every mask: start again from one Background layer */
 function maskDims(){ const s = Math.min(1, 1024/Math.max(imgW, imgH)); return [Math.max(2, Math.round(imgW*s)), Math.max(2, Math.round(imgH*s))]; }
 function imageReady(name, keepLayers = false){
@@ -4417,19 +4430,25 @@ $('#bAuto').onclick = () => { pushDepth(); autoDepth($('#depthMode').value); toa
 $('#bInvert').onclick = () => { pushDepth(); dctx.save(); dctx.globalCompositeOperation='difference'; dctx.fillStyle='#fff'; dctx.fillRect(0,0,imgW,imgH); dctx.restore(); markDepth(); scheduleMedians(); };
 $('#bSmooth').onclick = () => { pushDepth(); softenDepth(6); markDepth(); scheduleMedians(); };
 
-stage.addEventListener('dragover', e => { e.preventDefault(); $('#drop').hidden = false; });
-stage.addEventListener('dragleave', () => { $('#drop').hidden = true; });
+let dragN = 0;
+const dropShow = on => { $('#drop').hidden = !on; $('#drop').classList.toggle('on', on); };
+stage.addEventListener('dragenter', e => { e.preventDefault(); dragN++; dropShow(true); });
+stage.addEventListener('dragover', e => { e.preventDefault(); dropShow(true); });
+stage.addEventListener('dragleave', () => { if (--dragN <= 0){ dragN = 0; dropShow(false); } });
 stage.addEventListener('drop', e => {
-  e.preventDefault(); $('#drop').hidden = true;
-  const f = e.dataTransfer.files[0]; if (!f) return;
+  e.preventDefault(); dragN = 0; dropShow(false);
+  const all = [...e.dataTransfer.files], imgs = all.filter(isImgFile);
+  if (imgs.length){ importFiles(imgs, all.length - imgs.length); return; }
+  if (!all.length){ const u = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '').split(/\r?\n/).find(l => l && l[0] !== '#'); if (u && /^https?:/i.test(u.trim())) importLink(u); return; }
+  const f = all[0];
   if (f.type.startsWith('image/')) loadImageFile(f);
   else if (f.type.startsWith('audio/')) loadAudioFile(f);
   else if (/\.obj$/i.test(f.name)) loadOBJFile(f);
 });
 window.addEventListener('paste', e => {
   if (e.target.closest && e.target.closest('input,textarea')) return;
-  const it = [...(e.clipboardData?.items||[])].find(i => i.type.startsWith('image/'));
-  if (it) loadImageFile(it.getAsFile());
+  const fs = clipImages(e.clipboardData);
+  if (fs.length){ e.preventDefault(); importFiles(fs, 0); }
 });
 
 /* ---------- audio: three bands with adjustable crossovers, gates, smoothing and solo monitoring ---------- */
@@ -5959,6 +5978,9 @@ function drawAddMenu(){
   add('i-plus', 'New layer, then pick its object', addLayer, P.L.layers.length >= MAX_OBJ ? `You can have up to ${MAX_OBJ} layers plus Background` : '');
   add('i-wand', 'Auto layers\u2026', () => toggleAutoLayers(true));
   add('i-image', 'Import layer images\u2026', () => $('#bLayersImport').click());
+  const lf = document.createElement('form'); lf.className = 'impLink'; lf.autocomplete = 'off';
+  lf.innerHTML = '<input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button>';
+  wireImpLink(lf, () => setAddMenu(false)); m.appendChild(lf);
   for (const [id] of OVER) delete getL(id).gone;
 }
 function setAddMenu(open){
@@ -6859,6 +6881,301 @@ oneSidePanel();
 clearDirty(3000);   // the start-up scene is not an unsaved change
 
 requestAnimationFrame(frame);
+/* ================= F2: faster image import: link box (Google Drive, Dropbox, direct URLs), drag and drop, paste ================= */
+const IMG_EXT = /\.(png|jpe?g|webp|gif|svg)$/i;
+const IMG_MIME = {png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', webp:'image/webp', gif:'image/gif', svg:'image/svg+xml'};
+const IMP_MSG = {
+  noKey: "Drive links need the site's Google API key. Download the image and drag it in instead.",
+  drivePriv: 'Drive would not share that. Only files and folders shared as "Anyone with the link" work here.',
+  dbFolder: "This Dropbox folder can't be read from the browser. Download it and drag the images in.",
+  dbFile: "Dropbox would not hand that file to the browser. Download it and drag it in.",
+  dbGone: 'That Dropbox link did not open. Check that it is shared and has not expired.',
+  cors: "That site doesn't allow other sites to use its images. Download it and drag it in.",
+  notImg: 'That link is not an image. Paste a link to a .png, .jpg, .webp, .gif or .svg, or a Google Drive or Dropbox link.'
+};
+const JSZIP_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+const userErr = m => Object.assign(new Error(m), {user: true});
+const abortErr = () => new DOMException('Import cancelled', 'AbortError');
+const baseName = n => String(n || '').replace(/\.[^.\/]+$/, '').slice(0, 28) || 'Image';
+const isImgFile = f => !!f && ((f.type || '').startsWith('image/') || IMG_EXT.test(f.name || ''));
+function clipImages(dt){
+  const out = []; let k = 0;
+  for (const it of (dt && dt.items) ? [...dt.items] : []){
+    if (it.kind !== 'file' || !(it.type || '').startsWith('image/')) continue;
+    const f = it.getAsFile(); if (!f) continue;
+    k++; out.push(new File([f], f.name && f.name !== 'image.png' ? f.name : `Pasted image${k > 1 ? ' ' + k : ''}.png`, {type: f.type}));
+  }
+  return out;
+}
+
+/* ---- link parsing: returns {kind, ...} or {err} ---- */
+function parseImportLink(raw){
+  const s = String(raw || '').trim();
+  if (!s) return {err: 'Paste an image or folder link.'};
+  let u; try { u = new URL(/^[a-z][\w+.-]*:\/\//i.test(s) ? s : 'https://' + s); } catch(e){ return {err: 'That does not look like a link.'}; }
+  if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.')) return {err: 'That does not look like a link.'};
+  const h = u.hostname.toLowerCase().replace(/^www\./, ''), p = u.pathname, okId = v => /^[\w-]{10,}$/.test(v || '');
+  if (h === 'drive.google.com' || h === 'docs.google.com' || h === 'drive.usercontent.google.com'){
+    let m = p.match(/\/folders\/([\w-]{10,})/); if (m) return {kind: 'gfolder', id: m[1]};
+    const q = u.searchParams.get('id');
+    if (/\/folderview\/?$/.test(p) && okId(q)) return {kind: 'gfolder', id: q};
+    m = p.match(/\/file\/(?:u\/\d+\/)?d\/([\w-]{10,})/) || p.match(/^\/(?:u\/\d+\/)?d\/([\w-]{10,})/); if (m) return {kind: 'gfile', id: m[1]};
+    if (okId(q)) return {kind: 'gfile', id: q};
+    return {err: 'Paste a Google Drive file or folder link.'};
+  }
+  if (h === 'dropbox.com' || h === 'dl.dropbox.com' || h === 'dl.dropboxusercontent.com'){
+    const folder = /^\/(scl\/fo|sh)\//.test(p), file = /^\/(scl\/fi|s)\//.test(p);
+    if (!folder && !file) return {err: 'Paste a Dropbox file or folder share link.'};
+    const q = flag => { const o = new URLSearchParams(); for (const k of ['rlkey', 'st']) if (u.searchParams.get(k)) o.set(k, u.searchParams.get(k)); o.set(flag, '1'); return '?' + o; };
+    const www = 'https://www.dropbox.com' + p, dl = 'https://dl.dropboxusercontent.com' + p;
+    if (folder) return {kind: 'dbfolder', urls: [www + q('dl'), dl + q('dl')]};
+    let nm = ''; try { nm = decodeURIComponent(p.split('/').filter(Boolean).pop() || ''); } catch(e){}
+    return {kind: 'dbfile', urls: [dl + q('dl'), www + q('raw')], name: nm};
+  }
+  let nm = ''; try { nm = decodeURIComponent(p.split('/').filter(Boolean).pop() || ''); } catch(e){}
+  return {kind: 'url', urls: [u.href], name: nm, ext: IMG_EXT.test(p)};
+}
+
+/* ---- fetching ---- */
+async function fetchFirst(urls, signal){
+  let last = 'cors';
+  for (const url of urls){
+    let r;
+    try { r = await fetch(url, {mode: 'cors', credentials: 'omit', signal}); }
+    catch(e){ if (signal.aborted) throw abortErr(); last = 'cors'; continue; }
+    if (!r.ok){ last = r.status; continue; }
+    try { return await r.blob(); } catch(e){ if (signal.aborted) throw abortErr(); last = 'cors'; }
+  }
+  throw last;
+}
+async function blobToItem(blob, name){
+  let b = blob;
+  const ext = (String(name).match(/\.([a-z]+)$/i) || [])[1];
+  if (!(b.type || '').startsWith('image/') && ext && IMG_MIME[ext.toLowerCase()]) b = new Blob([b], {type: IMG_MIME[ext.toLowerCase()]});
+  const url = URL.createObjectURL(b);
+  try { const img = await loadImgURL(url); return {name: baseName(name), fname: String(name || 'image'), img, blob: b}; }
+  catch(e){ URL.revokeObjectURL(url); throw userErr(`${baseName(name)} could not be read as an image`); }
+}
+const driveURL = (id, extra) => `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?` + new URLSearchParams({...extra, supportsAllDrives: 'true', key: GOOGLE_API_KEY});
+async function driveJSON(url, signal){
+  let r;
+  try { r = await fetch(url, {signal}); } catch(e){ if (signal.aborted) throw abortErr(); throw userErr('Google Drive could not be reached. Check your connection and try again.'); }
+  if (r.status === 403 || r.status === 404) throw userErr(IMP_MSG.drivePriv);
+  if (!r.ok) throw userErr(`Google Drive said no (error ${r.status}).`);
+  return r.json();
+}
+async function driveFile(id, signal){
+  try { return await fetchFirst([driveURL(id, {alt: 'media'})], signal); }
+  catch(e){ if (e && e.name === 'AbortError') throw e; throw userErr(e === 403 || e === 404 ? IMP_MSG.drivePriv : e === 'cors' ? 'Google Drive could not be reached. Check your connection and try again.' : `Google Drive said no (error ${e}).`); }
+}
+async function driveFolder(id, signal){
+  const out = []; let tok = '';
+  do {
+    const qs = new URLSearchParams({q: `'${id}' in parents and mimeType contains 'image/' and trashed=false`, fields: 'nextPageToken,files(id,name,mimeType)', pageSize: '1000', orderBy: 'name', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true', key: GOOGLE_API_KEY});
+    if (tok) qs.set('pageToken', tok);
+    const j = await driveJSON('https://www.googleapis.com/drive/v3/files?' + qs, signal);
+    out.push(...(j.files || [])); tok = j.nextPageToken || '';
+  } while (tok && out.length < 5000);
+  return out;
+}
+let jszipP = null;
+function loadJSZip(){
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  return jszipP = jszipP || new Promise((res, rej) => {
+    const sc = document.createElement('script'); sc.src = JSZIP_URL; sc.crossOrigin = 'anonymous';
+    sc.onload = () => window.JSZip ? res(window.JSZip) : rej(new Error('jszip')); sc.onerror = () => { jszipP = null; rej(new Error('jszip')); };
+    document.head.appendChild(sc);
+  });
+}
+
+/* ---- caps: 30 per import (12 in Lite); several images also need free layer slots ---- */
+function capList(list){
+  const cap = LITE.on ? 12 : 30, why = []; let keep = list.length;
+  if (keep > cap){ keep = cap; why.push(`imports take up to ${cap} images at a time${LITE.on ? ' in Lite' : ''}`); }
+  if (list.length > 1){
+    const room = MAX_OBJ - (imgW && imgH ? P.L.layers.length : 0);
+    if (room <= 0) throw userErr(`All ${MAX_OBJ} layer slots are in use. Delete a layer, then import again.`);
+    if (keep > room){ keep = room; why.push(`there is room for ${room} more ${room === 1 ? 'layer' : 'layers'} (${MAX_OBJ} at most)`); }
+  }
+  const note = keep < list.length ? `Found ${list.length} images and used the first ${keep}: ${why.join(', and ')}.` : '';
+  return {list: list.slice(0, keep), note};
+}
+const impColl = new Intl.Collator(undefined, {numeric: true, sensitivity: "base"});
+async function gather(list, signal){
+  const items = []; let bad = 0;
+  for (let k = 0; k < list.length; k++){
+    if (signal.aborted) throw abortErr();
+    impProg(`Importing ${k + 1} of ${list.length}…`);
+    try { items.push(await blobToItem(await list[k].get(), list[k].name)); }
+    catch(e){ if (signal.aborted || (e && e.name === 'AbortError')) throw abortErr(); if (list.length === 1) throw e; bad++; }
+    await new Promise(r => setTimeout(r, 0));              // let the page breathe between images
+  }
+  return {items, bad};
+}
+
+/* ---- progress bar and the placement question ---- */
+const IMPX = {busy: false, ac: null};
+function impProg(txt){ const b = $('#impProg'); if (txt == null){ b.hidden = true; return; } $('#impProgMsg').textContent = txt; b.hidden = false; }
+$('#impProgX').onclick = () => { if (IMPX.ac) IMPX.ac.abort(); };
+function askChoice(title, opts, note){
+  return new Promise(done => {
+    const box = $('#impAsk'), bs = $('#impAskB'); $('#impAskT').textContent = title;
+    $('#impAskN').textContent = note || ''; $('#impAskN').hidden = !note; bs.innerHTML = '';
+    const back = document.activeElement, end = v => { box.hidden = true; box.onkeydown = null; box.onclick = null; try { back && back.focus && back.focus(); } catch(e){} done(v); };
+    for (const [v, label, off, primary] of [...opts, [null, 'Cancel']]){
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (primary ? ' primary' : ''); b.textContent = label;
+      if (off){ b.disabled = true; b.title = off; } b.onclick = () => end(v); bs.appendChild(b);
+    }
+    box.onkeydown = e => { e.stopPropagation(); if (e.key === 'Escape'){ e.preventDefault(); end(null); } };
+    box.onclick = e => { if (e.target === box) end(null); };
+    box.hidden = false; const f = bs.querySelector('button:not(:disabled)'); if (f) f.focus();
+  });
+}
+async function runImport(job, skipped){
+  if (IMPX.busy){ toast('An import is already running'); return; }
+  IMPX.busy = true; const ac = IMPX.ac = new AbortController();
+  let res;
+  try { impProg('Importing…'); res = await job(ac.signal); }
+  catch(e){
+    const stop = ac.signal.aborted || (e && e.name === 'AbortError');
+    toast(stop ? 'Import cancelled' : e && e.user ? e.message : 'The import did not work. Try again, or download the images and drag them in.', stop ? 2200 : 6500);
+    return;
+  }
+  finally { impProg(); IMPX.busy = false; IMPX.ac = null; }
+  const notes = [res.note, res.bad ? `${res.bad} ${res.bad === 1 ? 'file' : 'files'} could not be read and ${res.bad === 1 ? 'was' : 'were'} skipped.` : '', skipped ? `${skipped} ${skipped === 1 ? 'file was not an image' : 'files were not images'} and ${skipped === 1 ? 'was' : 'were'} skipped.` : ''].filter(Boolean).join(' ');
+  if (!res.items.length){ toast(notes || 'No images found there', 6500); return; }
+  IMPX.busy = true;                                            // one dialog at a time
+  try { await placeItems(res.items, notes); } finally { IMPX.busy = false; }
+}
+async function placeItems(items, notes){
+  const scene = !!(imgW && imgH);
+  if (items.length === 1){
+    const it = items[0]; let ch = 'replace';
+    if (scene){
+      const full = P.L.layers.length >= MAX_OBJ;
+      ch = await askChoice(`Where should “${it.name}” go?`, [['layer', 'Add as new layer', full ? `All ${MAX_OBJ} layer slots are in use` : '', !full], ['replace', 'Replace the picture', '', full]], notes);
+      if (!ch) return;
+    }
+    if (ch === 'replace'){ const before = capProject(); if (await loadImageFile(new File([it.blob], it.fname, {type: it.blob.type}))) pushImport(before, 'image load'); }
+    else addAsLayers(items);
+  } else {
+    const ok = await askChoice(`Add ${items.length} images as layers?`, [['yes', 'Add', '', true]], notes);
+    if (!ok) return;
+    if (scene) addAsLayers(items); else newSceneFrom(items);
+  }
+  if (notes && items.length === 1 && !scene) toast(notes, 6500);
+}
+function pushImport(before, what){
+  const after = before && capProject(); if (!before || !after) return;
+  histPush('import', what, () => uncapProject(before), () => uncapProject(after), true);
+}
+/* no picture yet: the existing Import layer images path builds the scene */
+function newSceneFrom(items){
+  impItems = items.map(it => ({name: it.name, img: it.img, role: 'layer'}));
+  $('#bImpGo').onclick();
+}
+/* a picture is open: new layers go on top, each a flat plane just in front of what it covers; one Ctrl+Z takes them all back */
+function addAsLayers(items){
+  const room = MAX_OBJ - P.L.layers.length, use = items.slice(0, room);
+  if (!use.length){ toast(`All ${MAX_OBJ} layer slots are in use. Delete a layer, then import again.`, 5000); return; }
+  const before = capProject();
+  if (cal){ cal = null; showCal(false); }
+  const W = imgW, H = imgH, n = use.length;
+  const cvs = use.map(it => {                                   // bigger than the scene: scaled down to fit; smaller: kept at its size, centred
+    const iw = it.img.naturalWidth || it.img.width, ih = it.img.naturalHeight || it.img.height, s = Math.min(1, W/iw, H/ih), c = scratch(W, H);
+    c.imageSmoothingQuality = 'high'; c.drawImage(it.img, (W - iw*s)/2, (H - ih*s)/2, iw*s, ih*s); return c.canvas;
+  });
+  const ms = cvs.map(c => { const x = scratch(MW, MH); x.drawImage(c, 0, 0, MW, MH); const a = x.getImageData(0, 0, MW, MH).data, m = new Uint8Array(MW*MH); for (let i = 0; i < m.length; i++) m[i] = a[i*4+3]; return m; });
+  const Dr = getCD().Dr; let base = 0;
+  for (const m of ms) for (let i = 0; i < m.length; i++) if (m[i] > 127 && Dr[i] > base) base = Dr[i];
+  const step = Math.max(.03, (1 - base)*.9)/n;
+  for (let k = n - 1; k >= 0; k--){
+    cctx.drawImage(cvs[k], 0, 0);
+    const t = scratch(W, H); t.drawImage(cvs[k], 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = gray(Math.min(1, base + step*(n - k))); t.fillRect(0, 0, W, H);
+    dctx.drawImage(t.canvas, 0, 0);
+  }
+  markDepth();
+  const add = use.map((it, k) => { const id = 'L' + (++layerSeq); masks.set(id, ms[k]); ownCols.set(id, bleed(cvs[k], W, H)); return {...LD, id, name: it.name, type: 'fg'}; });
+  P.L.layers.unshift(...add);
+  imageReady(srcName, true); sel = add[0].id; renderLayers(); syncLayerEd(); status(); syncUI(); markDirty();
+  pushImport(before, n === 1 ? `adding ${add[0].name}` : `adding ${n} layers`);
+  const skipped = items.length - use.length;
+  toast(`Added ${n} ${n === 1 ? 'layer' : 'layers'} on top${skipped ? `; ${skipped} more did not fit (${MAX_OBJ} layers at most)` : ''}. Ctrl+Z takes ${n === 1 ? 'it' : 'them all'} back.`, 4000);
+  const flat = add.filter((l, k) => isFlatMono(cvs[k]));
+  if (flat.length){
+    const ids = flat.map(l => l.id);
+    actionToast(ids.length === 1 ? `${flat[0].name} is pure white or black, so colour controls can't tint it.` : `${ids.length} layers are pure white or black, so colour controls can't tint them.`, ids.length === 1 ? 'Recolour this layer' : 'Recolour these layers', () => {
+      for (const id of ids){ const L = P.L.layers.find(l => l.id === id); if (L) L.rcOn = 1; }
+      if (ids.length === 1 && P.L.layers.some(l => l.id === ids[0]) && !cal) sel = ids[0];
+      syncLayerEd(); renderLayers(); changed();
+    });
+  }
+}
+
+/* ---- the three ways in ---- */
+function importFiles(files, skipped){
+  return runImport(async signal => {
+    const c = capList([...files].sort((a, b) => impColl.compare(a.name, b.name)).map(f => ({name: f.name, get: async () => f})));
+    return {...await gather(c.list, signal), note: c.note};
+  }, skipped);
+}
+function importLink(raw){
+  const p = parseImportLink(raw);
+  if (p.err){ toast(p.err, 4500); return false; }
+  if ((p.kind === 'gfile' || p.kind === 'gfolder') && !GOOGLE_API_KEY){ toast(IMP_MSG.noKey, 6500); return false; }
+  runImport(async signal => {
+    if (p.kind === 'gfile'){
+      const meta = await driveJSON(driveURL(p.id, {fields: 'name,mimeType'}), signal);
+      if (meta.mimeType === 'application/vnd.google-apps.folder') return importDriveFolder(p.id, signal);
+      if (!/^image\//.test(meta.mimeType || '')) throw userErr(`${meta.name || 'That Drive file'} is not an image.`);
+      return {...await gather([{name: meta.name, get: () => driveFile(p.id, signal)}], signal), note: ''};
+    }
+    if (p.kind === 'gfolder') return importDriveFolder(p.id, signal);
+    if (p.kind === 'dbfile' || p.kind === 'url'){
+      const get = async () => {
+        let b;
+        try { b = await fetchFirst(p.urls, signal); }
+        catch(e){ if (e && e.name === 'AbortError') throw e; throw userErr(p.kind === 'url' ? (e === 'cors' ? IMP_MSG.cors : `That link did not open (error ${e}).`) : (e === 'cors' ? IMP_MSG.dbFile : IMP_MSG.dbGone)); }
+        if (p.kind === 'url' && !p.ext && !(b.type || '').startsWith('image/')) throw userErr(IMP_MSG.notImg);
+        return b;
+      };
+      const nm = p.name || 'Linked image';
+      return {...await gather([{name: nm, get}], signal), note: ''};
+    }
+    if (p.kind === 'dbfolder'){
+      impProg('Downloading the folder…');
+      let zb, Z;
+      try { [zb, Z] = await Promise.all([fetchFirst(p.urls, signal), loadJSZip()]); }
+      catch(e){ if (e && e.name === 'AbortError') throw e; throw userErr(IMP_MSG.dbFolder); }
+      let zip; try { zip = await Z.loadAsync(zb); } catch(e){ throw userErr(IMP_MSG.dbFolder); }
+      const ents = Object.values(zip.files).filter(f => !f.dir && IMG_EXT.test(f.name) && !/(^|\/)(__MACOSX|\.)/.test(f.name)).sort((a, b) => impColl.compare(a.name, b.name));
+      if (!ents.length) throw userErr('That Dropbox folder has no .png, .jpg, .webp, .gif or .svg images.');
+      const c = capList(ents.map(f => ({name: f.name.split('/').pop(), get: () => f.async('blob')})));
+      return {...await gather(c.list, signal), note: c.note};
+    }
+  });
+  return true;
+}
+async function importDriveFolder(id, signal){
+  impProg('Reading the folder…');
+  const files = (await driveFolder(id, signal)).sort((a, b) => impColl.compare(a.name, b.name));
+  if (!files.length) throw userErr('No images found in that Drive folder. Check that it is shared as "Anyone with the link".');
+  const c = capList(files.map(f => ({name: f.name, get: () => driveFile(f.id, signal)})));
+  return {...await gather(c.list, signal), note: c.note};
+}
+function wireImpLink(form, close){
+  const inp = form.querySelector('input');
+  const go = () => { const v = inp.value; if (parseImportLink(v).err){ importLink(v); return; } inp.value = ''; close(); importLink(v); };
+  form.addEventListener('submit', e => { e.preventDefault(); go(); });
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape'){ e.preventDefault(); close(); } });
+  inp.addEventListener('paste', e => {
+    const fs = clipImages(e.clipboardData);
+    if (fs.length){ e.preventDefault(); inp.value = ''; close(); importFiles(fs, 0); return; }
+    setTimeout(() => { if (inp.value.trim() && !parseImportLink(inp.value).err) go(); }, 0);
+  });
+}
+wireImpLink($('#mImpLink'), () => setMore(false));
+
 })();
 </script>
 
