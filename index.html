@@ -1972,7 +1972,7 @@ async function makeSample(name = 'Sacred Tree', which = 1){
   const tok = ++sampleTok;
   let cv, info, depths;
   if (which === 2){
-    try { const bc = document.createElement('canvas'); bc.width = 1600; bc.height = 900; const bx = bc.getContext('2d'); bx.fillStyle = '#2A2D2F'; bx.fillRect(0,0,1600,900);
+    try { const bc = document.createElement('canvas'); bc.width = 1600; bc.height = 900; const bx = bc.getContext('2d'); bx.fillStyle = '#000000'; bx.fillRect(0,0,1600,900);
       cv = [bc, ...await Promise.all(SCENE2.map(s => pngToCanvas('assets/scene2/' + s[0] + '.png')))]; } catch(e){ toast('Tr1ppical Butterfly could not be loaded'); return false; }
     info = SCENE2.map(s => [s[1], s[2]]); depths = SCENE2.map(s => s[3]);
   } else {
