@@ -1487,7 +1487,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
       <label class="check" title="On: the last scene goes back into the first. Off: it plays once and holds the last scene."><input type="checkbox" id="tlLoop" checked> Loop</label>
     </div>
     <div class="tlProg" id="tlProg" role="status" aria-live="off" hidden><span id="tlProgTxt"></span><i class="tlProgBar" id="tlProgBar" aria-hidden="true"><b></b></i></div>
-    <p class="note" id="tlEmpty">Set up a scene, then Save to timeline. Add more scenes and press Play: each one holds for its length, then glides or cuts into the next. Tap a scene's picture to load it.</p>
+    <p class="note" id="tlEmpty">Set up a scene, then Save to timeline. Add more scenes and press Play: each one holds for its length, then moves into the next with the transition you pick. Tap a scene's picture to load it.</p>
     <ol class="tlList" id="tlList" aria-label="Scenes"></ol>
   </div>
 </section>
@@ -5378,6 +5378,7 @@ function frame(now){
   }
   draw(cv.width, cv.height);
   if (TL && TL.thumbQ.length) tlThumbGrab();
+  if (TL && (TL.ov || TL.post)) tlAfterDraw();   // timeline transition over the finished frame
   drawMirror();
   drawPip();
   if (mapReady) restoreMods();
@@ -7430,7 +7431,7 @@ const itut = (() => {
       {t:'Play and Record', sel:['#dPlay', '#dRec'], key:['Play / pause', 'Record one loop (press again to stop)'],
        x:'Play pauses or resumes the motion. Record captures exactly one loop as a video that loops seamlessly.', tr:'Pause, then play again.'},
       {t:'Timeline', sel:['#dTime', '#pTime'], open:{panel:'T'}, easyHidden:1,
-       x:'The Timeline plays saved scenes in order, gliding or cutting from one to the next. Save to timeline captures what you see now.', tr:'Tap Save to timeline.'},
+       x:'The Timeline plays saved scenes in order, with a Glide, Crossfade, Dip, Flash or Cut between them. Save to timeline captures what you see now.', tr:'Tap Save to timeline.'},
       {t:'Settings', sel:['#dTheme', '#lookPop'], allow:['#keysSheet'], open:{look:1}, key:['Settings'],
        x:'Settings holds performance, interface, colours, pins, Shortcuts and this Tutorial.', tr:'Open and close each group.',
        e:{x:'Settings holds performance, interface, colours, Shortcuts and this Tutorial.'}},
@@ -7870,8 +7871,8 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
@@ -7995,7 +7996,7 @@ const testMode = (() => {
     S('tl4', TLU, aTL, 'adv', 'With the timeline stopped, tap Scene 1\'s picture, then Undo (desktop: Ctrl+Z).', 'Scene 1 comes back exactly (sliders, oscillators, layers, picture); Undo returns to what you had.', '#tlList', {panel: 'T'}),
     S('tl5', TLU, aTL, 'adv', 'Press Play and watch Scene 1 into Scene 2.', 'It starts at Scene 1; the progress line names the scene and time left and the card is outlined; after its length every slider glides smoothly into Scene 2; mapped sliders fade their swing in or out rather than popping.', '#tlPlay', {panel: 'T'}),
     S('tl6', TLU, aTL, 'adv', 'Set Scene 2\'s Into next to Cut and play through it.', 'Scene 2 switches to Scene 3 instantly; the glide length box hides for Cut.', '#tlList', {panel: 'T'}),
-    S('tl7', TLU, aTL, 'adv', 'Play a Glide into a scene with a different picture.', 'Settings glide; the picture switches at the halfway point (a brief hold while it loads is expected for now).', '#tlPlay', {panel: 'T'}),
+    S('tl7', TLU, aTL, 'adv', 'Play a Glide into a scene with a different picture.', 'Settings glide; from the halfway point the new picture dissolves in over the old one (the picture may hold still for a moment while it loads).', '#tlPlay', {panel: 'T'}),
     S('tl8', TLU, aTL, 'adv', 'Switch a scene between Loops and Sec, change its Length; then set a BPM (tap tempo) and Update scene.', 'The time under the name follows (Loops = loop length x count; with a BPM the button reads Bars, 4 beats each); playback holds that long.', '#tlList', {panel: 'T'}),
     S('tl9', TLU, aTL, 'adv', 'Untick Loop and play to the end; then tick Loop and play past the last scene.', 'Loop off: the last card says Holds at the end, playback stops on the last scene and Play shows again. Loop on: the last scene glides back into Scene 1.', '#tlLoop', {panel: 'T'}),
     S('tl10', TLU, aTL, 'adv', 'While it plays, move any slider in the Inspector (or Roll).', 'A message says the timeline paused; your change stays; Play reads Resume and carries on from there.', '#tlPlay', {panel: 'T'}),
@@ -8005,6 +8006,17 @@ const testMode = (() => {
     S('tl14', TLU, aTL, '', 'Switch Controls to Easy while the timeline plays.', 'The timeline stops and its button and panel disappear; switching back to Full brings them back with the scenes kept.', '#lkEasy', LK),
     S('tl15', TLU, aTL, 'touch', 'On the phone open More › Timeline; drag the sheet between peek, half and full; use every card control.', 'It opens as a sheet above the dock; buttons are finger-sized; the arrows reorder.', '#pTime', {panel: 'T'}),
     S('tl16', TLU, aTL, 'lite', 'In Lite, play a timeline with a few glides.', 'Glides stay smooth; the picture keeps running.', '#tlPlay', {panel: 'T'}),
+
+    S('tx1', TLX, aTL, 'adv', 'Open a scene card\'s Into next menu.', 'It lists Glide, Crossfade, Dip to black, Dip to white, Flash cut and Cut; the length box shows for all but Cut and Flash cut.', '#tlList', {panel: 'T'}),
+    S('tx2', TLX, aTL, 'adv', 'Set Crossfade (2 s) between two scenes with the same picture and play through it.', 'The outgoing picture dissolves into the new one with no jump; the progress line says crossfade.', '#tlPlay', {panel: 'T'}),
+    S('tx3', TLX, aTL, 'adv', 'Crossfade into a scene with a different picture.', 'The old picture holds still for a moment while the new one loads, then dissolves into it; no flash of an empty frame.', '#tlPlay', {panel: 'T'}),
+    S('tx4', TLX, aTL, 'adv', 'Glide into a scene with a different picture.', 'Settings glide the whole way; from halfway the new picture dissolves in over the old one instead of cutting.', '#tlPlay', {panel: 'T'}),
+    S('tx5', TLX, aTL, 'adv', 'Set Dip to black, then Dip to white, and play through each.', 'The picture fades fully to black (or white), switches while covered, then fades in on the next scene.', '#tlPlay', {panel: 'T'}),
+    S('tx6', TLX, aTL, 'adv', 'Set Flash cut and play through it.', 'The scene switches at once with a short bright flash that fades in under half a second; no extra time is added.', '#tlPlay', {panel: 'T'}),
+    S('tx7', TLX, aTL, 'adv', 'Move a slider in the middle of a Crossfade or a dip.', 'The timeline pauses and the fade or dip colour disappears at once, so you see what you are editing; Resume carries on.', '#tlPlay', {panel: 'T'}),
+    S('tx8', TLX, aTL, 'adv', 'Press Record (R) just before a Crossfade or a dip, and play the file.', 'The transition is in the recording.', '#bRec', {panel: 'T'}),
+    S('tx9', TLX, aTL, 'adv', 'Save project (Export file) and Import it again.', 'Every scene keeps its transition and length.', '#bProjImport', {cat: 'project'}),
+    S('tx10', TLX, aTL, 'lite', 'In Lite on a phone, play Crossfade, Dip and Flash cut transitions.', 'They stay smooth, with no stutter apart from a short still while a different picture loads.', '#tlPlay', {panel: 'T'}),
 
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
@@ -8752,6 +8764,9 @@ window.addEventListener('keydown', e => {
    Moving any control while the timeline plays pauses it; Resume carries on from there. */
 const TL_MAX = 48;
 /* 0 / 1 settings and ids that must never glide through in-between values */
+/* transitions, in menu order; Cut and Flash cut switch at once, the rest take their length */
+const TL_TR = [['glide', 'Glide'], ['xfade', 'Crossfade'], ['dipb', 'Dip to black'], ['dipw', 'Dip to white'], ['flash', 'Flash cut'], ['cut', 'Cut']];
+const TL_TR_IDS = new Set(TL_TR.map(t => t[0])), TL_INSTANT = new Set(['cut', 'flash']);
 const TL_SWITCH = new Set(['inv','solid','ginv','olOn','rcOn','rcKeep','psymMirror','snapAuto','mirror','solo','vis','gone','on','bip','free','seed','c','slot','li','perLoop','pseed','kind']);
 const TLM = {
   /* a scene's own length in seconds: loops use its loop length, or bars (4 beats) when it has a tempo */
@@ -8761,7 +8776,7 @@ const TLM = {
     const bpm = +p.bpm || 0;
     return bpm > 0 ? n*240/bpm : n*(+p.loop || 12);
   },
-  trSec(sc){ return sc.tr === 'cut' ? 0 : Math.max(0, +sc.trLen || 0); },
+  trSec(sc){ return TL_INSTANT.has(sc.tr) ? 0 : Math.max(0, +sc.trLen || 0); },
   next(i, n, loop){ return i + 1 < n ? i + 1 : loop && n ? 0 : -1; },
   ease(p){ return p <= 0 ? 0 : p >= 1 ? 1 : p*p*(3 - 2*p); },
   /* advance the clock; st = {i, j, ph: 'hold' | 'tr', el, dur}. Returns what happened, in order:
@@ -8821,7 +8836,7 @@ const TLM = {
   },
 };   // end TLM
 
-TL = {scenes: [], pics: {}, loop: true, run: null, busy: false, quiet: false, cache: null, thumbQ: [], rename: null, armed: null, progT: 0, selId: null};
+TL = {scenes: [], pics: {}, loop: true, run: null, busy: false, ov: null, fade: null, post: null, quiet: false, cache: null, thumbQ: [], rename: null, armed: null, progT: 0, selId: null};
 const tlStrip = p => { for (const k of TOOL_KEYS) delete p[k]; return p; };
 const tlNewId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const tlClampLen = (v, unit) => unit === 'sec' ? Math.max(.5, Math.min(600, Math.round((isFinite(v) ? v : 8)*2)/2)) : Math.max(1, Math.min(256, Math.round(isFinite(v) ? v : 1)));
@@ -8873,7 +8888,7 @@ function tlPrune(){
 function tlNorm(sc){
   const unit = sc.unit === 'sec' ? 'sec' : 'loops';
   return {...sc, id: String(sc.id || tlNewId()), name: String(sc.name || 'Scene').slice(0, 40), unit, len: tlClampLen(+sc.len, unit),
-    tr: sc.tr === 'cut' ? 'cut' : 'glide', trLen: tlClampTr(+sc.trLen),
+    tr: TL_TR_IDS.has(sc.tr) ? sc.tr : 'glide', trLen: tlClampTr(+sc.trLen),
     thumb: typeof sc.thumb === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(sc.thumb) ? sc.thumb : null};
 }
 /* saving: scenes plus the picture pool; a picture the project file already holds is pointed at, not stored twice */
@@ -8911,6 +8926,84 @@ function tlThumbGrab(){
   for (const f of q) f(url);
 }
 
+/* transitions are drawn over the finished frame in one extra full-screen pass: a still of the outgoing frame
+   (Crossfade, and Glide into other pictures) or a solid colour (Dip to black / white, Flash cut). It is drawn into the
+   canvas itself, so recordings and the mirror backdrop include it, and it costs one texture read per pixel. */
+const TLGL = (() => {
+  let pr = null, uMode = null, uCol = null, tex = null;
+  try {
+    pr = program(`#version 300 es
+layout(location=0) in vec2 a; out vec2 v; void main(){ v = a*.5 + .5; gl_Position = vec4(a, 0., 1.); }`, `#version 300 es
+precision mediump float; in vec2 v; uniform sampler2D uT; uniform vec3 uCol; uniform float uMode; out vec4 o;
+void main(){ o = vec4(uMode < .5 ? texture(uT, v).rgb : uCol, 1.); }`);
+    uMode = gl.getUniformLocation(pr, 'uMode'); uCol = gl.getUniformLocation(pr, 'uCol');
+    gl.useProgram(pr); gl.uniform1i(gl.getUniformLocation(pr, 'uT'), 11); gl.useProgram(prog);
+    const was = gl.getParameter(gl.ACTIVE_TEXTURE);
+    tex = gl.createTexture(); gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, tex);   // unit 11 is the timeline's own
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+    gl.activeTexture(was);
+  } catch(e){ pr = null; console.warn('Timeline transitions fall back to cuts:', e); }
+  return {
+    /* copy what was just drawn (only valid straight after drawing, in the same frame) */
+    snap(){
+      if (!pr) return false;
+      try {
+        const was = gl.getParameter(gl.ACTIVE_TEXTURE);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, cv.width, cv.height, 0);
+        gl.activeTexture(was); return true;
+      } catch(e){ return false; }
+    },
+    draw(o){
+      if (!pr || !(o.a > .002)) return;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, cv.width, cv.height);
+      gl.useProgram(pr); gl.bindVertexArray(mainVAO);
+      gl.enable(gl.BLEND); gl.blendColor(0, 0, 0, Math.min(1, o.a)); gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
+      gl.uniform1f(uMode, o.img ? 0 : 1); if (!o.img) gl.uniform3f(uCol, o.col[0], o.col[1], o.col[2]);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.disable(gl.BLEND); gl.useProgram(prog);
+    },
+  };
+})();
+function tlAfterDraw(){
+  if (TL.ov) TLGL.draw(TL.ov);
+  const f = TL.post; TL.post = null;
+  if (f){ try { const r = f(); if (r && r.catch) r.catch(err => console.error(err)); } catch(err){ console.error(err); } }
+}
+/* this frame's overlay: a running fade (Crossfade still, Flash) and, during a dip, the dip colour */
+function tlOvCalc(dt){
+  let ov = null; const f = TL.fade;
+  if (f){
+    f.t += dt; const k = 1 - Math.min(1, f.t/Math.max(.01, f.len));
+    if (k <= 0) TL.fade = null; else ov = {img: f.img, col: f.col, a: f.a0*(f.img ? TLM.ease(k) : k*k)};
+  }
+  const R = TL.run;
+  if (R && R.ph === 'tr' && (R.kind === 'dipb' || R.kind === 'dipw')){
+    const p = R.dur > 0 ? Math.min(1, R.el/R.dur) : 1;
+    const a = p < .5 && !R.mid ? TLM.ease(p*2) : R.dipHold ? 1 : TLM.ease(2 - p*2);
+    if (!ov || a >= ov.a) ov = {img: false, col: R.kind === 'dipw' ? [1, 1, 1] : [0, 0, 0], a};
+  }
+  TL.ov = ov;
+}
+function tlOvClear(){ TL.fade = null; TL.ov = null; }
+/* switch to a scene underneath the overlay: optionally keep a still of the outgoing frame first */
+function tlSwitchUnder(sc, R, still, after){
+  const snapped = still ? TLGL.snap() : false;
+  R.applied = sc.id;
+  const ready = () => { R.dipHold = false; if (after) after(snapped); };
+  if (tlLive().sig !== sc.sig) return tlRestore(sc, ready).then(() => tlSync(), () => { toast(`Could not load the pictures for ${sc.name}; the timeline stopped`); tlStop(true); });
+  tlApplyExact(sc.P); ready(); tlSync();
+}
+function tlDipFrame(){
+  const R = TL.run; if (!R || R.ph !== 'tr' || !(R.kind === 'dipb' || R.kind === 'dipw') || R.paused || TL.busy || R.mid) return;
+  const p = R.dur > 0 ? Math.min(1, R.el/R.dur) : 1; if (p < .5) return;
+  const to = TL.scenes[tlIdx(R.jid)]; R.mid = true; if (!to) return;
+  R.dipHold = true;                                 // fully covered for this frame; the switch happens after it is drawn
+  TL.post = () => tlSwitchUnder(to, R, false);
+}
+
 /* ---- applying scenes ---- */
 function tlAfterApply(g0){
   if (mapReady) remapLayerMaps();
@@ -8928,7 +9021,7 @@ function tlApplyExact(tp){
   tlAfterApply(g0);
 }
 /* a scene with other pictures: the same path as opening a project, with the picture held still while it loads */
-async function tlRestore(sc){
+async function tlRestore(sc, ready){   // ready() runs before the picture moves again (e.g. to start a fade)
   TL.busy = true;
   try {
     const st = {...clone(sc.st), P: clone(sc.P), layerSeq: Math.max(layerSeq, +sc.st.layerSeq || 0), pins: null};
@@ -8936,6 +9029,7 @@ async function tlRestore(sc){
     if (!url('image') || !url('depth')) throw new Error('missing');
     await restoreProject(st, url, url('obj'));
     TL.cache = {ver: picVer, icon: iconCv.custom || null, obj: objText || null, files: {...sc.files}, data: {}, sig: sc.sig};
+    if (ready) ready();
   } finally { TL.busy = false; lastNow = performance.now(); }
 }
 async function tlLoad(sc){
@@ -8967,14 +9061,14 @@ function tlStart(){
   const r = tlArrive(0); if (r) r.catch(() => {});
 }
 function tlStop(quiet){
-  const R = TL.run; TL.run = null;
+  const R = TL.run; TL.run = null; TL.post = null; tlOvClear();
   if (R && R.ph === 'tr' && R.A && !quiet) syncUI();
   tlSync();
 }
-function tlEnd(){ TL.run = null; tlSync(); toast('Timeline finished; the last scene holds'); }
+function tlEnd(){ TL.run = null; TL.post = null; tlOvClear(); tlSync(); toast('Timeline finished; the last scene holds'); }
 function tlPause(user){
   const R = TL.run; if (!R || R.paused) return;
-  R.paused = true;
+  R.paused = true; tlOvClear();                 // never leave a half-faded picture over what you are editing
   if (user){ if (R.ph === 'tr' && R.A) syncUI(); }
   else if (R.ph === 'tr' && R.A && oscReady) setTimeout(() => { try { renderOsc(); } catch(e){} }, 0);   // oscillator cards point at the live settings again
   tlSync(); toast(user ? 'Timeline paused' : 'Timeline paused while you edit. Resume carries on from here.', 3200);
@@ -8999,14 +9093,25 @@ function tlResume(){
 }
 function tlBeginTr(ev){
   const R = TL.run, to = TL.scenes[ev.j]; if (!R || !to) return;
-  R.jid = to.id; R.A = null; R.mid = false;
-  if (ev.dur > 0) tlGlideSetup(R, to);        // a Cut has no glide: the arrival that follows switches at once
+  const from = TL.scenes[ev.i];
+  R.jid = to.id; R.A = null; R.mid = false; R.dipHold = false; R.applied = null;
+  R.kind = from && TL_TR_IDS.has(from.tr) ? from.tr : 'glide';
+  if (!(ev.dur > 0)) return;                    // Cut and Flash cut: the arrival that follows switches at once
+  if (R.kind === 'glide') tlGlideSetup(R, to);
+  else if (R.kind === 'xfade'){                 // keep a still of this frame, switch underneath it, then dissolve the still away
+    const len = ev.dur;
+    TL.post = () => tlSwitchUnder(to, R, true, ok => { if (ok) TL.fade = {img: true, a0: 1, t: 0, len}; });
+  }
 }
 function tlArrive(i){
   const R = TL.run, sc = TL.scenes[i]; if (!R || !sc) return;
+  const kind = R.kind; R.kind = null;
   R.A = R.B = null; R.id = sc.id; R.jid = null;
-  if (tlLive().sig !== sc.sig) return tlRestore(sc).then(() => tlSync(), () => { toast(`Could not load the pictures for ${sc.name}; the timeline stopped`); tlStop(true); });
-  tlApplyExact(sc.P); tlSync();
+  if (R.applied === sc.id){ R.applied = null; tlSync(); return; }   // Crossfade and the dips switched already
+  R.applied = null;
+  const flash = () => { if (kind === 'flash') TL.fade = {img: false, col: [1, 1, 1], a0: .92, t: 0, len: .45}; };
+  if (tlLive().sig !== sc.sig) return tlRestore(sc).then(() => { flash(); tlSync(); }, () => { toast(`Could not load the pictures for ${sc.name}; the timeline stopped`); tlStop(true); });
+  tlApplyExact(sc.P); flash(); tlSync();
 }
 function tlMixLayers(R, e, p){
   const late = p >= .5;
@@ -9020,9 +9125,14 @@ function tlMixLayers(R, e, p){
 function tlGlideFrame(){
   const R = TL.run; if (!R || R.ph !== 'tr' || !R.A || R.paused || TL.busy) return;
   const p = R.dur > 0 ? Math.min(1, R.el/R.dur) : 1, e = TLM.ease(p), late = p >= .5;
-  if (late && !R.mid && R.picDiff){             // Phase 1: other pictures switch in at the midpoint
+  if (late && !R.mid && R.picDiff){             // other pictures: keep a still, load them at the midpoint, dissolve the still away
     R.mid = true;
-    tlRestore(R.toScene).then(() => { for (const l of P.L.layers) if (!R.fa.has(l.id)) l.op = 0; }, () => { toast(`Could not load the pictures for ${R.toScene.name}; the timeline stopped`); tlStop(true); });
+    const left = Math.max(.35, R.dur*(1 - p)), to = R.toScene;
+    TL.post = () => {
+      const snapped = TLGL.snap();
+      return tlRestore(to, () => { for (const l of P.L.layers) if (!R.fa.has(l.id)) l.op = 0; if (snapped && TL.run === R) TL.fade = {img: true, a0: 1, t: 0, len: left}; }).then(null,
+        () => { toast(`Could not load the pictures for ${to.name}; the timeline stopped`); tlStop(true); });
+    };
     return;
   }
   for (const k of R.gKeys) P[k] = TLM.mixVal(k, R.A[k], R.B[k], e, late);
@@ -9059,6 +9169,7 @@ function tlTick(dt){
   }
   const ev = TLM.step(R, paused ? 0 : dt, TL.scenes, TL.loop);
   if (ev.length) tlEvents(ev).catch(err => { console.error(err); tlStop(true); }); else tlGlideFrame();
+  tlDipFrame(); tlOvCalc(paused ? 0 : dt);
   const now = performance.now(); if (now - TL.progT > 100){ TL.progT = now; tlProg(); }
 }
 
@@ -9093,8 +9204,8 @@ function renderTL(){
         <div class="seg tlUnit" role="group" aria-label="Length unit for ${nm}"><button type="button" data-u="loops" aria-pressed="${sc.unit === 'loops'}">${bars ? 'Bars' : 'Loops'}</button><button type="button" data-u="sec" aria-pressed="${sc.unit === 'sec'}">Sec</button></div>
       </div>
       <div class="tlRow">
-        <label class="tlF">${last ? (TL.loop ? 'Back to 1' : 'Then') : 'Into next'} <select class="tlTr" aria-label="Transition after ${nm}"${holds ? ' disabled' : ''}><option value="glide">Glide</option><option value="cut">Cut</option></select></label>
-        <label class="tlF tlTrL"${sc.tr === 'cut' || holds ? ' hidden' : ''}>over <input type="number" class="tlTrLen" inputmode="decimal" min="0" max="60" step=".1" value="${sc.trLen}" aria-label="Glide length after ${nm}, seconds"> s</label>
+        <label class="tlF">${last ? (TL.loop ? 'Back to 1' : 'Then') : 'Into next'} <select class="tlTr" aria-label="Transition after ${nm}"${holds ? ' disabled' : ''}>${TL_TR.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></label>
+        <label class="tlF tlTrL"${TL_INSTANT.has(sc.tr) || holds ? ' hidden' : ''}>over <input type="number" class="tlTrLen" inputmode="decimal" min="0" max="60" step=".1" value="${sc.trLen}" aria-label="Transition length after ${nm}, seconds"> s</label>
         ${holds ? '<span class="note">Holds at the end</span>' : ''}
       </div>
       <div class="tlAct">
@@ -9131,7 +9242,7 @@ function tlProg(){
   const L = TLM.sceneSec(sc), goes = TLM.next(i, n, TL.loop) >= 0, D = !goes ? 0 : R.ph === 'tr' ? R.dur : TLM.trSec(sc);
   const el = R.ph === 'hold' ? R.el : L + R.el, tot = Math.max(1e-6, L + D), to = R.ph === 'tr' ? TL.scenes[tlIdx(R.jid)] : null;
   let txt = `${R.paused ? 'Paused · ' : ''}Scene ${i + 1} of ${n}: ${sc.name}`;
-  if (to) txt += ` → ${to.name} · ${D > 0 ? 'gliding, ' + tlFmt(D - R.el) + ' left' : 'cut'}`;
+  if (to){ const kn = (TL_TR.find(t => t[0] === R.kind) || TL_TR[0])[1].toLowerCase(); txt += ` → ${to.name} · ${D > 0 ? kn + ', ' + tlFmt(D - R.el) + ' left' : kn}`; }
   else txt += goes ? ` · ${tlFmt(tot - el)} left` : ` · ${tlFmt(L - R.el)} left, then it holds`;
   $('#tlProgTxt').textContent = txt;
   const w = Math.max(0, Math.min(100, el/tot*100)) + '%';
@@ -9218,7 +9329,7 @@ tlList.addEventListener('change', e => {
   const sc = TL.scenes[tlIdx(li.dataset.id)]; if (!sc) return;
   if (e.target.matches('.tlLen')) sc.len = tlClampLen(parseFloat(String(e.target.value).replace(',', '.')), sc.unit);
   else if (e.target.matches('.tlTrLen')) sc.trLen = tlClampTr(parseFloat(String(e.target.value).replace(',', '.')));
-  else if (e.target.matches('.tlTr')) sc.tr = e.target.value === 'cut' ? 'cut' : 'glide';
+  else if (e.target.matches('.tlTr')) sc.tr = TL_TR_IDS.has(e.target.value) ? e.target.value : 'glide';
   else return;
   renderTL(); markDirty();
 });
