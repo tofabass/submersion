@@ -1055,9 +1055,9 @@ body.easy .moreMenu .onlyCmp{display:flex}
               <button data-tool="click" aria-pressed="true">Click select</button>
               <button data-tool="add" aria-pressed="false">Brush add</button>
               <button data-tool="erase" aria-pressed="false">Brush erase</button>
-              <button data-tool="color" aria-pressed="false">Pick color</button>
+              <button data-tool="color" aria-pressed="false">Pick colour</button>
             </div>
-            <div class="btns" id="colorRow" hidden><span class="swatch" id="calSwatch"></span><span class="note" id="calSwatchNote">Click the image to pick a color.</span></div>
+            <div class="btns" id="colorRow" hidden><span class="swatch" id="calSwatch"></span><span class="note" id="calSwatchNote">Click the image to pick a colour.</span></div>
             <div id="g-cal" class="stack"></div>
             <div class="lbl">Depth range</div>
             <div id="g-calRange" class="stack"></div>
@@ -1154,7 +1154,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
               <option value="0">Normal</option><option value="1">Add</option><option value="2">Screen</option>
               <option value="3">Multiply</option><option value="4">Overlay</option><option value="5">Soft light</option>
               <option value="6">Difference</option><option value="7">Exclusion</option><option value="8">Lighten</option>
-              <option value="9">Darken</option><option value="10">Color dodge</option>
+              <option value="9">Darken</option><option value="10">Colour dodge</option>
             </select>
           </div>
           <div class="lbl" data-adv>Symmetry</div>
@@ -1168,7 +1168,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
             <div class="bgcol" id="bgColRow"><label for="bgCol">Colour</label><input type="color" id="bgCol" value="#153126"><output id="bgColOut">#153126</output></div>
             <p class="note" id="bgNote" hidden>The solid colour fills everything behind your layers and stays still: it ignores parallax, colour, glow and melt. Opacity, blend mode and dry/wet still apply.</p>
           </div>
-          <div class="lbl" data-adv>Color</div>
+          <div class="lbl" data-adv>Colour</div>
           <label class="check" data-adv id="layerInvRow"><input type="checkbox" id="layerInv"> Invert colours (black becomes white)</label>
           <div id="g-lcol" data-adv class="stack"></div>
           <div id="rcBox" class="stack" hidden>
@@ -1197,7 +1197,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
     </div>
 
     <div class="cat off" data-cat="color">
-      <div class="cath"><span class="catn">Color</span></div>
+      <div class="cath"><span class="catn">Colour</span></div>
 <label class="check" data-adv><input type="checkbox" id="gInv"> Invert all image layers <span class="kbd-i">Shift I</span></label><p class="note" data-adv>Flips every image layer, black to white. A solid background colour stays as you picked it, and a layer with its own Invert ticked flips back.</p>        <div id="g-color" class="stack"></div>
         <p class="note" data-adv>For hue that sweeps back and forth, map an oscillator to Hue shift (Mod).</p>
     </div>
@@ -1429,7 +1429,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <button class="tool" data-pt="click" title="Click select · B switches tools" aria-label="Click select"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-wand"/></svg><span>Click</span></button>
     <button class="tool" data-pt="add" title="Brush add · B switches tools" aria-label="Brush add"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-brush"/></svg><span>Brush</span></button>
     <button class="tool" data-pt="erase" title="Brush erase · B switches tools" aria-label="Brush erase"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-erase"/></svg><span>Erase</span></button>
-    <button class="tool" data-pt="color" title="Pick color" aria-label="Pick color"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-drop"/></svg><span>Color</span></button>
+    <button class="tool" data-pt="color" title="Pick colour" aria-label="Pick colour"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-drop"/></svg><span>Colour</span></button>
     <span class="vr"></span>
     <button class="tool" id="cbUndo" title="Undo selection (Ctrl+Z)" aria-keyshortcuts="Control+Z" aria-label="Undo selection"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-undo"/></svg><span>Undo</span></button>
     <button class="tool" id="cbRedo" title="Redo selection (Ctrl+Shift+Z or Ctrl+Y)" aria-keyshortcuts="Control+Shift+Z Control+Y" aria-label="Redo selection"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-redo"/></svg><span>Redo</span></button>
@@ -1458,7 +1458,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <button class="dk" id="dRec" aria-label="Record one loop" title="Record one loop (R, press again to stop)" aria-keyshortcuts="R"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rec"/></svg></button>
   <button class="dk" data-adv id="dFull" aria-label="Fullscreen" title="Fullscreen (Shift+F)" aria-keyshortcuts="Shift+F"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-full"/></svg></button>
   <button class="dk" data-adv id="dHide" aria-label="Hide UI" title="Hide everything but the picture (H)" aria-keyshortcuts="H"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-hide"/></svg></button>
-  <button class="dk" id="dTheme" aria-label="Theme menu" title="Theme menu (T)" aria-keyshortcuts="T" aria-expanded="false" aria-controls="lookPop" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-theme"/></svg></button>
+  <button class="dk" id="dTheme" aria-label="Settings" title="Settings (T)" aria-keyshortcuts="T" aria-expanded="false" aria-controls="lookPop" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-theme"/></svg></button>
   <button class="dk" data-adv id="dReset" aria-label="Reset all effects" title="Reset all effects (Z)" aria-keyshortcuts="Z"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-reset"/></svg></button>
   <button class="dk" id="dMore" aria-haspopup="dialog" aria-expanded="false" aria-controls="moreMenu" title="More" aria-label="More"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-more"/></svg><i class="dotb" id="dMoreDot" hidden></i></button>
 </nav>
@@ -1473,15 +1473,15 @@ body.easy .moreMenu .onlyCmp{display:flex}
 </div>
 <div class="modeScrim" id="modePrompt" hidden><div class="modeBox" role="dialog" aria-modal="true" aria-labelledby="modeT">
   <h3 id="modeT">Run Lite or Full?</h3>
-  <p class="note">Full is every effect at full quality. Lite caps resolution, frame rate, particles, glow, trails and the glass backdrop so it stays smooth on phones and older laptops. Saved settings work in both, and you can switch any time in the Theme menu (T).</p>
+  <p class="note">Full is every effect at full quality. Lite caps resolution, frame rate, particles, glow, trails and the glass backdrop so it stays smooth on phones and older laptops. Saved settings work in both, and you can switch any time in Settings (T).</p>
   <div class="lbl">Recommended for Full</div>
   <ul class="modeReq"><li>A discrete GPU, or recent integrated graphics (Intel Iris Xe, AMD Radeon 680M, Apple M1 or newer)</li><li>8 GB RAM or more</li><li>Current Chrome, Edge or Firefox with hardware acceleration on</li></ul>
   <p class="note" id="modeDetect"></p>
   <label class="check"><input type="checkbox" id="modeRemember"> Remember my device choice</label>
   <div class="btns"><button class="btn" id="modeLite">Run Lite</button><button class="btn primary" id="modeFull">Run Full</button></div>
 </div></div>
-<div class="lookpop" id="lookPop" role="dialog" aria-label="Theme menu" hidden>
-  <h3>Look <span class="meta">Submersion</span></h3>
+<div class="lookpop" id="lookPop" role="dialog" aria-label="Settings" hidden>
+  <h3>Settings <span class="meta">Submersion</span></h3>
   <div class="lkTop" id="lkTop"><button class="btn" id="lkTut" type="button" title="A quick or interactive tour of the controls"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg>Tutorial</button><button class="btn" id="lkKeys" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-keys"/></svg>Shortcuts</button></div>
   <details class="lkg" data-lkg="perf" open><summary>Performance</summary><div class="lkgb">
   <div class="lrowp"><span>Mode</span><div class="seg" id="lkMode" role="group" aria-label="Performance mode"><button data-mode="lite">Lite</button><button data-mode="full">Full</button></div><label class="check"><input type="checkbox" id="lkRemember"> Remember my device choice (skip the start-up question)</label><p class="note" id="lkModeNote">Lite caps resolution and frame rate for phones. Your saved settings are untouched.</p></div>
@@ -1612,10 +1612,10 @@ const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
 const TYPE_NAMES = {fg:'Foreground object', bgobj:'Background object', text:'Text', accent:'Accent', bg:'Background'};
 const TYPE_NOTES = {
-  fg: 'Click the object. The selection grows by color and depth from that point, fills holes, then snaps to edges. Nearer pixels join easily; farther ones are resisted.',
-  bgobj: 'Click a distant shape such as a moon, a mountain or a building. Leans on color contrast more than depth.',
-  text: 'Click a letter. Finds thin high-contrast strokes of the same color and links neighbouring letters into words and lines.',
-  accent: 'Click a line or pattern. Finds fine linework of a similar color anywhere in the remaining image, connected or not.',
+  fg: 'Click the object. The selection grows by colour and depth from that point, fills holes, then snaps to edges. Nearer pixels join easily; farther ones are resisted.',
+  bgobj: 'Click a distant shape such as a moon, a mountain or a building. Leans on colour contrast more than depth.',
+  text: 'Click a letter. Finds thin high-contrast strokes of the same colour and links neighbouring letters into words and lines.',
+  accent: 'Click a line or pattern. Finds fine linework of a similar colour anywhere in the remaining image, connected or not.',
 };
 function defLayers(){
   return {
@@ -2989,8 +2989,8 @@ let colorSel = null;
 function syncColorRow(){
   $('#colorRow').hidden = T.tool !== 'color';
   const sw = $('#calSwatch');
-  if (colorSel){ const c = colorSel.c; sw.style.background = `rgb(${c.slice(0,3).map(v => Math.round(v*255)).join(',')})`; $('#calSwatchNote').textContent = 'Adjust Tolerance and the depth range to refine. Click again to pick another color.'; }
-  else { sw.style.background = 'transparent'; $('#calSwatchNote').textContent = 'Click the image to pick a color.'; }
+  if (colorSel){ const c = colorSel.c; sw.style.background = `rgb(${c.slice(0,3).map(v => Math.round(v*255)).join(',')})`; $('#calSwatchNote').textContent = 'Adjust Tolerance and the depth range to refine. Click again to pick another colour.'; }
+  else { sw.style.background = 'transparent'; $('#calSwatchNote').textContent = 'Click the image to pick a colour.'; }
 }
 function colorPick(q){
   const mx = Math.floor(q.x*MW/imgW), my = Math.floor(q.y*MH/imgH);
@@ -3582,7 +3582,7 @@ function updateBadge(){
   if (rec) return;
   const b = $('#badge');
   if (cal && previewMode()){ b.className = 'badge cal'; b.textContent = `Preview: ${getL(cal.id).name} · ${previewMode() === 2 ? (cal.id === 'bg' ? 'what other layers took' : "what's left") : 'selection only'}`; return; }
-  if (cal){ b.className = 'badge cal'; b.textContent = 'Calibrating ' + getL(cal.id).name + (cal.id === 'bg' ? '' :' · ' + (T.tool === 'click' ? 'click the ' + TYPE_NAMES[getL(cal.id).type].toLowerCase() : T.tool === 'color' ? 'pick a color' : 'paint the selection')); return; }
+  if (cal){ b.className = 'badge cal'; b.textContent = 'Calibrating ' + getL(cal.id).name + (cal.id === 'bg' ? '' :' · ' + (T.tool === 'click' ? 'click the ' + TYPE_NAMES[getL(cal.id).type].toLowerCase() : T.tool === 'color' ? 'pick a colour' : 'paint the selection')); return; }
   if (anySolo()){ b.className = 'badge solo'; b.textContent = 'Solo: ' + layerDefs().filter(d => getL(d.id).solo).map(d => d.name).join(', '); }
   else { b.className = 'badge'; b.textContent = srcName; }
 }
@@ -4110,7 +4110,7 @@ $('#bResetAll').onclick = () => {
   actionToast('Every rollable control is back to its starting value', 'Undo', () => histUndoEntry(e));
 };
 $('#bRandAll').onclick = () => { randSet = new Set(Object.keys(RLABEL)); diceOff.clear(); saveRand(); renderDiceTargets(); syncRk(); toast('Everything ticked'); };
-$('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(); saveRand(); renderDiceTargets(); syncRk(); toast('Basic: color, symmetry segments and effects'); };
+$('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(); saveRand(); renderDiceTargets(); syncRk(); toast('Basic: colour, symmetry segments and effects'); };
 /* randomizer presets: built-in themes plus the user's own saved tick sets */
 const RP_BUILTIN = [
   {id:'b:colour', name:'Colour only', amt:.8, keys:['g:hue','g:depthHue','g:sat','g:hueCycle','l:hue','l:sat','l:con','l:phue','l:phueVar','l:psat','l:pbright']},
@@ -5525,7 +5525,7 @@ setDrawer(UI.get('drawerOpen', false));
 /* ---- inspector: chips choose which categories are listed ---- */
 const CATS = [
   {id:'layer', name:'Layer', icon:'i-layers', c:'--c-layer'}, {id:'sym', name:'Symmetry', icon:'i-sym', c:'--c-sym'},
-  {id:'color', name:'Color', icon:'i-color', c:'--c-color'}, {id:'depth', name:'Depth', icon:'i-depth', c:'--c-depth', drawer:true},
+  {id:'color', name:'Colour', icon:'i-color', c:'--c-color'}, {id:'depth', name:'Depth', icon:'i-depth', c:'--c-depth', drawer:true},
   {id:'motion', name:'Motion', icon:'i-motion', c:'--c-motion'}, {id:'audio', name:'Sound', icon:'i-audio', c:'--c-audio'},
   {id:'view', name:'Source', icon:'i-image', c:'--c-out', drawer:true}, {id:'random', name:'Randomize', icon:'i-dice', c:'--c-fx'}, {id:'mod', name:'Mod', icon:'i-osc', c:'--c-motion'},
   {id:'project', name:'Project & export', icon:'i-out', c:'--c-out'},
@@ -6499,10 +6499,10 @@ window.addEventListener('keydown', e => {
 /* ---- Randomize: an expandable effect filter, grouped by section, on top of the per-slider dice ---- */
 var fltBuilt = false;
 const FGROUPS = [
-  ['Symmetry','g',['g-sym']], ['Color','g',['g-color']], ['Depth & parallax','g',['g-depth']], ['Motion','g',['g-motion']],
+  ['Symmetry','g',['g-sym']], ['Colour','g',['g-color']], ['Depth & parallax','g',['g-depth']], ['Motion','g',['g-motion']],
   ['All-layer dry/wet','g',['g-layers']], ['Sound','g',['g-aband','g-afx','g-audio','g-apulse']],
   ['Layer depth','l',['g-lpos']], ['Layer dry/wet & blend','l',['g-lmix']], ['Layer symmetry & twist','l',['g-lsym']],
-  ['Layer color','l',['g-lcol','g-lrc']], ['Layer effects','l',['g-lfx']], ['Layer outline','l',['g-lol']], ['Layer instances','l',['g-linst']], ['Icon & 3D object placement','l',['g-sprite','g-icon','g-objx']],
+  ['Layer colour','l',['g-lcol','g-lrc']], ['Layer effects','l',['g-lfx']], ['Layer outline','l',['g-lol']], ['Layer instances','l',['g-linst']], ['Icon & 3D object placement','l',['g-sprite','g-icon','g-objx']],
   ['Particles','l',['g-part']],
 ];
 function buildRandFilters(){
@@ -6792,15 +6792,15 @@ document.addEventListener('pointerdown', e => { if (!lookPop.hidden && !e.target
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lookPop.hidden) toggleLookPop(false); });
 applyLook();
 
-/* Theme menu groups remember whether they are open */
+/* Settings groups remember whether they are open */
 document.querySelectorAll('#lookPop .lkg').forEach(d => {
   try { const v = localStorage.getItem('submersion.lkg.' + d.dataset.lkg); if (v != null) d.open = v === '1'; } catch(e){}
   d.addEventListener('toggle', () => { try { localStorage.setItem('submersion.lkg.' + d.dataset.lkg, d.open ? '1' : '0'); } catch(e){} });
 });
-/* ---- keyboard shortcuts sheet (Theme menu → Shortcuts); Esc closes ---- */
+/* ---- keyboard shortcuts sheet (Settings → Shortcuts); Esc closes ---- */
 const KEYMAP = [
   ['Playback'], [['Space'], 'Play / pause'], [['R'], 'Record one loop (press again to stop)'], [['M'], 'Tap tempo'],
-  ['Panels and view'], [['I'], 'Inspector'], [['L'], 'Layers'], [['O'], 'Oscillators'], [['T'], 'Theme menu'], [['H'], 'Hide / show the UI'], [['Shift+F'], 'Full screen'], [['Ctrl+F'], 'Find a control'],
+  ['Panels and view'], [['I'], 'Inspector'], [['L'], 'Layers'], [['O'], 'Oscillators'], [['T'], 'Settings'], [['H'], 'Hide / show the UI'], [['Shift+F'], 'Full screen'], [['Ctrl+F'], 'Find a control'],
   ['Layers'], [['↑', '↓'], 'Select the layer above / below'], [['E'], 'Hide / show the selected layer'], [['S'], 'Solo the selected layer'], [['Enter'], 'Calibrate the selected layer'],
   ['Effects'], [['?', '/'], 'Roll'], [['Z'], 'Reset all'], [['Shift+I'], 'Invert all image layers'], [['Ctrl+Z'], 'Undo Roll, resets, layer delete, Look preset or project load'], [['Ctrl+Shift+Z', 'Ctrl+Y'], 'Redo'],
   ['Project'], [['Ctrl+S'], 'Save project'],
@@ -6907,11 +6907,11 @@ const tutorialMode = (() => {
         xt:'The controls for the selected layer and the whole picture live here. The tabs at the top choose which group to show; drag a slider to change it. The Inspector button in the dock opens or closes it.'},
      x:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. <kbd>I</kbd> opens or closes the Inspector.',
      xt:'Every control lives here. The category chips at the top choose which groups to show; drag a slider to change it, and use its pin button to keep it in the dock. The Inspector button in the dock opens or closes it.'},
-    {t:'Dock and Theme menu', targets:['#dTheme', '#lookPop'], look:true,
-     e:{x:'<kbd>T</kbd> opens the Theme menu: Easy or Full interface, Lite or Full performance, colours, Shortcuts and this Tutorial. Switch to Full any time to see every control.',
-        xt:'The Theme button in the dock opens the Theme menu: Easy or Full interface, Lite or Full performance, colours, Shortcuts and this Tutorial. Switch to Full any time to see every control.'},
-     x:'<kbd>T</kbd> opens the Theme menu: Lite or Full, colours, Pins, Shortcuts for every key, and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.',
-     xt:'The Theme button in the dock opens the Theme menu: Lite or Full, colours, Pins, Shortcuts and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.'},
+    {t:'Dock and Settings', targets:['#dTheme', '#lookPop'], look:true,
+     e:{x:'<kbd>T</kbd> opens Settings: Easy or Full interface, Lite or Full performance, colours, Shortcuts and this Tutorial. Switch to Full any time to see every control.',
+        xt:'The Settings button in the dock opens Settings: Easy or Full interface, Lite or Full performance, colours, Shortcuts and this Tutorial. Switch to Full any time to see every control.'},
+     x:'<kbd>T</kbd> opens Settings: Lite or Full, colours, Pins, Shortcuts for every key, and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.',
+     xt:'The Settings button in the dock opens Settings: Lite or Full, colours, Pins, Shortcuts and this Tutorial. Pinned sliders sit in the dock bar, ready to drag.'},
     {t:'Find and Roll', targets:['#dFind', '#dRoll'],
      e:{t:'Roll', targets:['#dRoll'], x:'<kbd>?</kbd> or <kbd>/</kbd> rolls a random look using the controls you can see, and <kbd>Z</kbd> resets everything. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a roll.',
         xt:'The dice button rolls a random look using the controls you can see. Undo it from the message that appears.'},
@@ -7001,7 +7001,7 @@ const tutorialMode = (() => {
   for (const ev of ['pointerdown', 'click']) root.addEventListener(ev, e => e.stopPropagation());
   window.addEventListener('keydown', e => { if (active && e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); end(); } }, true);
   addEventListener('resize', layout); addEventListener('orientationchange', () => setTimeout(layout, 200));
-  /* Theme menu > Tutorial and the first-run offer open the Quick / Interactive picker (bound below) */
+  /* Settings > Tutorial and the first-run offer open the Quick / Interactive picker (bound below) */
   $('#tutOfferNo').onclick = hideOffer;
   /* offered once on first run, after the Lite / Full question is answered; never forced */
   if (!seen()){
@@ -7086,7 +7086,7 @@ const itut = (() => {
       {t:'Zoom and orbit', sel:[row('g-sym', 'zoom'), row('g-sym', 'srcOrbit')], open:{cat:'sym'}, list:1,
        x:'Zoom moves into or out of the pattern; Source orbit slides the picture underneath the slices.', tr:'Zoom in, then back out.'},
     ]},
-    {id:'color', t:'Color tab', steps:[
+    {id:'color', t:'Colour tab', steps:[
       {t:'Hue', sel:[chip('color'), row('g-color', 'hue'), row('g-color', 'depthHue')], open:{cat:'color'}, list:1,
        x:'Hue shift turns every colour around the wheel; Depth rainbow colours the picture by depth.', tr:'Drag Hue shift slowly.'},
       {t:'Saturation and invert', sel:[row('g-color', 'sat'), 'label:has(#gInv)'], open:{cat:'color'}, list:1, key:['Invert all image layers'],
@@ -7172,9 +7172,9 @@ const itut = (() => {
     {id:'dock', t:'Dock and saving', steps:[
       {t:'Play and Record', sel:['#dPlay', '#dRec'], key:['Play / pause', 'Record one loop (press again to stop)'],
        x:'Play pauses or resumes the motion. Record captures exactly one loop as a video that loops seamlessly.', tr:'Pause, then play again.'},
-      {t:'Theme menu', sel:['#dTheme', '#lookPop'], allow:['#keysSheet'], open:{look:1}, key:['Theme menu'],
-       x:'The Theme menu holds performance, interface, colours, pins, Shortcuts and this Tutorial.', tr:'Open and close each group.',
-       e:{x:'The Theme menu holds performance, interface, colours, Shortcuts and this Tutorial.'}},
+      {t:'Settings', sel:['#dTheme', '#lookPop'], allow:['#keysSheet'], open:{look:1}, key:['Settings'],
+       x:'Settings holds performance, interface, colours, pins, Shortcuts and this Tutorial.', tr:'Open and close each group.',
+       e:{x:'Settings holds performance, interface, colours, Shortcuts and this Tutorial.'}},
       {t:'More menu', sel:['#dMore', '#moreMenu'], allow:['#pMusic'], open:{more:1},
        x:'More holds Save project, Streaming, image links and Look presets. A dot on it means unsaved changes.', tr:'Look through it.',
        e:{x:'More holds Save project and Streaming. A dot on it means unsaved changes.'}},
@@ -7195,7 +7195,7 @@ const itut = (() => {
       {t:'Switch to Full', sel:['#easyChip'], open:{chip:1},
        x:'Easy hides oscillators, Mod, Randomize, calibration, Find and pin editing. Switch to Full shows them all; your settings stay.', tr:'Switch whenever you feel ready.'},
       {t:'Interface setting', sel:['#lkEasy'], open:{look:1, lkg:['iface']},
-       x:'You can also switch in Theme menu › Interface. Easy and Full both work with Lite or Full performance.', tr:'Come back to Easy any time.'},
+       x:'You can also switch in Settings › Interface. Easy and Full both work with Lite or Full performance.', tr:'Come back to Easy any time.'},
     ]},
   ];
   const eff = st => easyOn() && st.e ? {...st, ...st.e} : st;
@@ -7557,7 +7557,7 @@ const itut = (() => {
   for (const el of [card, list]) for (const ev of ['pointerdown', 'click']) el.addEventListener(ev, e => e.stopPropagation());
   addEventListener('resize', layout); addEventListener('orientationchange', () => setTimeout(layout, 200));
 
-  /* ---- picker: Theme menu > Tutorial and the first-run offer ---- */
+  /* ---- picker: Settings > Tutorial and the first-run offer ---- */
   let pickBack = null;
   function openPick(){
     if (active || busy || tutorialMode.isActive() || !$('#modePrompt').hidden) return;
@@ -7589,7 +7589,7 @@ const itut = (() => {
   return {start, exit, openPick, isActive: () => active, sandbox};
 })();
 
-/* ---------- Test mode: a password-gated, step-by-step walkthrough for testing the app. Theme menu > Test mode.
+/* ---------- Test mode: a password-gated, step-by-step walkthrough for testing the app. Settings > Test mode.
    The gate is casual only (the repo is public); it is not security.
    It reuses the interactive tutorial's sandbox: your project is copied in memory, Sample scene 2 goes on screen, and Exit or finish puts your project back.
    Unlike the tutorial, saving stays on: anything saved while testing is named TEST-… and the finish screen can delete those.
@@ -7620,7 +7620,7 @@ const testMode = (() => {
   /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
   const STEPS = [
     S('fr1', B, aFR, '', 'Optional: open the live link in a private window (a fresh browser profile).', 'It starts in Easy with an "Easy mode" chip offering Switch to Full, and a tour offer at the bottom.'),
-    S('fr2', EZ, aFR, '', 'Open the Theme menu (T) and find Interface › Controls.', 'Easy and Full buttons, one of them pressed.', '#lkEasy', LK),
+    S('fr2', EZ, aFR, '', 'Open Settings (T) and find Interface › Controls.', 'Easy and Full buttons, one of them pressed.', '#lkEasy', LK),
     S('fr3', EZ, aFR, '', 'Switch Controls to Easy.', 'A message says Easy mode; fewer controls show; the picture does not change.', '#lkEasy', LK),
     S('fr4', EZ, aFR, 'easy', 'Open the Inspector (I) and look at its tabs.', 'No Mod or Random tab and no Oscillators panel; the other tabs are all there.', '#cchips', {panel: 'I'}),
     S('fr5', EZ, aFR, '', 'Switch Controls to Full.', 'Mod, Random, Oscillators and Find come back; every slider keeps its value.', '#lkEasy', LK),
@@ -7660,7 +7660,7 @@ const testMode = (() => {
     S('sy4', B, aSY, '', 'Drag Zoom in and out, then Source orbit.', 'Zoom moves into and out of the pattern; Source orbit slides the picture under the slices.', '#g-sym', {cat: 'sym'}),
     S('sy5', B, aSY, '', 'Layer tab › Symmetry: raise it for one layer.', 'Only that layer gets its own kaleidoscope on top of the global one.', '#g-lsym', {cat: 'layer', top: 1}),
 
-    S('co1', B, aCO, '', 'Color tab › Hue shift: drag slowly, then raise Depth rainbow.', 'Colours turn around the wheel; Depth rainbow colours the picture by depth.', '#g-color', {cat: 'color'}),
+    S('co1', B, aCO, '', 'Colour tab › Hue shift: drag slowly, then raise Depth rainbow.', 'Colours turn around the wheel; Depth rainbow colours the picture by depth.', '#g-color', {cat: 'color'}),
     S('co2', B, aCO, '', 'Lower Saturation, then raise it.', 'Colours grey out, then get rich.', '#g-color', {cat: 'color'}),
     S('co3', B, aCO, '', 'Tap Invert (desktop: Shift+I), then tap it again.', 'Every image layer flips black to white, then back.', 'label:has(#gInv)', {cat: 'color'}),
     S('co4', B, aCO, '', 'Raise Depth fog, then Depth edges.', 'Far layers fade into haze; edges outline where depths meet.', '#g-color', {cat: 'color'}),
@@ -7709,7 +7709,7 @@ const testMode = (() => {
 
     S('pn1', B, aPN, 'adv', 'Pin Zoom (the pin icon next to the slider in Symmetry).', 'Zoom appears in the dock bar.', '.ctl:has(#g-sym-zoom)', {cat: 'sym'}),
     S('pn2', B, aPN, 'adv', 'Close all panels and drag the pinned slider in the dock.', 'The picture changes live and the panels stay closed.', '#macros'),
-    S('pn3', B, aPN, 'adv', 'Theme › Pins: set Pinned slots to 4.', 'The dock bar fits four sliders.', '#lkSlots', {look: 1, lkg: ['pins']}),
+    S('pn3', B, aPN, 'adv', 'Settings › Pins: set Pinned slots to 4.', 'The dock bar fits four sliders.', '#lkSlots', {look: 1, lkg: ['pins']}),
     S('pn4', B, aPN, 'adv', 'Tick Auto pin and move a few sliders.', 'Sliders you use pin themselves; ones an oscillator or audio is moving are skipped.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
     S('pn5', B, aPN, 'touch adv', 'On the phone pin three sliders and close the panels.', 'The pin bar sits above the dock, each slider drags with a thumb, and nothing covers the picture.', '#macros'),
 
@@ -7734,12 +7734,12 @@ const testMode = (() => {
     S('ou3', B, aOU, '', 'Capture a PNG still.', 'A PNG downloads and matches what you see.', '#bPng', {cat: 'project'}),
     S('ou4', B, aOU, '', 'Record one loop (button; desktop: R).', 'It stops by itself after one loop; the video downloads and loops cleanly.', '#bRec', {cat: 'project'}),
 
-    S('lf1', B, aLF, '', 'Theme › Performance: switch to the other mode and back.', 'The picture re-renders each time with no blank frame; a message names the mode.', '#lkMode', {look: 1, lkg: ['perf']}),
+    S('lf1', B, aLF, '', 'Settings › Performance: switch to the other mode and back.', 'The picture re-renders each time with no blank frame; a message names the mode.', '#lkMode', {look: 1, lkg: ['perf']}),
     S('lf2', B, aLF, 'lite', 'In Lite look at Output Quality and the Mirror backdrop.', 'The top Quality and Mirror are disabled with "Full mode only".', '#qSeg', {cat: 'project'}),
     S('lf3', B, aLF, 'full', 'In Full pick the Mirror backdrop and the top Quality.', 'Both can be chosen.', '#qSeg', {cat: 'project'}),
     S('lf4', B, aLF, '', 'Switch back to the mode you normally use.', 'Everything keeps its settings.', '#lkMode', {look: 1, lkg: ['perf']}),
 
-    S('lk1', B, aLK, '', 'Theme › Look: switch Light and Dark, then Backdrop and Accent.', 'The whole interface recolours and stays readable; Mirror is Full only.', '#lookPop', {look: 1, lkg: ['look']}),
+    S('lk1', B, aLK, '', 'Settings › Look: switch Light and Dark, then Backdrop and Accent.', 'The whole interface recolours and stays readable; Mirror is Full only.', '#lookPop', {look: 1, lkg: ['look']}),
     S('lk2', B, aLK, '', 'Pick a Global colour, then press Default.', 'Accents, text and slider colours follow; Default restores them.', '#lkColor', {look: 1, lkg: ['look']}),
     S('lk3', B, aLK, '', 'Move Frost.', 'Panels get clearer or frostier.', '#lkFrost', {look: 1, lkg: ['look']}),
 
@@ -7751,22 +7751,22 @@ const testMode = (() => {
     S('ps1', PH, aPS, 'touch', 'Open Layers on the phone.', 'A bottom sheet opens at half height with a handle; the picture stays visible above it.', '#pLayers', {panel: 'L'}),
     S('ps2', PH, aPS, 'touch', 'Drag the sheet handle up and down.', 'It snaps between peek, half and full.', '#pLayers', {panel: 'L'}),
     S('ps3', PH, aPS, 'touch', 'Close the sheet and open it again.', 'It reopens at the height you left it.', '#pLayers', {panel: 'L'}),
-    S('ps4', PH, aPS, 'touch', 'Open the Theme menu, then More.', 'Each sits above the dock and is not cut off; other panels close.', '#lookPop', {look: 1}),
+    S('ps4', PH, aPS, 'touch', 'Open Settings, then More.', 'Each sits above the dock and is not cut off; other panels close.', '#lookPop', {look: 1}),
     S('ps5', PH, aPS, 'touch', 'Rotate to landscape and back.', 'Sheet and dock refit without overlap.'),
 
-    S('tu1', TU, aTU, '', 'Theme › Tutorial.', 'A picker offers Quick tutorial and Interactive tutorial.', '#lkTut', {look: 1}),
+    S('tu1', TU, aTU, '', 'Settings › Tutorial.', 'A picker offers Quick tutorial and Interactive tutorial.', '#lkTut', {look: 1}),
     S('tu2', TU, aTU, '', 'Run the Quick tutorial; finish it or press Skip.', 'Five spotlight steps; Skip, Esc or Done puts every panel back as it was.'),
     S('tu3', TU, aTU, '', 'On the last Quick step look for the interactive offer.', 'A "Want to dive deeper?" line with an Interactive tutorial button.'),
-    S('tu4', TU, aTU, '', 'Press Esc here (progress is kept), start Theme › Tutorial › Interactive tutorial and play the Layers chapter.', 'A chapter list opens on Tr1ppical Butterfly; only the step controls respond; Next advances and the spotlight follows.'),
+    S('tu4', TU, aTU, '', 'Press Esc here (progress is kept), start Settings › Tutorial › Interactive tutorial and play the Layers chapter.', 'A chapter list opens on Tr1ppical Butterfly; only the step controls respond; Next advances and the spotlight follows.'),
     S('tu5', TU, aTU, 'desktop', 'In the interactive tutorial press Ctrl+S.', 'A message says Saving is off during the tutorial.'),
     S('tu6', TU, aTU, '', 'Choose Chapters, then Exit tutorial, then reopen Test mode and Resume.', 'Your own project is back with a "Tutorial closed" message; the test resumes at the next step.'),
     S('tu7', TU, aTU, 'touch', 'On the phone, touch a slider during a tutorial step, then scroll the open sheet.', 'The card sits at the top and steps aside while your finger is down; scrolling stops at the highlighted controls.'),
     S('tu8', TU, aTU, 'easy', 'Run the interactive tutorial in Easy.', 'Steps for hidden controls are skipped; an Unlock more chapter appears.'),
     S('tu9', TU, aTU, 'lite', 'In Lite play the Layer tab chapter up to Effects.', 'The Effects step shows "Full mode only".'),
 
-    S('ky1', B, aKY, '', 'Theme › Shortcuts (or T, then Shortcuts).', 'A table of keys opens; Esc closes it.', '#lkKeys', {look: 1}),
+    S('ky1', B, aKY, '', 'Settings › Shortcuts (or T, then Shortcuts).', 'A table of keys opens; Esc closes it.', '#lkKeys', {look: 1}),
     S('ky2', B, aKY, 'desktop', 'Press Space, then M four times in rhythm, then R twice.', 'Play / pause toggles; tap tempo follows; recording starts and stops.'),
-    S('ky3', B, aKY, 'desktop', 'Press I, L, O and T, then H twice, then Shift+F.', 'Inspector, Layers, Oscillators (Full) and Theme toggle; the UI hides and shows; full screen toggles.'),
+    S('ky3', B, aKY, 'desktop', 'Press I, L, O and T, then H twice, then Shift+F.', 'Inspector, Layers, Oscillators (Full) and Settings toggle; the UI hides and shows; full screen toggles.'),
     S('ky4', B, aKY, 'desktop adv', 'Press Ctrl+F and type a control name.', 'A find box lists matching controls; Esc closes it.'),
     S('ky5', B, aKY, 'desktop', 'Press ? (or /), Z and Shift+I, then ↑ ↓ to pick a layer and E and S on it.', 'Roll, Reset all and Invert all work; the selection moves; E hides and S solos the layer.'),
     S('ky6', B, aKY, 'desktop', 'Click the Project name box and type the letters e, s, r and h.', 'Typing never triggers a shortcut.', '#projName', {cat: 'project'}),
