@@ -994,7 +994,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <symbol id="g-wave" viewBox="0 0 16 16"><path d="M1.5 8c1.5-4 3-4 4.3 0s2.8 4 4.4 0 2.8-4 4.3 0"/></symbol>
   <symbol id="g-mix" viewBox="0 0 16 16"><circle cx="6" cy="8" r="4"/><circle cx="10" cy="8" r="4"/></symbol>
   <symbol id="g-hue" viewBox="0 0 16 16"><path d="M8 1.8C5.5 5 4 7.2 4 9.4a4 4 0 0 0 8 0C12 7.2 10.5 5 8 1.8Z"/></symbol>
-  <symbol id="g-depth" viewBox="0 0 16 16"><path d="M8 1.6 14 5v6l-6 3.4L2 11V5Z"/><path d="M2 5l6 3.4L14 5M8 8.4v6"/></symbol>
+  <symbol id="gl-depth" viewBox="0 0 16 16"><path d="M8 1.6 14 5v6l-6 3.4L2 11V5Z"/><path d="M2 5l6 3.4L14 5M8 8.4v6"/></symbol>
 </defs></svg>
 <div class="stage" id="stage">
   <canvas id="bgcv" aria-hidden="true"></canvas>
@@ -2233,15 +2233,15 @@ function autoDepth(mode){
 }
 function loadImageFile(file){ return new Promise(done => {
   const url = URL.createObjectURL(file), img = new Image();
-  img.onload = () => {
+  img.onload = () => { try {
     const s = Math.min(1, 1600/Math.max(img.naturalWidth, img.naturalHeight));
     imgW = Math.max(2, Math.round(img.naturalWidth*s)); imgH = Math.max(2, Math.round(img.naturalHeight*s));
     colorC.width = depthC.width = imgW; colorC.height = depthC.height = imgH;
     cctx.drawImage(img,0,0,imgW,imgH);
     autoDepth($('#depthMode').value);
-    imageReady(file.name.replace(/\.[^.]+$/,'')); URL.revokeObjectURL(url); toast('Image loaded'); done(true);
-  };
-  img.onerror = () => { toast('That file could not be read as an image'); done(false); };
+    imageReady(file.name.replace(/\.[^.]+$/,'')); toast('Image loaded'); done(true);
+  } catch(err){ toast('That image could not be processed'); done(false); } finally { URL.revokeObjectURL(url); } };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('That file could not be read as an image'); done(false); };
   img.src = url;
 }); }
 /* a new image invalidates every mask: start again from one Background layer */
@@ -3746,8 +3746,8 @@ function renderImp(){
     row.appendChild(th);
     const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = it.name; row.appendChild(nm);
     const c = document.createElement('div'); c.className = 'ctrls';
-    c.innerHTML = `<select aria-label="Role for ${it.name}"><option value="layer">Layer</option><option value="plate">Background plate</option></select>
-      <button class="ibtn" aria-label="Move ${it.name} nearer">▲</button><button class="ibtn" aria-label="Move ${it.name} farther">▼</button><button class="ibtn" aria-label="Remove ${it.name}">✕</button>`;
+    c.innerHTML = `<select aria-label="Role for ${escH(it.name)}"><option value="layer">Layer</option><option value="plate">Background plate</option></select>
+      <button class="ibtn" aria-label="Move ${escH(it.name)} nearer">▲</button><button class="ibtn" aria-label="Move ${escH(it.name)} farther">▼</button><button class="ibtn" aria-label="Remove ${escH(it.name)}">✕</button>`;
     const [selR, up, dn, rm] = c.children;
     selR.value = it.role;
     selR.onchange = () => { if (selR.value === 'plate') impItems.forEach(o => { if (o !== it) o.role = 'layer'; }); it.role = selR.value; renderImp(); };
@@ -3948,7 +3948,7 @@ function renderDiceTargets(){
   const host = $('#diceTargets'); host.innerHTML = '';
   for (const d of [{id:'global', name:'Global'}, ...layerDefs()]){
     const lab = document.createElement('label'); lab.className = 'chip';
-    lab.innerHTML = `<input type="checkbox" ${diceOff.has(d.id) ? '' : 'checked'}> ${d.name}`;
+    lab.innerHTML = `<input type="checkbox" ${diceOff.has(d.id) ? '' : 'checked'}> ${escH(d.name)}`;
     lab.querySelector('input').onchange = e => { if (e.target.checked) diceOff.delete(d.id); else diceOff.add(d.id); randSummary(); syncRandFilters(); };
     host.appendChild(lab);
   }
@@ -5555,7 +5555,7 @@ function drawInsp(){
   $('#inspBody').classList.toggle('multi', eff.size > 1);
   const one = eff.size === 1 ? CATS.find(c => eff.has(c.id)) : null;
   $('#inspTitle').innerHTML = one
-    ? `<span class="hic" style="color:var(${one.c})">${use(one.icon)}</span>${one.id === 'layer' ? 'Layer · ' + ($('#layerCtlName').textContent || '') : one.name}`
+    ? `<span class="hic" style="color:var(${one.c})">${use(one.icon)}</span>${one.id === 'layer' ? 'Layer · ' + escH($('#layerCtlName').textContent || '') : one.name}`
     : 'Inspector';
   UI.set('cats', [...shownCats]);
   if (mapReady && shownCats.has('mod')) renderMatrix();
@@ -5572,7 +5572,7 @@ $('#layerList').addEventListener('click', e => { if (e.target.closest('.ibtn') |
 /* ---- one glyph per slider, picked from its name, in the category colour ---- */
 const GLYPHS = [[/speed|rate|tempo|loop length/i,'g-speed'],[/swing|bounce|wiggle|breathe|wobble|twinkle|melt|drift|orbit|turbulence|trail/i,'g-wave'],
   [/twist|rotat|tumble|turn|spin|direction|angle/i,'g-angle'],[/hue|rainbow|colou?r|saturation|brightness|contrast|exposure/i,'g-hue'],
-  [/segment|symmetry|copies|count|seed|^instances$/i,'g-count'],[/zoom|size|scal|radius|spacing/i,'g-size'],[/depth|parallax|focus|relief|near|far|fog|edge/i,'g-depth'],
+  [/segment|symmetry|copies|count|seed|^instances$/i,'g-count'],[/zoom|size|scal|radius|spacing/i,'g-size'],[/depth|parallax|focus|relief|near|far|fog|edge/i,'gl-depth'],
   [/wet|opacity|smooth|softness|mix/i,'g-mix'],[/gate|crossover|offset|position|center|axis|limit|tolerance|steer/i,'g-range']];
 const glyphFor = t => (GLYPHS.find(([re]) => re.test(t)) || [0, 'g-amount'])[1];
 const RANGE_ROWS = [...document.querySelectorAll('#pLayers .ctl, #pInsp .ctl')].filter(r => r.querySelector('input[type=range]'));
