@@ -216,6 +216,43 @@ body{background:var(--stage)}
 #pMusic .musCtl .ttl{flex:1;min-width:0;font:500 12px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pMusic .musListen{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 #pMusic .musListen .live{font:600 12px var(--f-ui);color:var(--accent)}
+#pTime{right:16px;bottom:84px;width:360px;z-index:21;max-height:min(640px,calc(100% - 110px))}
+#pTime .tlBody{padding:10px;display:grid;gap:8px;overflow:auto;min-height:0;align-content:start}
+#pTime .tlTop{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#pTime .tlTop .check{margin-left:auto;font:500 12px var(--f-ui)}
+#pTime .tlProg{display:grid;gap:4px;font:500 12px var(--f-ui)}
+#pTime .tlProg[hidden],#pTime .tlF[hidden],#pTime .note[hidden]{display:none}
+#pTime .tlProgBar,#pTime .tlBar{display:block;height:4px;border-radius:2px;background:var(--line-soft,rgba(127,127,127,.25));overflow:hidden}
+#pTime .tlProgBar b,#pTime .tlBar b{display:block;height:100%;width:0;background:var(--accent)}
+#pTime .tlList{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+#pTime .tlCard{border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:grid;gap:6px;cursor:pointer;background:color-mix(in srgb,var(--raise) 35%,transparent)}
+#pTime .tlCard.cur,#pTime .tlCard.sel{border-color:var(--accent)}
+#pTime .tlCard.cur{box-shadow:inset 0 0 0 1px var(--accent)}
+#pTime .tlCard.drag{opacity:.45}
+#pTime .tlCard.dropB{box-shadow:0 -3px 0 var(--accent)}
+#pTime .tlCard.dropA{box-shadow:0 3px 0 var(--accent)}
+#pTime .tlHead{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:8px}
+#pTime .tlHead .tlBar{grid-column:1/-1}
+#pTime .tlCard:not(.cur) .tlBar{display:none}
+#pTime .tlGrip{cursor:grab;color:var(--dim);display:grid;place-items:center;width:16px;touch-action:none}
+#pTime .tlLoad{position:relative;width:64px;height:40px;border:1px solid var(--line);border-radius:6px;padding:0;overflow:hidden;background:var(--void);cursor:pointer}
+#pTime .tlLoad img{width:100%;height:100%;object-fit:cover;display:block}
+#pTime .tlLoad:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#pTime .tlNum{position:absolute;left:4px;top:2px;font:700 10px var(--f-ui);color:#fff;text-shadow:0 0 3px #000,0 0 1px #000}
+#pTime .tlNm{display:grid;min-width:0}
+#pTime .tlName{font:600 13px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text}
+#pTime .tlSub{font:500 11px var(--f-ui);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pTime .tlRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:500 12px var(--f-ui)}
+#pTime .tlF{display:inline-flex;align-items:center;gap:6px}
+#pTime input[type=number],#pTime .tlRn,#pTime select{font:500 12px var(--f-ui);color:var(--ink);background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:4px 6px;min-height:30px}
+#pTime input[type=number]{width:66px}
+#pTime .tlRn{width:100%;min-width:0;box-sizing:border-box}
+#pTime .tlUnit button{padding:5px 10px}
+#pTime .tlAct{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+#pTime .tlAct .btn{padding:4px 10px;font-size:11.5px}
+#pTime .tlAct .ib{border-color:var(--line);font-size:11px;color:var(--ink)}
+#pTime .tlAct .ib:disabled{opacity:.35;cursor:default}
+#pTime .tlAct .btn.armed{background:var(--rec);border-color:var(--rec);color:#fff}
 #pMusic .musListen .live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:baseline}
 .lv{display:grid;gap:6px;margin:6px 0}
 .lv .btns{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
@@ -871,7 +908,11 @@ body.easy .moreMenu .onlyCmp{display:flex}
 /* phones and landscape phones: 44px touch targets, Invert / Reset / Hide UI live in the more menu */
 @media (max-width:760px), (orientation:landscape) and (max-height:520px){
   .dk{min-width:44px;min-height:44px}
-  #dReset,#dHide,#dInv{display:none}
+  #dReset,#dHide,#dInv,#dTime{display:none}
+  #pTime .btn,#pTime .seg button,#pTime select,#pTime input[type=number],#pTime .tlRn{min-height:44px}
+  #pTime .tlAct .ib{width:44px;height:44px}
+  #pTime .tlLoad{width:72px;height:46px}
+  #pTime .tlGrip{display:none}
   .moreMenu .onlyCmp{display:flex}
   .lrow{grid-template-columns:44px minmax(0,1fr) 44px 44px 44px;gap:4px;padding:3px 4px}
   .lrow .ibtn{width:44px;height:44px}
@@ -916,7 +957,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   .lsR .stage{right:calc(var(--lsW) + 16px)}
   .fp{top:8px!important;bottom:calc(var(--dockH,64px) + 16px)!important;max-height:none!important;width:var(--lsW)!important;height:auto}
   #pLayers{left:8px!important;right:auto!important}
-  #pInsp,#pOsc,#pMusic{right:8px!important;left:auto!important}
+  #pInsp,#pOsc,#pMusic,#pTime{right:8px!important;left:auto!important}
   #pOsc{--ow:var(--lsW)!important}
   #pOsc .oresize,#oscClock{display:none}
   #pOsc .oscRow{flex-wrap:nowrap;align-items:start}
@@ -994,6 +1035,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
   <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.1" fill="currentColor"/><circle cx="8" cy="8" r="1.1" fill="currentColor"/><circle cx="12.5" cy="8" r="1.1" fill="currentColor"/></symbol>
   <symbol id="i-save" viewBox="0 0 16 16"><path d="M2.5 2.5h8l3 3v8h-11z"/><path d="M5 2.5v3.5h5V2.5M5 13.5v-4h6v4"/></symbol>
+  <symbol id="i-tl" viewBox="0 0 16 16"><path d="M1.5 13.5h13"/><rect x="1.5" y="3.5" width="3.6" height="6" rx="1"/><rect x="6.2" y="3.5" width="3.6" height="6" rx="1"/><rect x="10.9" y="3.5" width="3.6" height="6" rx="1"/><path d="M3.3 11.5v2M8 11.5v2M12.7 11.5v2"/></symbol>
   <symbol id="i-osc" viewBox="0 0 16 16"><path d="M1.5 8c1.2-4.6 2.6-4.6 3.7 0s2.5 4.6 3.6 0 2.5-4.6 3.7 0"/><circle cx="14" cy="8" r="1.4"/></symbol>
   <symbol id="g-count" viewBox="0 0 16 16"><circle cx="4" cy="4" r="1.3"/><circle cx="12" cy="4" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="8" cy="8" r="1.3"/></symbol>
   <symbol id="g-amount" viewBox="0 0 16 16"><path d="M3 13V9M6.5 13V6M10 13V8M13.5 13V3"/></symbol>
@@ -1433,6 +1475,22 @@ body.easy .moreMenu .onlyCmp{display:flex}
   </div>
 </section>
 
+<section class="fp" id="pTime" aria-label="Timeline panel" hidden>
+  <div class="fph"><span class="grip" aria-hidden="true"></span><h2><span class="hic" style="color:var(--c-motion)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tl"/></svg></span>Timeline</h2><span class="meta" id="tlMeta"></span>
+    <button class="ib" data-fold aria-label="Fold the Timeline panel" title="Fold the Timeline panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-fold"/></svg></button><button class="ib" data-close aria-label="Hide the Timeline panel" title="Hide the Timeline panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+  <div class="fpb tlBody">
+    <div class="tlTop">
+      <button class="btn primary" id="tlSave" type="button" title="Capture everything you see now as a new scene">Save to timeline</button>
+      <button class="btn" id="tlPlay" type="button" disabled aria-pressed="false">Play</button>
+      <button class="btn" id="tlStop" type="button" disabled>Stop</button>
+      <label class="check" title="On: the last scene goes back into the first. Off: it plays once and holds the last scene."><input type="checkbox" id="tlLoop" checked> Loop</label>
+    </div>
+    <div class="tlProg" id="tlProg" role="status" aria-live="off" hidden><span id="tlProgTxt"></span><i class="tlProgBar" id="tlProgBar" aria-hidden="true"><b></b></i></div>
+    <p class="note" id="tlEmpty">Set up a scene, then Save to timeline. Add more scenes and press Play: each one holds for its length, then glides or cuts into the next. Tap a scene's picture to load it.</p>
+    <ol class="tlList" id="tlList" aria-label="Scenes"></ol>
+  </div>
+</section>
+
 <div class="calbar" id="calbar" role="toolbar" aria-label="Calibrate layer" hidden>
   <span class="who" id="calWho"></span>
   <span class="cgroup" id="calTools">
@@ -1456,6 +1514,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <button class="dk" id="dLayers" aria-pressed="true" aria-label="Layers" title="Layers (L)" aria-keyshortcuts="L"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-layers"/></svg></button>
   <button class="dk" id="dInsp" aria-pressed="true" aria-label="Inspector" title="Inspector (I)" aria-keyshortcuts="I"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-sym"/></svg></button>
   <button class="dk" data-adv id="dOsc" aria-pressed="false" aria-label="Oscillators" title="Oscillators (O)" aria-keyshortcuts="O" aria-controls="pOsc"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-osc"/></svg></button>
+  <button class="dk" data-adv id="dTime" aria-pressed="false" aria-label="Timeline" title="Timeline: scenes played in order" aria-controls="pTime"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tl"/></svg></button>
   <span class="vr m" data-adv></span>
   <div class="macros" id="macros" data-adv aria-label="Pinned controls"></div>
   <span class="vr m" data-adv></span>
@@ -1475,6 +1534,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
 <div class="moreMenu" id="moreMenu" role="dialog" aria-label="More" hidden>
   <button class="mi" id="mSave" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg><span>Save project</span><i class="dirtyDot" id="mSaveDot" hidden></i><kbd class="kbd-i">Ctrl S</kbd></button>
   <button class="mi" id="mMusic" type="button" aria-controls="pMusic"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg><span>Streaming</span></button>
+  <button class="mi onlyCmp" data-adv id="mTime" type="button" aria-controls="pTime"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tl"/></svg><span>Timeline</span></button>
   <form class="impLink" data-adv id="mImpLink" autocomplete="off"><input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button></form>
   <label class="mrow" data-adv for="mLook"><span class="lbl">Look presets</span><select id="mLook" aria-label="Look presets"></select></label>
   <button class="mi onlyCmp" data-adv id="mInv" type="button" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg><span>Invert image layers</span></button>
@@ -2018,7 +2078,8 @@ function status(){
 const colorC = document.createElement('canvas'), depthC = document.createElement('canvas');
 const cctx = colorC.getContext('2d', {willReadFrequently:true}), dctx = depthC.getContext('2d', {willReadFrequently:true});
 let imgW = 1600, imgH = 1000, srcName = 'Tr1ppical Butterfly', depthDirty = false, depthVer = 0, colorVer = 0;
-function markDepth(){ depthDirty = true; depthVer++; }
+var picVer = 0;   // bumped whenever the pictures, depth map or selections change (the timeline re-reads them only then)
+function markDepth(){ depthDirty = true; depthVer++; picVer++; }
 
 /* ---------- layer model: masks at working resolution ---------- */
 let MW = 2, MH = 2, layerSeq = 0, bgMed = .5;
@@ -2292,7 +2353,7 @@ function loadImageFile(file){ return new Promise(done => {
 function maskDims(){ const s = Math.min(1, 1024/Math.max(imgW, imgH)); return [Math.max(2, Math.round(imgW*s)), Math.max(2, Math.round(imgH*s))]; }
 var sceneBase = null;   // a sample scene's own starting layer values (set in makeSample); any other load clears it, and Reset all then falls back to the app defaults
 function imageReady(name, keepLayers = false){
-  sceneBase = null;
+  sceneBase = null; picVer++;
   srcName = name; colorVer++; depthVer++; audioRot = 0;
   [MW, MH] = maskDims();
   if (cal){ cal = null; showCal(false); }
@@ -2825,6 +2886,7 @@ function allocMasks(){
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 }
 function uploadMasks(){
+  picVer++;
   gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texMasks);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
   P.L.layers.forEach((l, i) => { const m = masks.get(l.id); if (m) gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, i, MW, MH, 1, gl.RED, gl.UNSIGNED_BYTE, flipRows(m, MW, MH)); });
@@ -2836,6 +2898,7 @@ function uploadMasks(){
 const ownCols = new Map();
 let plateC = null;
 function uploadLayerCols(){
+  picVer++;
   if (!P.L.layers.some(l => ownCols.has(l.id))) return;
   gl.activeTexture(gl.TEXTURE9); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texLayerCol);
   const key = imgW + 'x' + imgH;
@@ -3357,9 +3420,11 @@ function actionToast(msg, label, fn){
 /* ---------- history: Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) for big actions only: Roll, resets, layer delete, preset and project loads ----------
    The last 20 steps; a project load keeps a full copy of the picture, so only the 3 newest of those are kept. Slider drags are not recorded. */
 const HIST = {u: [], r: [], max: 20, heavy: 3};
+var TL = null;   // the scene timeline (filled in further down)
 let histBusy = false;
 const cloneV = v => v && typeof v === 'object' ? clone(v) : v;
 function histPush(short, what, undo, redo, heavy){
+  if (TL && TL.run) tlPause();   // Roll, Reset, preset loads and the like pause a playing timeline
   const e = {short, what, undo, redo, heavy: !!heavy};
   HIST.u.push(e); HIST.r = [];
   if (HIST.u.length > HIST.max) HIST.u.shift();
@@ -3369,6 +3434,7 @@ function histPush(short, what, undo, redo, heavy){
 async function histStep(dir){
   if (histBusy) return;
   if (cal){ toast('Finish calibrating first'); return; }
+  if (TL && TL.run) tlPause();
   const from = dir < 0 ? HIST.u : HIST.r, to = dir < 0 ? HIST.r : HIST.u, e = from.pop();
   if (!e){ toast(dir < 0 ? 'Nothing to undo' : 'Nothing to redo'); syncHist(); return; }
   histBusy = true;
@@ -3927,7 +3993,7 @@ async function restoreProject(st, urlOf, objTextIn){
   imageReady(st.srcName || 'Project', true); uploadIcon(); syncUI();
 }
 /* a full in-memory copy of the current picture and settings, so a project load can be undone */
-function capProject(){
+function capProject(withTl){
   if (!imgW || !imgH) return null;
   try {
     const st = clone(projectState()), urls = {image: colorC.toDataURL(), depth: depthC.toDataURL()};
@@ -3935,15 +4001,16 @@ function capProject(){
     for (const id of st.own){ const c = ownCols.get(id); if (c) urls['col:' + id] = c.toDataURL(); }
     if (plateC) urls.plate = plateC.toDataURL();
     if (iconCv.custom) urls.icon = iconCv.custom.toDataURL();
-    return {st, urls, obj: objText || null, proj: curProj, name: $('#projName').value};
+    return {st, urls, obj: objText || null, proj: curProj, name: $('#projName').value, tl: withTl && TL ? tlSnap() : null};
   } catch(e){ return null; }
 }
 async function uncapProject(c){
   await restoreProject(clone(c.st), k => c.urls[k] || null, c.obj);
   curProj = c.proj; $('#projName').value = c.name; projNote();
+  if (c.tl && TL) tlUnsnap(c.tl);
 }
 function pushProjectLoad(before, what){
-  const after = before && capProject(); if (!before || !after) return;
+  const after = before && capProject(true); if (!before || !after) return;
   histPush('project', what, () => uncapProject(before), () => uncapProject(after), true);
 }
 function projNote(msg){
@@ -3958,7 +4025,7 @@ $('#bProjExport').onclick = async () => {
     const st = projectState(), files = await projectFiles(st), out = {};
     for (const k in files) out[k] = await blobToURL(files[k]);
     const name = $('#projName').value.trim() || srcName || 'project';
-    const json = JSON.stringify({app:'depthscope', kind:'project', version:5, name, state: st, files: out, objText});
+    const json = JSON.stringify({app:'depthscope', kind:'project', version:5, name, state: st, files: out, objText, timeline: tlForSave(out)});
     projNote(); offer(name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.depthscope.json', new Blob([json], {type:'application/json'}));
     clearDirty();   // the exported file is the save
   } catch(e){ projNote(); toast('Could not pack the project'); }
@@ -3971,8 +4038,9 @@ $('#fProj').onchange = async e => {
     projNote('Opening file…');
     const j = JSON.parse(await f.text());
     if (j.app !== 'depthscope' || j.kind !== 'project') throw new Error('kind');
-    const before = capProject();
+    const before = capProject(true);
     await restoreProject(j.state, key => j.files[key] || null, j.objText || null);
+    tlFromSave(j.timeline, j.files);   // older projects have none: the timeline starts empty
     curProj = null; $('#projName').value = j.name || ''; toast('Project file opened'); markDirty();
     pushProjectLoad(before, (j.name || 'Project file') + ' project');
   } catch(err){ toast('That file is not a Submersion project'); }
@@ -5287,8 +5355,10 @@ function draw(w, h){
 function frame(now){
   if (LITE.on && now - LITE.lastDraw < 1000/LITE.fps - 4){ requestAnimationFrame(frame); return; }   // Lite: ~30 fps
   LITE.lastDraw = now;
+  if (TL && TL.busy){ lastNow = now; requestAnimationFrame(frame); return; }   // a timeline scene's pictures are loading: hold the last picture
   const dt = Math.min(.1, (now - lastNow)/1000); lastNow = now; frameDt = dt || 1/60;
   if (!paused) t += dt;
+  if (TL && TL.run) tlTick(dt);
   if (oscReady) modTick(now, dt);
   updateAudio(t, dt);
   const reactive = (analyser && (!audioEl.paused || liveIn)) || P.bpm > 0;
@@ -5306,6 +5376,7 @@ function frame(now){
     cv.width = ow; cv.height = oh;
   }
   draw(cv.width, cv.height);
+  if (TL && TL.thumbQ.length) tlThumbGrab();
   drawMirror();
   drawPip();
   if (mapReady) restoreMods();
@@ -5327,7 +5398,7 @@ const UI = {
 const use = (k, cls = 'gi-svg') => `<svg class="${cls}" viewBox="0 0 16 16" aria-hidden="true"><use href="#${k}"/></svg>`;
 const phone = matchMedia('(max-width:760px)');
 const landscape = matchMedia('(orientation:landscape) and (max-height:520px) and (min-width:761px)');   // a phone held sideways
-const pL = $('#pLayers'), pI = $('#pInsp'), pO = $('#pOsc'), pM = $('#pMusic');
+const pL = $('#pLayers'), pI = $('#pInsp'), pO = $('#pOsc'), pM = $('#pMusic'), pT = $('#pTime');
 
 /* ---- panels: drag by the header, fold, hide; positions remembered per browser ---- */
 function clampPanel(p){
@@ -5336,9 +5407,9 @@ function clampPanel(p){
   p.style.left = Math.max(0, Math.min(innerWidth - 120, r.left)) + 'px';
   p.style.top = Math.max(0, Math.min(innerHeight - 60, r.top)) + 'px';
 }
-const PANEL_NAMES = {pLayers:'the Layers panel', pInsp:'the Inspector', pOsc:'the Oscillators panel', pMusic:'the Streaming panel'};
+const PANEL_NAMES = {pLayers:'the Layers panel', pInsp:'the Inspector', pOsc:'the Oscillators panel', pMusic:'the Streaming panel', pTime:'the Timeline panel'};
 if (!UI.get('oscPos3', false)){ UI.set('pos.pOsc', null); UI.set('oscPos3', true); }   // the panel's default place moved
-for (const p of [pL, pI, pO, pM]){
+for (const p of [pL, pI, pO, pM, pT]){
   const h = p.querySelector('.fph'), pos = UI.get('pos.' + p.id, null);
   if (pos && !phone.matches){ p.style.left = pos[0] + 'px'; p.style.top = pos[1] + 'px'; p.style.right = p.style.bottom = 'auto'; clampPanel(p); }
   h.addEventListener('pointerdown', e => {
@@ -5355,7 +5426,7 @@ for (const p of [pL, pI, pO, pM]){
   setFold(UI.get('fold.' + p.id, false));
   p.querySelector('[data-close]').onclick = () => showPanel(p, false);
 }
-addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); });
+addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); clampPanel(pT); });
 /* one shared way to open a phone sheet: its state is set from defaults, nothing animates from a stale size, and the same tap cannot toggle twice */
 let shOpenT = 0;
 function sheetNoAnim(){
@@ -5364,16 +5435,17 @@ function sheetNoAnim(){
 }
 const tapOnce = (fn, ms = 220) => { let t = -1e9; return function(...a){ const n = performance.now(); if (n - t < ms) return; t = n; return fn.apply(this, a); }; };
 function showPanel(p, on){
-  let wasOpen = !pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden;
+  let wasOpen = !pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden || !pT.hidden;
   try { wasOpen = wasOpen || !lookPop.hidden; } catch(e){}
   if (on && phone.matches){ try { sheetOpening(!wasOpen); } catch(e){} }
   p.hidden = !on;
-  if (on){ if (phone.matches || landscape.matches) for (const o of [pL, pI, pO, pM]) if (o !== p) o.hidden = true; p.classList.remove('folded'); try { if (phone.matches && !lookPop.hidden) toggleLookPop(false); } catch(e){} }
-  $('#dLayers').setAttribute('aria-pressed', !pL.hidden); $('#dInsp').setAttribute('aria-pressed', !pI.hidden); $('#dOsc').setAttribute('aria-pressed', !pO.hidden);
-  document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden));
+  if (on){ if (phone.matches || landscape.matches) for (const o of [pL, pI, pO, pM, pT]) if (o !== p) o.hidden = true; p.classList.remove('folded'); try { if (phone.matches && !lookPop.hidden) toggleLookPop(false); } catch(e){} }
+  $('#dLayers').setAttribute('aria-pressed', !pL.hidden); $('#dInsp').setAttribute('aria-pressed', !pI.hidden); $('#dOsc').setAttribute('aria-pressed', !pO.hidden); $('#dTime').setAttribute('aria-pressed', !pT.hidden);
+  document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden || !pT.hidden));
   syncSides(); try { applySheet(); } catch(e){}
   if (on && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });   // settle once layout is final
   if (p === pO){ UI.set('oscOpen', !!on); if (on && oscReady) oscDrawSoon(); }
+  if (p === pT && on && TL) renderTL();
 }
 $('#dLayers').onclick = tapOnce(() => showPanel(pL, pL.hidden));
 $('#dInsp').onclick = tapOnce(() => showPanel(pI, pI.hidden));
@@ -6929,9 +7001,9 @@ $('#lkReset').onclick = () => { LOOK.color = LOOK_DEF.color; applyLook(); };
 $('#lkFrost').addEventListener('input', e => { LOOK.frost = +e.target.value; applyFrost(); $('#lkFrostOut').textContent = Math.round(LOOK.frost*100) + '%'; paintFill(e.target); clearTimeout(rDeb); rDeb = setTimeout(() => { refractAll(); try { localStorage.setItem('submersion.look', JSON.stringify(LOOK)); } catch(err){} }, 120); });
 $('#lkFrost').addEventListener('dblclick', e => { e.stopPropagation(); LOOK.frost = LOOK_DEF.frost; applyLook(); }, true);
 function toggleLookPop(on){
-  if ((on ?? lookPop.hidden) && lookPop.hidden && phone.matches){ try { sheetOpening(![pL, pI, pO, pM].some(x => !x.hidden)); } catch(e){} }
+  if ((on ?? lookPop.hidden) && lookPop.hidden && phone.matches){ try { sheetOpening(![pL, pI, pO, pM, pT].some(x => !x.hidden)); } catch(e){} }
   lookPop.hidden = !(on ?? lookPop.hidden); $('#dTheme').setAttribute('aria-expanded', !lookPop.hidden); $('#dTheme').setAttribute('aria-pressed', !lookPop.hidden); if (!lookPop.hidden) syncLookPop();
-  if (!lookPop.hidden){ try { setMore(false); } catch(e){} if (phone.matches) for (const p of [pL, pI, pO, pM]) if (!p.hidden) showPanel(p, false); }
+  if (!lookPop.hidden){ try { setMore(false); } catch(e){} if (phone.matches) for (const p of [pL, pI, pO, pM, pT]) if (!p.hidden) showPanel(p, false); }
   try { applySheet(); } catch(e){}
   if (!lookPop.hidden && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });
 }
@@ -7027,6 +7099,8 @@ function setEasy(on, persist = true){
   if (on){
     if (cal){ cal = null; showCal(false); }                 // calibration has no controls in Easy
     if (!pO.hidden) showPanel(pO, false);                   // nor do oscillators
+    if (!pT.hidden) showPanel(pT, false);                   // nor the timeline, which stops
+    if (TL && TL.run) tlStop();
     try { setAddMenu(false); closeSearch(); } catch(e){}
   } else hideEasyChip();
   syncEasyUI(); drawInsp(); renderLayers(); try { setDockH(); applySheet(); } catch(e){}
@@ -7071,7 +7145,7 @@ const tutorialMode = (() => {
      xt:'The play button plays or pauses, and the record button records one loop. The hide button hides all controls; tap Show UI to bring them back.'},
   ];
   const cur = i => easyOn() && STEPS[i].e ? {...STEPS[i], ...STEPS[i].e} : STEPS[i];   // Easy rewords or retargets any step that points at a hidden control
-  const snap = () => ({ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])});
+  const snap = () => ({ps: [pL, pI, pO, pM, pT].map(p => [p, p.hidden, p.classList.contains('folded')])});
   function restore(s){
     try { if (!lookPop.hidden) toggleLookPop(false); } catch(e){}
     for (const [p, h] of s.ps) if (h && !p.hidden) showPanel(p, false);
@@ -7323,6 +7397,8 @@ const itut = (() => {
     {id:'dock', t:'Dock and saving', steps:[
       {t:'Play and Record', sel:['#dPlay', '#dRec'], key:['Play / pause', 'Record one loop (press again to stop)'],
        x:'Play pauses or resumes the motion. Record captures exactly one loop as a video that loops seamlessly.', tr:'Pause, then play again.'},
+      {t:'Timeline', sel:['#dTime', '#pTime'], open:{panel:'T'}, easyHidden:1,
+       x:'The Timeline plays saved scenes in order, gliding or cutting from one to the next. Save to timeline captures what you see now.', tr:'Tap Save to timeline.'},
       {t:'Settings', sel:['#dTheme', '#lookPop'], allow:['#keysSheet'], open:{look:1}, key:['Settings'],
        x:'Settings holds performance, interface, colours, pins, Shortcuts and this Tutorial.', tr:'Open and close each group.',
        e:{x:'Settings holds performance, interface, colours, Shortcuts and this Tutorial.'}},
@@ -7350,7 +7426,7 @@ const itut = (() => {
     ]},
   ];
   const eff = st => easyOn() && st.e ? {...st, ...st.e} : st;
-  const PANELS = {L: pL, I: pI, O: pO, M: pM};
+  const PANELS = {L: pL, I: pI, O: pO, M: pM, T: pT};
   const all = s => { try { return [...document.querySelectorAll(s)]; } catch(e){ return []; } };
   function hiddenInEasy(st){
     if (st.easyHidden) return true;
@@ -7365,12 +7441,12 @@ const itut = (() => {
 
   /* ---- sandbox: copy the project in memory, practise on the sample, put it back on exit ---- */
   function sbStart(free){   // free = Test mode: same sandbox, but saving stays on
-    const cap = capProject();
+    const cap = capProject(true);
     if (!cap){ toast(free ? 'Test mode could not start here' : 'The interactive tutorial could not start here'); return false; }
     const lkg = {}; document.querySelectorAll('#lookPop .lkg').forEach(d => { lkg[d.dataset.lkg] = d.open; });
     SB = {free: !!free, cap, dirty: DIRTY, hu: HIST.u, hr: HIST.r, cats: [...shownCats], drOpen: drawer.dataset.open === 'true', drTab: UI.get('drawerTab', 'view'),
       slots: SLOTS, auto: AUTO_ON, sheet: sheetMode, lkg, det: new Map(), chip: easyChip.hidden, clean: document.body.classList.contains('clean'),
-      ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])};
+      ps: [pL, pI, pO, pM, pT].map(p => [p, p.hidden, p.classList.contains('folded')])};
     HIST.u = []; HIST.r = []; syncHist();       // the tour has its own undo history; yours comes back on exit
     TUT_SB = true;
     if (!free) $('#bSample2').click();           // the same path as the Tr1ppical Butterfly button
@@ -7758,15 +7834,15 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
   const aFR = 'First run and Easy / Full', aLY = 'Layers', aIM = 'Image import', aSC = 'Sample scenes', aDP = 'Depth and parallax', aSY = 'Symmetry', aCO = 'Colour and Recolour',
     aFX = 'Effects', aMO = 'Motion and loop', aOS = 'Oscillators and Mod', aAU = 'Audio', aRL = 'Randomize and Roll', aLC = 'Layer colours', aPN = 'Pins and phone pin bar',
     aUD = 'Undo and redo', aPJ = 'Projects and presets', aOU = 'Output', aLF = 'Lite vs Full', aLK = 'Look settings', aHU = 'Hide UI and mini menu', aPS = 'Phone sheets',
-    aTU = 'Tutorial', aKY = 'Keyboard shortcuts';
+    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline';
   const LK = {look: 1, lkg: ['iface']};
   /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
   const STEPS = [
@@ -7870,6 +7946,23 @@ const testMode = (() => {
 
     S('ud1', B, aUD, '', 'Delete a layer, then press Undo (desktop: Ctrl+Z).', 'The layer returns in its old place with its settings.', '#layerList', {panel: 'L'}),
     S('ud2', B, aUD, '', 'Load a Look preset, Undo it, then Redo (desktop: Ctrl+Shift+Z or Ctrl+Y).', 'The look reverts, then returns.'),
+
+    S('tl1', TLU, aTL, 'adv', 'Open the Timeline (desktop: the Timeline button in the dock; phone: More › Timeline).', 'The Timeline panel opens with Save to timeline, Play and Stop (both off until there is a scene) and Loop ticked.', '#pTime', {panel: 'T'}),
+    S('tl2', TLU, aTL, 'adv', 'Set up a look and press Save to timeline.', 'A card "Scene 1" appears with a small picture, Length 1 Loops (4 Bars if a BPM is set) and Into next: Glide over 2 s.', '#tlSave', {panel: 'T'}),
+    S('tl3', TLU, aTL, 'adv', 'Change several sliders, add an oscillator mapped to a slider, and Save to timeline again. Then load another picture or sample scene and save a third.', 'Three cards in order, each with its own picture.', '#tlSave', {panel: 'T'}),
+    S('tl4', TLU, aTL, 'adv', 'With the timeline stopped, tap Scene 1\'s picture, then Undo (desktop: Ctrl+Z).', 'Scene 1 comes back exactly (sliders, oscillators, layers, picture); Undo returns to what you had.', '#tlList', {panel: 'T'}),
+    S('tl5', TLU, aTL, 'adv', 'Press Play and watch Scene 1 into Scene 2.', 'It starts at Scene 1; the progress line names the scene and time left and the card is outlined; after its length every slider glides smoothly into Scene 2; mapped sliders fade their swing in or out rather than popping.', '#tlPlay', {panel: 'T'}),
+    S('tl6', TLU, aTL, 'adv', 'Set Scene 2\'s Into next to Cut and play through it.', 'Scene 2 switches to Scene 3 instantly; the glide length box hides for Cut.', '#tlList', {panel: 'T'}),
+    S('tl7', TLU, aTL, 'adv', 'Play a Glide into a scene with a different picture.', 'Settings glide; the picture switches at the halfway point (a brief hold while it loads is expected for now).', '#tlPlay', {panel: 'T'}),
+    S('tl8', TLU, aTL, 'adv', 'Switch a scene between Loops and Sec, change its Length; then set a BPM (tap tempo) and Update scene.', 'The time under the name follows (Loops = loop length x count; with a BPM the button reads Bars, 4 beats each); playback holds that long.', '#tlList', {panel: 'T'}),
+    S('tl9', TLU, aTL, 'adv', 'Untick Loop and play to the end; then tick Loop and play past the last scene.', 'Loop off: the last card says Holds at the end, playback stops on the last scene and Play shows again. Loop on: the last scene glides back into Scene 1.', '#tlLoop', {panel: 'T'}),
+    S('tl10', TLU, aTL, 'adv', 'While it plays, move any slider in the Inspector (or Roll).', 'A message says the timeline paused; your change stays; Play reads Resume and carries on from there.', '#tlPlay', {panel: 'T'}),
+    S('tl11', TLU, aTL, 'adv desktop', 'Drag a card up or down by its grip (the dots on the left).', 'A line shows where it lands; the order and the numbers update.', '#tlList', {panel: 'T'}),
+    S('tl12', TLU, aTL, 'adv', 'Use the arrows, Rename (or double-click the name), Duplicate, Update scene and Delete (press twice) on the cards.', 'Each does what it says; Delete asks Confirm delete first and reverts after 3 seconds.', '#tlList', {panel: 'T'}),
+    S('tl13', TLU, aTL, 'adv', 'Save project (Export file), reload the page, Import file. Then import a project saved before this update.', 'The timeline comes back with every scene, picture and setting; the older project opens with an empty timeline.', '#bProjImport', {cat: 'project'}),
+    S('tl14', TLU, aTL, '', 'Switch Controls to Easy while the timeline plays.', 'The timeline stops and its button and panel disappear; switching back to Full brings them back with the scenes kept.', '#lkEasy', LK),
+    S('tl15', TLU, aTL, 'touch', 'On the phone open More › Timeline; drag the sheet between peek, half and full; use every card control.', 'It opens as a sheet above the dock; buttons are finger-sized; the arrows reorder.', '#pTime', {panel: 'T'}),
+    S('tl16', TLU, aTL, 'lite', 'In Lite, play a timeline with a few glides.', 'Glides stay smooth; the picture keeps running.', '#tlPlay', {panel: 'T'}),
 
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
@@ -8598,11 +8691,529 @@ window.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's'){ e.preventDefault(); if (!e.repeat) saveKey(); }
 }, true);
 
+/* ================= Scene timeline: saved scenes played in order, with Glide or Cut between them =================
+   A scene keeps every setting (sliders, oscillators and mappings, layers) plus its pictures. Pictures are stored once in
+   TL.pics, keyed by a hash of their data; a scene only holds those keys, so ten scenes of one picture keep it once.
+   Playback: a scene holds for its length, then its transition runs into the next scene (a Glide adds its time on top).
+   Moving any control while the timeline plays pauses it; Resume carries on from there. */
+const TL_MAX = 48;
+/* 0 / 1 settings and ids that must never glide through in-between values */
+const TL_SWITCH = new Set(['inv','solid','ginv','olOn','rcOn','rcKeep','psymMirror','snapAuto','mirror','solo','vis','gone','on','bip','free','seed','c','slot','li','perLoop','pseed','kind']);
+const TLM = {
+  /* a scene's own length in seconds: loops use its loop length, or bars (4 beats) when it has a tempo */
+  sceneSec(sc){
+    const n = Math.max(0, +sc.len || 0), p = sc.P || {};
+    if (sc.unit === 'sec') return n;
+    const bpm = +p.bpm || 0;
+    return bpm > 0 ? n*240/bpm : n*(+p.loop || 12);
+  },
+  trSec(sc){ return sc.tr === 'cut' ? 0 : Math.max(0, +sc.trLen || 0); },
+  next(i, n, loop){ return i + 1 < n ? i + 1 : loop && n ? 0 : -1; },
+  ease(p){ return p <= 0 ? 0 : p >= 1 ? 1 : p*p*(3 - 2*p); },
+  /* advance the clock; st = {i, j, ph: 'hold' | 'tr', el, dur}. Returns what happened, in order:
+     {t:'tr', i, j, dur} a transition starts, {t:'arrive', i} the next scene is reached, {t:'end'} the last scene holds (Loop off) */
+  step(st, dt, scenes, loop){
+    const ev = [], n = scenes.length; let left = Math.max(0, +dt || 0);
+    for (let g = 0; g < 64; g++){
+      const sc = scenes[st.i]; if (!sc){ ev.push({t:'end'}); break; }
+      if (st.ph === 'hold'){
+        const L = TLM.sceneSec(sc);
+        if (st.el + left < L){ st.el += left; break; }
+        left -= Math.max(0, L - st.el); st.el = L;
+        const j = TLM.next(st.i, n, loop);
+        if (j < 0){ ev.push({t:'end'}); break; }
+        st.ph = 'tr'; st.j = j; st.el = 0; st.dur = TLM.trSec(sc); st.mid = false;
+        ev.push({t:'tr', i: st.i, j, dur: st.dur});
+      } else {
+        if (st.el + left < st.dur){ st.el += left; break; }
+        left -= Math.max(0, st.dur - st.el);
+        st.i = st.j; st.ph = 'hold'; st.el = 0;
+        ev.push({t:'arrive', i: st.i});
+      }
+    }
+    return ev;
+  },
+  glides(k, a, b){ return typeof a === 'number' && typeof b === 'number' && isFinite(a) && isFinite(b) && !NO_GLIDE.has(k) && !TL_SWITCH.has(k); },
+  /* one value part way (e = eased progress): numbers glide, everything else switches at the midpoint (late) */
+  mixVal(k, a, b, e, late){
+    if (TLM.glides(k, a, b)) return a + (b - a)*e;
+    if (Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every(x => typeof x === 'number') && b.every(x => typeof x === 'number')) return a.map((x, i) => x + (b[i] - x)*e);
+    const v = late ? (b === undefined ? a : b) : (a === undefined ? b : a);
+    return v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v;
+  },
+  mixObj(a, b, e, late){
+    const o = {};
+    for (const k in a) o[k] = TLM.mixVal(k, a[k], b[k], e, late);
+    for (const k in b) if (!(k in a)) o[k] = TLM.mixVal(k, undefined, b[k], e, late);
+    return o;
+  },
+  mapKey(m){ return m.src + '|' + m.tgt + '|' + (m.layer || ''); },
+  /* oscillators match by id, mappings by source + target + layer; a mapping in only one scene fades its amount in or out */
+  mixMod(ma, mb, e, late){
+    ma = ma || {}; mb = mb || {};
+    const oa = ma.osc || [], ob = mb.osc || [], ia = new Set(oa.map(o => o.id)), ib = new Map(ob.map(o => [o.id, o]));
+    const osc = oa.map(o => ib.has(o.id) ? TLM.mixObj(o, ib.get(o.id), e, late) : {...o});
+    for (const o of ob) if (!ia.has(o.id)) osc.push({...o});
+    const pa = ma.maps || [], pb = mb.maps || [], kb = new Map(pb.map(m => [TLM.mapKey(m), m])), ka = new Set(pa.map(TLM.mapKey));
+    const amt = m => m.on ? (+m.amt || 0) : 0, ids = new Set(), maps = [];
+    const add = m => { while (ids.has(m.id)) m.id = m.id + 't'; ids.add(m.id); maps.push(m); };
+    for (const m of pa){
+      const b = kb.get(TLM.mapKey(m));
+      if (b){ const x = TLM.mixObj(m, b, e, late); x.id = m.id; x.on = m.on || b.on ? 1 : 0; x.amt = amt(m) + (amt(b) - amt(m))*e; add(x); }
+      else add({...m, on: m.on ? 1 : 0, amt: amt(m)*(1 - e)});
+    }
+    for (const m of pb) if (!ka.has(TLM.mapKey(m))) add({...m, on: m.on ? 1 : 0, amt: amt(m)*e});
+    return {...(late ? mb : ma), osc, maps};
+  },
+};   // end TLM
+
+TL = {scenes: [], pics: {}, loop: true, run: null, busy: false, quiet: false, cache: null, thumbQ: [], rename: null, armed: null, progT: 0, selId: null};
+const tlStrip = p => { for (const k of TOOL_KEYS) delete p[k]; return p; };
+const tlNewId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const tlClampLen = (v, unit) => unit === 'sec' ? Math.max(.5, Math.min(600, Math.round((isFinite(v) ? v : 8)*2)/2)) : Math.max(1, Math.min(256, Math.round(isFinite(v) ? v : 1)));
+const tlClampTr = v => Math.max(0, Math.min(60, Math.round((isFinite(v) ? v : 2)*10)/10));
+function tlFmt(s){
+  s = Math.max(0, +s || 0);
+  if (s < 60) return (s < 10 ? s.toFixed(1) : String(Math.round(s))) + ' s';
+  const m = Math.floor(s/60); return m + ':' + String(Math.floor(s - m*60)).padStart(2, '0');
+}
+function tlLayerIdx(L){
+  const m = new Map(); if (!L) return m;
+  for (const id of ['bg', 'icon', 'obj', 'part']) if (L[id]) m.set(id, L[id]);
+  for (const l of L.layers || []) m.set(l.id, l);
+  for (const l of L.xs || []) m.set(l.id, l);
+  return m;
+}
+function tlHash(s){
+  let a = 0x811c9dc5, b = 5381;
+  for (let i = 0; i < s.length; i++){ const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; }
+  return 'p' + (a >>> 0).toString(36) + (b >>> 0).toString(36) + s.length.toString(36);
+}
+/* the pictures on screen now, as hash keys; re-encoded only after a picture, depth map, selection, icon or model changed */
+function tlLive(){
+  const c = TL.cache;
+  if (c && c.ver === picVer && c.icon === (iconCv.custom || null) && c.obj === (objText || null)) return c;
+  const files = {}, data = {};
+  const put = (k, s) => { if (s == null) return; const h = tlHash(s); data[h] = s; files[k] = h; };
+  put('image', colorC.toDataURL()); put('depth', depthC.toDataURL());
+  for (const l of P.L.layers){ const m = masks.get(l.id); if (m) put('mask:' + l.id, maskCanvas(m, MW, MH).toDataURL()); }
+  for (const l of P.L.layers){ const oc = ownCols.get(l.id); if (oc) put('col:' + l.id, oc.toDataURL()); }
+  if (plateC) put('plate', plateC.toDataURL());
+  if (iconCv.custom) put('icon', iconCv.custom.toDataURL());
+  if (objText) put('obj', objText);
+  const sig = P.L.layers.map(l => l.id).join(',') + '#' + Object.keys(files).sort().map(k => k + '=' + files[k]).join(';');
+  return TL.cache = {ver: picVer, icon: iconCv.custom || null, obj: objText || null, files, data, sig};
+}
+function tlCapture(sc){
+  let cap = tlLive();
+  if (Object.values(cap.files).some(h => !TL.pics[h] && !cap.data[h])){ TL.cache = null; cap = tlLive(); }
+  for (const h in cap.data) if (!TL.pics[h]) TL.pics[h] = cap.data[h];
+  const st = projectState(); delete st.P; delete st.pins;   // pins are interface, not part of a scene
+  return Object.assign(sc, {P: tlStrip(clone(P)), st, files: {...cap.files}, sig: cap.sig});
+}
+function tlPrune(){
+  const keep = new Set(); for (const sc of TL.scenes) for (const k in sc.files) keep.add(sc.files[k]);
+  if (TL.cache) for (const k in TL.cache.files) keep.add(TL.cache.files[k]);
+  for (const h in TL.pics) if (!keep.has(h)) delete TL.pics[h];
+}
+function tlNorm(sc){
+  const unit = sc.unit === 'sec' ? 'sec' : 'loops';
+  return {...sc, id: String(sc.id || tlNewId()), name: String(sc.name || 'Scene').slice(0, 40), unit, len: tlClampLen(+sc.len, unit),
+    tr: sc.tr === 'cut' ? 'cut' : 'glide', trLen: tlClampTr(+sc.trLen),
+    thumb: typeof sc.thumb === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(sc.thumb) ? sc.thumb : null};
+}
+/* saving: scenes plus the picture pool; a picture the project file already holds is pointed at, not stored twice */
+function tlForSave(out){
+  if (!TL || !TL.scenes.length) return undefined;
+  tlPrune();
+  const byStr = new Map(); for (const k in out || {}) byStr.set(out[k], k);
+  const pics = {}; for (const h in TL.pics){ const s = TL.pics[h], k = byStr.get(s); pics[h] = k ? {f: k} : s; }
+  return {v: 1, loop: TL.loop, scenes: TL.scenes.map(sc => ({...sc})), pics};
+}
+function tlFromSave(j, files){
+  tlStop(true);
+  TL.scenes = []; TL.pics = {}; TL.loop = true; TL.cache = null; TL.selId = null; TL.rename = null;
+  if (j && typeof j === 'object' && Array.isArray(j.scenes)){
+    for (const h in j.pics || {}){ const v = j.pics[h], s = typeof v === 'string' ? v : v && v.f && files ? files[v.f] : null; if (typeof s === 'string') TL.pics[h] = s; }
+    TL.scenes = j.scenes.filter(sc => sc && sc.P && sc.P.L && sc.files && sc.st && typeof sc.sig === 'string').slice(0, TL_MAX).map(tlNorm);
+    TL.loop = j.loop !== false;
+  }
+  renderTL();
+}
+function tlSnap(){ return {scenes: clone(TL.scenes), pics: {...TL.pics}, loop: TL.loop}; }
+function tlUnsnap(s){ tlStop(true); TL.scenes = clone(s.scenes); TL.pics = {...s.pics}; TL.loop = s.loop; TL.cache = null; TL.rename = null; renderTL(); }
+
+/* thumbnails: grabbed straight after the next frame draws (the WebGL picture is only readable then) */
+function tlThumb(sc){
+  TL.thumbQ.push(url => { if (url){ sc.thumb = url; renderTL(); } });
+}
+function tlThumbGrab(){
+  const q = TL.thumbQ.splice(0); let url = null;
+  try {
+    const w = 112, h = Math.max(28, Math.min(112, Math.round(w*cv.height/Math.max(1, cv.width))));
+    const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(cv, 0, 0, w, h);
+    url = c.toDataURL('image/jpeg', .72);
+  } catch(e){}
+  for (const f of q) f(url);
+}
+
+/* ---- applying scenes ---- */
+function tlAfterApply(g0){
+  if (mapReady) remapLayerMaps();
+  uploadIcon(); syncUI(); resize();
+  if (g0 !== P.gamma){ depthVer++; scheduleMedians(); }
+}
+/* the exact settings of a scene whose pictures are already on screen */
+function tlApplyExact(tp){
+  const g0 = P.gamma;
+  for (const k of Object.keys(P)) if (k !== 'L' && !TOOL_KEYS.includes(k) && !(k in tp)){ if (k in P0) P[k] = cloneV(P0[k]); else delete P[k]; }
+  for (const k in tp) if (k !== 'L' && !TOOL_KEYS.includes(k)) P[k] = cloneV(tp[k]);
+  const tb = tlLayerIdx(tp.L);
+  for (const [id, live] of tlLayerIdx(P.L)){ const b = tb.get(id); if (b) Object.assign(live, clone(b)); }
+  if ((P.L.xs || []).map(l => l.id).join() !== (tp.L.xs || []).map(l => l.id).join()) P.L.xs = clone(tp.L.xs || []);
+  tlAfterApply(g0);
+}
+/* a scene with other pictures: the same path as opening a project, with the picture held still while it loads */
+async function tlRestore(sc){
+  TL.busy = true;
+  try {
+    const st = {...clone(sc.st), P: clone(sc.P), layerSeq: Math.max(layerSeq, +sc.st.layerSeq || 0), pins: null};
+    const url = k => { const h = sc.files[k]; return (h && TL.pics[h]) || null; };
+    if (!url('image') || !url('depth')) throw new Error('missing');
+    await restoreProject(st, url, url('obj'));
+    TL.cache = {ver: picVer, icon: iconCv.custom || null, obj: objText || null, files: {...sc.files}, data: {}, sig: sc.sig};
+  } finally { TL.busy = false; lastNow = performance.now(); }
+}
+async function tlLoad(sc){
+  if (TL.run){ toast('Stop the timeline to load a scene'); return; }
+  if (cal){ toast('Finish calibrating first'); return; }
+  if (TL.busy || histBusy) return;
+  if (tlLive().sig === sc.sig){
+    const before = tlStrip(clone(P)), after = clone(sc.P);
+    tlApplyExact(after);
+    histPush('scene', sc.name + ' scene', () => tlApplyExact(before), () => tlApplyExact(after));
+  } else {
+    const before = capProject();
+    try { await tlRestore(sc); } catch(e){ toast(`Could not load the pictures for ${sc.name}`); return; }
+    const after = capProject();
+    if (before && after) histPush('scene', sc.name + ' scene', () => uncapProject(before), () => uncapProject(after), true);
+  }
+  TL.selId = sc.id; markDirty(); toast(sc.name); tlSync();
+}
+
+/* ---- playback ---- */
+function tlStart(){
+  if (!TL.scenes.length){ toast('Save a scene to the timeline first'); return; }
+  if (cal){ toast('Finish calibrating first'); return; }
+  if (TL.busy) return;
+  if (paused) $('#hPause').click();      // the timeline runs on the picture's clock
+  const sc = TL.scenes[0];
+  TL.run = {i: 0, id: sc.id, j: -1, jid: null, ph: 'hold', el: 0, dur: 0, mid: false, paused: false, A: null};
+  tlSync();
+  const r = tlArrive(0); if (r) r.catch(() => {});
+}
+function tlStop(quiet){
+  const R = TL.run; TL.run = null;
+  if (R && R.ph === 'tr' && R.A && !quiet) syncUI();
+  tlSync();
+}
+function tlEnd(){ TL.run = null; tlSync(); toast('Timeline finished; the last scene holds'); }
+function tlPause(user){
+  const R = TL.run; if (!R || R.paused) return;
+  R.paused = true;
+  if (user){ if (R.ph === 'tr' && R.A) syncUI(); }
+  else if (R.ph === 'tr' && R.A && oscReady) setTimeout(() => { try { renderOsc(); } catch(e){} }, 0);   // oscillator cards point at the live settings again
+  tlSync(); toast(user ? 'Timeline paused' : 'Timeline paused while you edit. Resume carries on from here.', 3200);
+}
+function tlGlideSetup(R, toSc){
+  const A = tlStrip(clone(P));
+  R.A = A; R.B = toSc.P; R.toScene = toSc; R.fa = tlLayerIdx(A.L); R.tb = tlLayerIdx(toSc.P.L);
+  R.gKeys = [...new Set([...Object.keys(A), ...Object.keys(toSc.P)])].filter(k => k !== 'L' && k !== 'mod' && !TOOL_KEYS.includes(k));
+  R.xsDiff = (P.L.xs || []).map(l => l.id).join() !== (toSc.P.L.xs || []).map(l => l.id).join();
+  R.picDiff = !R.mid && tlLive().sig !== toSc.sig;
+}
+function tlResume(){
+  const R = TL.run; if (!R) return;
+  if (cal){ toast('Finish calibrating first'); return; }
+  R.paused = false;
+  if (R.ph === 'tr' && R.A){                 // glide on from where things are now, over the time that was left
+    const to = TL.scenes.find(s => s.id === R.jid);
+    if (to){ R.dur = Math.max(.3, R.dur - R.el); R.el = 0; tlGlideSetup(R, to); }
+  }
+  if (paused) $('#hPause').click();
+  tlSync(); toast('Timeline resumed');
+}
+function tlBeginTr(ev){
+  const R = TL.run, to = TL.scenes[ev.j]; if (!R || !to) return;
+  R.jid = to.id; R.A = null; R.mid = false;
+  if (ev.dur > 0) tlGlideSetup(R, to);        // a Cut has no glide: the arrival that follows switches at once
+}
+function tlArrive(i){
+  const R = TL.run, sc = TL.scenes[i]; if (!R || !sc) return;
+  R.A = R.B = null; R.id = sc.id; R.jid = null;
+  if (tlLive().sig !== sc.sig) return tlRestore(sc).then(() => tlSync(), () => { toast(`Could not load the pictures for ${sc.name}; the timeline stopped`); tlStop(true); });
+  tlApplyExact(sc.P); tlSync();
+}
+function tlMixLayers(R, e, p){
+  const late = p >= .5;
+  for (const [id, live] of tlLayerIdx(P.L)){
+    const a = R.fa.get(id), b = R.tb.get(id);
+    if (a && b) Object.assign(live, TLM.mixObj(a, b, e, late));
+    else if (a) live.op = (+a.op || 0)*TLM.ease(Math.max(0, 1 - 2*p));      // only in this scene: fades out by the midpoint
+    else if (b) live.op = (+b.op || 0)*TLM.ease(Math.max(0, 2*p - 1));      // only in the next scene: fades in after it
+  }
+}
+function tlGlideFrame(){
+  const R = TL.run; if (!R || R.ph !== 'tr' || !R.A || R.paused || TL.busy) return;
+  const p = R.dur > 0 ? Math.min(1, R.el/R.dur) : 1, e = TLM.ease(p), late = p >= .5;
+  if (late && !R.mid && R.picDiff){             // Phase 1: other pictures switch in at the midpoint
+    R.mid = true;
+    tlRestore(R.toScene).then(() => { for (const l of P.L.layers) if (!R.fa.has(l.id)) l.op = 0; }, () => { toast(`Could not load the pictures for ${R.toScene.name}; the timeline stopped`); tlStop(true); });
+    return;
+  }
+  for (const k of R.gKeys) P[k] = TLM.mixVal(k, R.A[k], R.B[k], e, late);
+  P.mod = TLM.mixMod(R.A.mod, R.B.mod, e, late);
+  tlMixLayers(R, e, p);
+  if (late && !R.mid){
+    R.mid = true;
+    if (R.xsDiff){ P.L.xs = clone(R.B.L.xs || []); for (const l of P.L.xs) if (!R.fa.has(l.id)) l.op = 0; }
+    uploadIcon();
+    if (R.A.aspect !== R.B.aspect) resize();
+    if (R.A.gamma !== R.B.gamma){ depthVer++; scheduleMedians(); }
+    renderLayers();
+  }
+}
+async function tlEvents(ev){
+  for (const e of ev){
+    if (!TL.run) return;
+    if (e.t === 'tr') tlBeginTr(e);
+    else if (e.t === 'arrive'){ const r = tlArrive(e.i); if (r) await r; }
+    else if (e.t === 'end'){ tlEnd(); return; }
+  }
+  if (TL.run && TL.run.ph === 'tr') tlGlideFrame();
+}
+/* called by the frame loop before the oscillators and mappings run */
+function tlTick(dt){
+  const R = TL.run; if (!R || TL.busy || R.paused) return;
+  if (cal){ tlPause(); return; }
+  R.i = TL.scenes.findIndex(s => s.id === R.id);
+  if (R.i < 0){ tlStop(true); toast('The playing scene was deleted, so the timeline stopped'); return; }
+  if (R.ph === 'tr'){
+    const j = TL.scenes.findIndex(s => s.id === R.jid);
+    if (j < 0){ R.ph = 'hold'; R.el = TLM.sceneSec(TL.scenes[R.i]); R.A = null; }   // the target went away: head for whatever is next now
+    else R.j = j;
+  }
+  const ev = TLM.step(R, paused ? 0 : dt, TL.scenes, TL.loop);
+  if (ev.length) tlEvents(ev).catch(err => { console.error(err); tlStop(true); }); else tlGlideFrame();
+  const now = performance.now(); if (now - TL.progT > 100){ TL.progT = now; tlProg(); }
+}
+
+/* ---- panel ---- */
+const TL_GRIP = '<svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor" stroke="none"><circle cx="6" cy="4" r="1.2"/><circle cx="10" cy="4" r="1.2"/><circle cx="6" cy="8" r="1.2"/><circle cx="10" cy="8" r="1.2"/><circle cx="6" cy="12" r="1.2"/><circle cx="10" cy="12" r="1.2"/></g></svg>';
+const tlList = $('#tlList');
+const tlIdx = id => TL.scenes.findIndex(s => s.id === id);
+function tlTotal(){
+  let s = 0; const n = TL.scenes.length;
+  TL.scenes.forEach((sc, i) => { s += TLM.sceneSec(sc) + (TLM.next(i, n, TL.loop) >= 0 ? TLM.trSec(sc) : 0); });
+  return s;
+}
+function renderTL(){
+  if (!TL || !tlList) return;
+  const n = TL.scenes.length;
+  tlList.innerHTML = '';
+  TL.scenes.forEach((sc, i) => {
+    const last = i === n - 1, holds = last && !TL.loop, bars = +sc.P.bpm > 0, nm = escH(sc.name);
+    const li = document.createElement('li'); li.className = 'tlCard'; li.dataset.id = sc.id;
+    const name = TL.rename === sc.id
+      ? `<input type="text" class="tlRn" maxlength="40" value="${nm}" aria-label="Scene name" data-typing>`
+      : `<span class="tlName" title="Double-click to rename">${nm}</span>`;
+    const unitHint = sc.unit === 'sec' ? '' : bars ? ` · ${sc.len} ${sc.len === 1 ? 'bar' : 'bars'} at ${sc.P.bpm} BPM` : ` · ${sc.len} × ${sc.P.loop || 12} s loop`;
+    li.innerHTML = `<div class="tlHead">
+        <span class="tlGrip" title="Drag to reorder">${TL_GRIP}</span>
+        <button class="tlLoad" type="button" data-a="load" aria-label="Load ${nm}" title="Load this scene">${sc.thumb ? `<img src="${sc.thumb}" alt="">` : ''}<span class="tlNum">${i + 1}</span></button>
+        <div class="tlNm">${name}<span class="tlSub">${escH(tlFmt(TLM.sceneSec(sc)))}${escH(unitHint)}</span></div>
+        <i class="tlBar" aria-hidden="true"><b></b></i>
+      </div>
+      <div class="tlRow">
+        <label class="tlF">Length <input type="number" class="tlLen" inputmode="decimal" min="${sc.unit === 'sec' ? .5 : 1}" step="${sc.unit === 'sec' ? .5 : 1}" value="${sc.len}" aria-label="Length of ${nm}"></label>
+        <div class="seg tlUnit" role="group" aria-label="Length unit for ${nm}"><button type="button" data-u="loops" aria-pressed="${sc.unit === 'loops'}">${bars ? 'Bars' : 'Loops'}</button><button type="button" data-u="sec" aria-pressed="${sc.unit === 'sec'}">Sec</button></div>
+      </div>
+      <div class="tlRow">
+        <label class="tlF">${last ? (TL.loop ? 'Back to 1' : 'Then') : 'Into next'} <select class="tlTr" aria-label="Transition after ${nm}"${holds ? ' disabled' : ''}><option value="glide">Glide</option><option value="cut">Cut</option></select></label>
+        <label class="tlF tlTrL"${sc.tr === 'cut' || holds ? ' hidden' : ''}>over <input type="number" class="tlTrLen" inputmode="decimal" min="0" max="60" step=".1" value="${sc.trLen}" aria-label="Glide length after ${nm}, seconds"> s</label>
+        ${holds ? '<span class="note">Holds at the end</span>' : ''}
+      </div>
+      <div class="tlAct">
+        <button class="ib tlMv" type="button" data-a="up" aria-label="Move ${nm} earlier" title="Move earlier"${i === 0 ? ' disabled' : ''}>▲</button>
+        <button class="ib tlMv" type="button" data-a="down" aria-label="Move ${nm} later" title="Move later"${last ? ' disabled' : ''}>▼</button>
+        <button class="btn" type="button" data-a="update" title="Re-capture this scene from what you see now">Update scene</button>
+        <button class="btn" type="button" data-a="rename">Rename</button>
+        <button class="btn" type="button" data-a="dup">Duplicate</button>
+        <button class="btn${TL.armed === sc.id ? ' armed' : ''}" type="button" data-a="del">${TL.armed === sc.id ? 'Confirm delete' : 'Delete'}</button>
+      </div>`;
+    li.querySelector('.tlTr').value = sc.tr;
+    tlList.appendChild(li);
+  });
+  $('#tlLoop').checked = TL.loop;
+  $('#tlMeta').textContent = n ? `${n} ${n === 1 ? 'scene' : 'scenes'} · ${tlFmt(tlTotal())}${TL.loop ? ' loop' : ''}` : '';
+  $('#tlEmpty').hidden = n > 0;
+  tlSync();
+  if (TL.rename){ const r = tlList.querySelector('.tlRn'); if (r){ r.focus(); r.select(); } }
+}
+function tlSync(){
+  if (!TL) return;
+  const R = TL.run, pb = $('#tlPlay');
+  pb.textContent = !R ? 'Play' : R.paused ? 'Resume' : 'Pause';
+  pb.disabled = !TL.scenes.length; pb.setAttribute('aria-pressed', !!R && !R.paused);
+  $('#tlStop').disabled = !R;
+  for (const li of tlList.children){ li.classList.toggle('cur', !!R && li.dataset.id === R.id); li.classList.toggle('sel', !R && li.dataset.id === TL.selId); }
+  tlProg();
+}
+function tlProg(){
+  const R = TL.run, box = $('#tlProg');
+  if (!R){ box.hidden = true; return; }
+  const n = TL.scenes.length, i = tlIdx(R.id), sc = TL.scenes[i]; if (!sc){ box.hidden = true; return; }
+  box.hidden = false;
+  const L = TLM.sceneSec(sc), goes = TLM.next(i, n, TL.loop) >= 0, D = !goes ? 0 : R.ph === 'tr' ? R.dur : TLM.trSec(sc);
+  const el = R.ph === 'hold' ? R.el : L + R.el, tot = Math.max(1e-6, L + D), to = R.ph === 'tr' ? TL.scenes[tlIdx(R.jid)] : null;
+  let txt = `${R.paused ? 'Paused · ' : ''}Scene ${i + 1} of ${n}: ${sc.name}`;
+  if (to) txt += ` → ${to.name} · ${D > 0 ? 'gliding, ' + tlFmt(D - R.el) + ' left' : 'cut'}`;
+  else txt += goes ? ` · ${tlFmt(tot - el)} left` : ` · ${tlFmt(L - R.el)} left, then it holds`;
+  $('#tlProgTxt').textContent = txt;
+  const w = Math.max(0, Math.min(100, el/tot*100)) + '%';
+  $('#tlProgBar b').style.width = w;
+  const card = tlList.querySelector(`.tlCard[data-id="${CSS.escape(R.id)}"] .tlBar b`); if (card) card.style.width = w;
+}
+function tlNextName(){
+  let k = 0; for (const sc of TL.scenes){ const m = /^Scene (\d+)$/.exec(sc.name); if (m) k = Math.max(k, +m[1]); }
+  return 'Scene ' + Math.max(k + 1, TL.scenes.length + 1);
+}
+function tlSaveNew(){
+  if (cal){ toast('Finish calibrating first'); return; }
+  if (TL.busy) return;
+  if (TL.scenes.length >= TL_MAX){ toast(`The timeline holds up to ${TL_MAX} scenes`); return; }
+  let sc;
+  try { sc = tlCapture({id: tlNewId(), name: tlNextName(), unit: 'loops', len: P.bpm > 0 ? 4 : 1, tr: 'glide', trLen: 2, thumb: null}); }
+  catch(e){ toast('Could not capture this scene'); return; }
+  TL.scenes.push(sc); TL.selId = sc.id; tlThumb(sc); renderTL(); markDirty();
+  toast(`Saved ${sc.name} to the timeline`);
+  const last = tlList.lastElementChild; if (last) last.scrollIntoView({block: 'nearest'});
+}
+function tlEndRename(commit){
+  const id = TL.rename; if (!id) return;
+  const inp = tlList.querySelector('.tlRn'); TL.rename = null;
+  const sc = TL.scenes[tlIdx(id)];
+  if (commit && sc && inp){ const v = inp.value.trim().slice(0, 40); if (v && v !== sc.name){ sc.name = v; markDirty(); } }
+  renderTL();
+}
+function tlMove(id, to){
+  const i = tlIdx(id); if (i < 0) return;
+  to = Math.max(0, Math.min(TL.scenes.length - 1, to)); if (to === i) return;
+  const [sc] = TL.scenes.splice(i, 1); TL.scenes.splice(to, 0, sc);
+  renderTL(); markDirty();
+  const b = tlList.querySelector(`.tlCard[data-id="${CSS.escape(id)}"] [data-a="${to < i ? 'up' : 'down'}"]`); if (b && !b.disabled) b.focus();
+}
+let tlArmT = 0;
+tlList.addEventListener('click', e => {
+  const li = e.target.closest('.tlCard'); if (!li) return;
+  const id = li.dataset.id, sc = TL.scenes[tlIdx(id)]; if (!sc) return;
+  const u = e.target.closest('.tlUnit button');
+  if (u){
+    const unit = u.dataset.u; if (unit === sc.unit) return;
+    const secs = TLM.sceneSec(sc), per = TLM.sceneSec({...sc, unit: 'loops', len: 1});
+    sc.unit = unit; sc.len = tlClampLen(unit === 'sec' ? secs : secs/per, unit);   // keep about the same length
+    renderTL(); markDirty(); return;
+  }
+  const b = e.target.closest('[data-a]');
+  if (!b){   // a tap on the card itself (not on one of its controls) loads it; the second click of a double-click renames instead
+    if (!e.target.closest('input, select, button, label, .tlUnit, .tlGrip') && e.detail < 2) tlLoad(sc);
+    return;
+  }
+  const a = b.dataset.a;
+  if (a !== 'del' && TL.armed){ TL.armed = null; clearTimeout(tlArmT); }
+  if (a === 'load') tlLoad(sc);
+  else if (a === 'up') tlMove(id, tlIdx(id) - 1);
+  else if (a === 'down') tlMove(id, tlIdx(id) + 1);
+  else if (a === 'rename'){ TL.rename = id; renderTL(); }
+  else if (a === 'update'){
+    if (cal){ toast('Finish calibrating first'); return; }
+    try { tlCapture(sc); } catch(err){ toast('Could not capture this scene'); return; }
+    tlPrune(); tlThumb(sc); renderTL(); markDirty(); toast('Updated ' + sc.name);
+  }
+  else if (a === 'dup'){
+    if (TL.scenes.length >= TL_MAX){ toast(`The timeline holds up to ${TL_MAX} scenes`); return; }
+    const c = {...clone(sc), id: tlNewId(), name: (sc.name + ' copy').slice(0, 40)};
+    TL.scenes.splice(tlIdx(id) + 1, 0, c); renderTL(); markDirty(); toast(c.name);
+  }
+  else if (a === 'del'){
+    if (TL.armed !== id){ TL.armed = id; clearTimeout(tlArmT); tlArmT = setTimeout(() => { TL.armed = null; renderTL(); }, 3000); renderTL(); return; }
+    TL.armed = null; clearTimeout(tlArmT);
+    TL.scenes.splice(tlIdx(id), 1); if (TL.selId === id) TL.selId = null;
+    tlPrune(); renderTL(); markDirty(); toast('Deleted ' + sc.name);
+  }
+});
+tlList.addEventListener('dblclick', e => { const nm = e.target.closest('.tlName'); if (!nm) return; TL.rename = nm.closest('.tlCard').dataset.id; renderTL(); });
+tlList.addEventListener('keydown', e => {
+  if (!e.target.matches('.tlRn')) return;
+  if (e.key === 'Enter'){ e.preventDefault(); tlEndRename(true); }
+  else if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); tlEndRename(false); }
+});
+tlList.addEventListener('focusout', e => { if (e.target.matches('.tlRn') && TL.rename) tlEndRename(true); });
+tlList.addEventListener('change', e => {
+  const li = e.target.closest('.tlCard'); if (!li) return;
+  const sc = TL.scenes[tlIdx(li.dataset.id)]; if (!sc) return;
+  if (e.target.matches('.tlLen')) sc.len = tlClampLen(parseFloat(String(e.target.value).replace(',', '.')), sc.unit);
+  else if (e.target.matches('.tlTrLen')) sc.trLen = tlClampTr(parseFloat(String(e.target.value).replace(',', '.')));
+  else if (e.target.matches('.tlTr')) sc.tr = e.target.value === 'cut' ? 'cut' : 'glide';
+  else return;
+  renderTL(); markDirty();
+});
+/* desktop: drag a card by its grip; touch uses the arrows */
+let tlDrag = null;
+const tlDragClear = () => { tlDrag = null; for (const li of tlList.children){ li.draggable = false; li.classList.remove('drag', 'dropB', 'dropA'); } };
+tlList.addEventListener('pointerdown', e => { const g = e.target.closest('.tlGrip'); if (g && e.pointerType === 'mouse') g.closest('.tlCard').draggable = true; });
+tlList.addEventListener('pointerup', () => { if (!tlDrag) tlDragClear(); });
+tlList.addEventListener('dragstart', e => {
+  const li = e.target.closest && e.target.closest('.tlCard'); if (!li || !li.draggable){ e.preventDefault(); return; }
+  tlDrag = li.dataset.id; li.classList.add('drag'); e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', li.querySelector('.tlName')?.textContent || 'scene'); } catch(err){}
+});
+const tlDropAt = e => { const li = e.target.closest && e.target.closest('.tlCard'); if (!li) return null; const r = li.getBoundingClientRect(); return {li, after: e.clientY > r.top + r.height/2}; };
+tlList.addEventListener('dragover', e => {
+  if (!tlDrag) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  const d = tlDropAt(e); for (const li of tlList.children) li.classList.remove('dropB', 'dropA');
+  if (d && d.li.dataset.id !== tlDrag) d.li.classList.add(d.after ? 'dropA' : 'dropB');
+});
+tlList.addEventListener('drop', e => {
+  if (!tlDrag) return; e.preventDefault();
+  const d = tlDropAt(e), id = tlDrag; tlDragClear();
+  if (!d || d.li.dataset.id === id) return;
+  const from = tlIdx(id); let to = tlIdx(d.li.dataset.id) + (d.after ? 1 : 0); if (from < to) to--;
+  tlMove(id, to);
+});
+tlList.addEventListener('dragend', tlDragClear);
+
+$('#tlSave').onclick = tlSaveNew;
+$('#tlPlay').onclick = () => { if (!TL.run) tlStart(); else if (TL.run.paused) tlResume(); else tlPause(true); };
+$('#tlStop').onclick = () => { if (TL.run){ tlStop(); toast('Timeline stopped'); } };
+$('#tlLoop').addEventListener('change', e => { TL.loop = e.target.checked; renderTL(); markDirty(); });
+$('#dTime').onclick = tapOnce(() => showPanel(pT, pT.hidden));
+$('#mTime').onclick = () => { setMore(false); showPanel(pT, true); };
+/* editing anything while the timeline plays pauses it (picked over "edit the current scene only": one rule, nothing hidden) */
+const TL_EDIT_OUT = '#pTime, #pMusic, #lookPop, #tst, #tut, #itut, #tutPick, #moreMenu, #keysSheet, #dq, input[type=text], input[type=file], [data-typing]';
+for (const type of ['input', 'change']) document.addEventListener(type, e => {
+  if (!TL.run || TL.run.paused) return;
+  const t = e.target; if (!t || !t.closest || t.closest(TL_EDIT_OUT)) return;
+  tlPause();
+}, true);
+document.addEventListener('pointerdown', e => { if (TL.run && !TL.run.paused && e.target.closest && e.target.closest('#xyPad')) tlPause(); }, true);
+renderTL();
+
 /* ---- phone sheets (Layers, Inspector, Theme): drag the header between peek, half and full height ---- */
 const SHEET_MODES = ['peek', 'half', 'full'];
 let sheetMode = UI.get('sheetMode', 'half'); if (!SHEET_MODES.includes(sheetMode)) sheetMode = 'half';
 let sheetDrag = null, sheetTapGuard = 0;
-const sheetEl = () => [pL, pI, pO, pM].find(p => !p.hidden) || (!lookPop.hidden ? lookPop : null);
+const sheetEl = () => [pL, pI, pO, pM, pT].find(p => !p.hidden) || (!lookPop.hidden ? lookPop : null);
 function sheetHeights(el){
   const av = Math.max(160, innerHeight - Math.ceil(dockEl.getBoundingClientRect().height));
   const head = el.matches('.fp') ? el.querySelector('.fph') : el.querySelector('h3'), hh = (head && head.getBoundingClientRect().height) || 48;   // 0 means not laid out yet: never size from that
@@ -8653,17 +9264,17 @@ function bindSheet(el, headSel){
   };
   head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up); head.addEventListener('touchcancel', up); head.addEventListener('lostpointercapture', up);
 }
-bindSheet(pL, '.fph'); bindSheet(pI, '.fph'); bindSheet(pO, '.fph'); bindSheet(pM, '.fph'); bindSheet(lookPop, 'h3');
+bindSheet(pL, '.fph'); bindSheet(pI, '.fph'); bindSheet(pO, '.fph'); bindSheet(pM, '.fph'); bindSheet(pT, '.fph'); bindSheet(lookPop, 'h3');
 setSheetMode(sheetMode);
-phone.addEventListener('change', () => { endSheetDrag(); document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden)); applySheet(); syncSides(); });
+phone.addEventListener('change', () => { endSheetDrag(); document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden || !pT.hidden)); applySheet(); syncSides(); });
 addEventListener('resize', () => { try { applySheet(); } catch(e){} });
 
 /* ---- landscape phone: one panel at a time, Layers on the left, Inspector and Oscillators on the right ---- */
 function syncSides(){
   const b = document.body.classList, L = landscape.matches;
-  b.toggle('lsL', L && !pL.hidden); b.toggle('lsR', L && (!pI.hidden || !pO.hidden || !pM.hidden));
+  b.toggle('lsL', L && !pL.hidden); b.toggle('lsR', L && (!pI.hidden || !pO.hidden || !pM.hidden || !pT.hidden));
 }
-function oneSidePanel(){ if (!landscape.matches) return; const first = [pL, pI, pO, pM].find(p => !p.hidden); if (first) showPanel(first, true); else syncSides(); }
+function oneSidePanel(){ if (!landscape.matches) return; const first = [pL, pI, pO, pM, pT].find(p => !p.hidden); if (first) showPanel(first, true); else syncSides(); }
 landscape.addEventListener('change', oneSidePanel);
 oneSidePanel();
 clearDirty(3000);   // the start-up scene is not an unsaved change
