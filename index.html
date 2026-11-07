@@ -2207,6 +2207,7 @@ async function makeSample(name = 'Sacred Tree', which = 1){
   // Particles: the built-in particle layer, small sage and cream spores
   P.L.part = which === 2 ? {...defLayers().part} : {...defLayers().part, name:'Particles', vis:true, count:160, psize:1.5, psizeVar:.3, pspeed:.4, pspread:.5, pturb:.35, ptwinkle:.6, phue:93, phueVar:.1, psat:.35, pbright:1.1, pseed:7, pshape:'soft'};
   imageReady(name, true); uploadIcon(); syncUI();
+  sceneBase = {}; for (const d of layerDefs()) sceneBase[d.id] = clone(fxPickAll(getL(d.id)));   // what Reset all returns to for this scene
   return true;
 }
 function softenDepth(f){
@@ -2247,7 +2248,9 @@ function loadImageFile(file){ return new Promise(done => {
 }); }
 /* a new image invalidates every mask: start again from one Background layer */
 function maskDims(){ const s = Math.min(1, 1024/Math.max(imgW, imgH)); return [Math.max(2, Math.round(imgW*s)), Math.max(2, Math.round(imgH*s))]; }
+var sceneBase = null;   // a sample scene's own starting layer values (set in makeSample); any other load clears it, and Reset all then falls back to the app defaults
 function imageReady(name, keepLayers = false){
+  sceneBase = null;
   srcName = name; colorVer++; depthVer++; audioRot = 0;
   [MW, MH] = maskDims();
   if (cal){ cal = null; showCal(false); }
@@ -4090,7 +4093,7 @@ $('#bDice').onclick = () => {
 };
 function fxPickAll(L){ const o = {}; for (const k in L) if (typeof L[k] !== 'object') o[k] = L[k]; return o; }
 $('#bDiceUndo').onclick = () => histStep(-1);
-/* Reset all: every control Roll can touch goes back to its starting value; layers, selections, names and exposure stay. Ctrl+Z brings it back. */
+/* Reset all: every control Roll can touch goes back to its starting value (a sample scene returns to its own starting look); layers, selections, names and exposure stay. Ctrl+Z brings it back. */
 $('#bResetAll').onclick = () => {
   const before = fxSnap();
   const dl = defLayers();
@@ -4102,8 +4105,9 @@ $('#bResetAll').onclick = () => {
     } else {
       for (const d of layerDefs()){
         const L = getL(d.id), kd = kindOf(d.id), base = kd === 'part' ? dl.part : kd === 'icon' ? dl.icon : kd === 'obj' ? dl.obj : LD;
-        if (k === 'hdRange'){ L.hdMin = LD.hdMin; L.hdMax = LD.hdMax; continue; }
-        const v = base[k] ?? LD[k]; if (v !== undefined && k in L) L[k] = v;
+        const bs = sceneBase && sceneBase[d.id] ? sceneBase[d.id] : null;   // a sample scene's own look wins over the blank defaults
+        if (k === 'hdRange'){ L.hdMin = bs && 'hdMin' in bs ? bs.hdMin : LD.hdMin; L.hdMax = bs && 'hdMax' in bs ? bs.hdMax : LD.hdMax; continue; }
+        const v = bs && k in bs ? bs[k] : (base[k] ?? LD[k]); if (v !== undefined && k in L) L[k] = v;
       }
     }
   }
