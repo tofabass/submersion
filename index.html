@@ -3447,7 +3447,8 @@ const EYE_ON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stro
 const EYE_OFF = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z" opacity=".5"/><path d="M2.5 13.5 13.5 2.5"/></svg>';
 const delArm = {id:null, until:0, t:0};
 const layerUI = {showHidden: false};
-try { layerUI.showHidden = localStorage.getItem('depthscope.ui.showHidden') === '1'; } catch(e){}
+layerUI.showHidden = true;   // hidden layers are listed by default; the button's choice is remembered once the user makes one
+try { const sh = localStorage.getItem('depthscope.ui.showHidden'); if (sh !== null) layerUI.showHidden = sh === '1'; } catch(e){}
 let renaming = null, renameDraft = '';
 function beginRename(id){ renaming = id; renameDraft = ''; renderLayers(); }
 function endRename(commit){
