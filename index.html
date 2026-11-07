@@ -4778,8 +4778,8 @@ cv.addEventListener('pointermove', e => {
   if (Math.hypot(p.x - p.x0, p.y - p.y0) > 10) orbit.tapOk = false;
   const r = cv.getBoundingClientRect();
   if (orbit.mode === 'orbit'){
-    V.yaw = Math.max(-80, Math.min(80, orbit.yaw0 - (p.x - orbit.x0)/r.width*ORBIT_DEG));
-    V.pitch = Math.max(-80, Math.min(80, orbit.pitch0 - (p.y - orbit.y0)/r.height*ORBIT_DEG));   // drag right turns left, drag up tilts up (tuned by feel)
+    V.yaw = Math.max(-80, Math.min(80, orbit.yaw0 + (p.x - orbit.x0)/r.width*ORBIT_DEG));
+    V.pitch = Math.max(-80, Math.min(80, orbit.pitch0 + (p.y - orbit.y0)/r.height*ORBIT_DEG));   // drag direction tuned by feel (opposite of the XY pad vertically)
     syncXY();
   } else if (orbit.mode === 'pinch'){
     V.spread = Math.max(0, Math.min(2, orbit.sp0 + (orbitDist() - orbit.d0)/Math.min(r.width, r.height)*2));
