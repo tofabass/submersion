@@ -1955,6 +1955,22 @@ document.addEventListener('dblclick', e => {
   i.value = Math.min(+i.max, Math.max(+i.min, isFinite(d) ? d : 0));
   i.dispatchEvent(new Event('input', {bubbles:true}));
 });
+// touch: a double tap on a slider (or the 3D XY pad) resets it, the same as a double-click with a mouse
+{
+  let down = null, last = null;
+  const dtTarget = t => t instanceof HTMLInputElement && t.type === 'range' ? t : (t && t.closest ? t.closest('#xyPad') : null);
+  document.addEventListener('pointerdown', e => { down = e.pointerType === 'touch' ? {x: e.clientX, y: e.clientY, t: e.timeStamp} : null; }, true);
+  document.addEventListener('pointercancel', () => { down = null; last = null; }, true);
+  document.addEventListener('pointerup', e => {
+    if (e.pointerType !== 'touch' || !down) return;
+    const el = dtTarget(e.target), tap = e.timeStamp - down.t < 300 && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 12; down = null;
+    if (!el || !tap){ last = null; return; }                // a drag or a long press is never half of a double tap
+    if (last && last.el === el && e.timeStamp - last.t < 350 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 30){
+      last = null; el.dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true})); return;   // after the tap has moved the thumb, so the reset wins
+    }
+    last = {el, t: e.timeStamp, x: e.clientX, y: e.clientY};
+  }, true);
+}
 
 const mirrorBox = $('#p-mirror'), snapAutoBox = $('#p-snapAuto');
 mirrorBox.addEventListener('change', () => { P.mirror = mirrorBox.checked ? 1 : 0; changed(); });
@@ -7742,8 +7758,8 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
@@ -7819,6 +7835,7 @@ const testMode = (() => {
     S('os4', B, aOS, 'adv', 'Open the Mod tab, lower the mapping amount, then remove the mapping.', 'The mapping is listed with source, target and amount; movement shrinks, then stops.', '#modList', {cat: 'mod'}),
     S('os5', B, aOS, 'adv', 'In Mod use Filter and Sort, then click a target.', 'The list narrows and reorders; clicking a target jumps to its slider.', '.cat[data-cat="mod"] .mtool', {cat: 'mod'}),
     S('os6', OM, aOS, 'adv', 'Map a Sine to Hue (Amount 100%), then try Triangle and Saw, and a 0 to 1 slider.', 'The slider sweeps its whole range smoothly back and forth with no flat stop at either end; Amount goes up to 200% (past 100% it reaches the ends and waits there).', '#pOsc .onode', {panel: 'O'}),
+    S('dt1', DT, aDP, 'touch', 'Move a few sliders (and the 3D XY pad), then double tap each one.', 'Each one goes back to its default; a single tap or a drag still just moves it.', '#xyPad'),
 
     S('au1', B, aAU, '', 'Sound tab › Load audio: pick a song you own, then press Play.', 'It plays only after you press Play; the picture reacts. Nothing is uploaded.', '#bAudio', {cat: 'audio'}),
     S('au2', B, aAU, '', 'Click Microphone and allow access if asked.', 'Meters move with room sound; clicking again stops it and the browser mic indicator goes away.', '.cat[data-cat="audio"] .lv', {cat: 'audio'}),
