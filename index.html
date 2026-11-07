@@ -2196,6 +2196,7 @@ function shiftL(hex, dl){                       // same hue and saturation, ligh
   return hslHex(h, s*100, Math.max(0, Math.min(100, l*100 + dl)));
 }
 function scene2Recolour(k){                     // k: 0 = farthest ... 5 = nearest
+  if (k === 2) k = 4; else if (k === 4) k = 2;   // by request: Side Mandalas and Sun swap colours
   const role = k < 3 ? 'main' : k < 5 ? 'second' : 'accent', i = role === 'main' ? k : role === 'second' ? k - 3 : 0, n = role === 'main' ? 3 : role === 'second' ? 2 : 1;
   return {rcOn:1, rcStr:1, rcKeep:1, rcCol: shiftL(SCENE2_PAL[role], n > 1 ? (i/(n - 1) - .5)*12 : 0)};
 }
