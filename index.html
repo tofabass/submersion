@@ -882,6 +882,14 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   background:var(--menu-surface);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-rim-top);
   backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);color:var(--ink)}
 .moreMenu[hidden]{display:none}
+.mHandle{display:none}
+@media (min-width:761px){
+  .mHandle{display:grid;place-items:center;height:14px;margin:-2px 0 0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+  .mHandle i{width:34px;height:4px;border-radius:2px;background:var(--dim);opacity:.5}
+  .mHandle:hover i{opacity:.8}
+  .lookpop>h3{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+}
+#pOsc{left:var(--oscL,16px)}
 .moreMenu .mi{display:flex;align-items:center;gap:10px;min-height:40px;border:0;background:transparent;color:inherit;font:500 13px var(--f-ui);padding:8px 10px;border-radius:9px;cursor:pointer;text-align:left}
 .moreMenu .mi span{flex:1}
 .moreMenu .mi:hover,.moreMenu .mi[aria-pressed="true"]{background:var(--accent-soft)}
@@ -1025,6 +1033,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.2v9.6L12.5 8Z" fill="currentColor"/></symbol>
   <symbol id="i-pause" viewBox="0 0 16 16"><path d="M5 3.5v9M11 3.5v9" stroke-width="2.4"/></symbol>
   <symbol id="i-invert" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12Z" fill="currentColor"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 16 16"><path d="M13.14 7.19 L14.77 7.36 L14.77 8.64 L13.14 8.81 L12.21 11.06 L13.24 12.33 L12.33 13.24 L11.06 12.21 L8.81 13.14 L8.64 14.77 L7.36 14.77 L7.19 13.14 L4.94 12.21 L3.67 13.24 L2.76 12.33 L3.79 11.06 L2.86 8.81 L1.23 8.64 L1.23 7.36 L2.86 7.19 L3.79 4.94 L2.76 3.67 L3.67 2.76 L4.94 3.79 L7.19 2.86 L7.36 1.23 L8.64 1.23 L8.81 2.86 L11.06 3.79 L12.33 2.76 L13.24 3.67 L12.21 4.94Z"/><circle cx="8" cy="8" r="2.1"/></symbol>
   <symbol id="i-theme" viewBox="0 0 16 16"><path d="M13.5 9.5A5.8 5.8 0 0 1 6.5 2.5a5.8 5.8 0 1 0 7 7Z"/></symbol>
   <symbol id="i-trash" viewBox="0 0 16 16"><path d="M2.5 4.5h11M6 4.5V2.8h4v1.7M4 4.5l.7 9h6.6l.7-9"/></symbol>
   <symbol id="i-brush" viewBox="0 0 16 16"><path d="M10.5 2.5 13.5 5.5 7 12l-3-3Z"/><path d="M4 9c-1.5 0-2.5 1-2.5 2.5V14H4c1.5 0 2.5-1 2.5-2.5"/></symbol>
@@ -1533,11 +1542,12 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <button class="dk" id="dRec" aria-label="Record one loop" title="Record one loop (R, press again to stop)" aria-keyshortcuts="R"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rec"/></svg></button>
   <button class="dk" data-adv id="dFull" aria-label="Fullscreen" title="Fullscreen (Shift+F)" aria-keyshortcuts="Shift+F"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-full"/></svg></button>
   <button class="dk" data-adv id="dHide" aria-label="Hide UI" title="Hide everything but the picture (H)" aria-keyshortcuts="H"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-hide"/></svg></button>
-  <button class="dk" id="dTheme" aria-label="Settings" title="Settings (T)" aria-keyshortcuts="T" aria-expanded="false" aria-controls="lookPop" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-theme"/></svg></button>
+  <button class="dk" id="dTheme" aria-label="Settings" title="Settings (T)" aria-keyshortcuts="T" aria-expanded="false" aria-controls="lookPop" aria-pressed="false"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-cog"/></svg></button>
   <button class="dk" data-adv id="dReset" aria-label="Reset all effects" title="Reset all effects (Z)" aria-keyshortcuts="Z"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-reset"/></svg></button>
   <button class="dk" id="dMore" aria-haspopup="dialog" aria-expanded="false" aria-controls="moreMenu" title="More" aria-label="More"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-more"/></svg><i class="dotb" id="dMoreDot" hidden></i></button>
 </nav>
 <div class="moreMenu" id="moreMenu" role="dialog" aria-label="More" hidden>
+  <div class="mHandle" id="mHandle" title="Drag to move. Double-click to put it back."><i aria-hidden="true"></i></div>
   <button class="mi" id="mSave" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-save"/></svg><span>Save project</span><i class="dirtyDot" id="mSaveDot" hidden></i><kbd class="kbd-i">Ctrl S</kbd></button>
   <button class="mi" id="mMusic" type="button" aria-controls="pMusic"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg><span>Streaming</span></button>
   <button class="mi onlyCmp" data-adv id="mTime" type="button" aria-controls="pTime"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tl"/></svg><span>Timeline</span></button>
@@ -5626,12 +5636,19 @@ for (const p of [pL, pI, pO, pM, pT]){
     const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); const q = p.getBoundingClientRect(); UI.set('pos.' + p.id, [Math.round(q.left), Math.round(q.top)]); };
     h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
   });
-  h.addEventListener('dblclick', e => { if (e.target.closest('button')) return; p.style.left = p.style.top = p.style.right = p.style.bottom = ''; UI.set('pos.' + p.id, null); });
+  h.addEventListener('dblclick', e => { if (e.target.closest('button')) return; p.style.left = p.style.top = p.style.right = p.style.bottom = ''; UI.set('pos.' + p.id, null); if (p === pO) placeOsc(); });
   const fb = p.querySelector('[data-fold]');
   const setFold = f => { p.classList.toggle('folded', f); fb.innerHTML = use(f ? 'i-unfold' : 'i-fold'); fb.setAttribute('aria-label', (f ? 'Unfold ' : 'Fold ') + PANEL_NAMES[p.id]); fb.title = fb.getAttribute('aria-label'); UI.set('fold.' + p.id, f); };
   fb.onclick = () => setFold(!p.classList.contains('folded'));
   setFold(UI.get('fold.' + p.id, false));
   p.querySelector('[data-close]').onclick = () => showPanel(p, false);
+}
+function placeOsc(){                       // default place: centred over the Oscillators button; a place the user chose wins
+  if (pO.hidden || pO.style.left) return;
+  if (phone.matches || landscape.matches){ pO.style.removeProperty('--oscL'); return; }
+  const b = $('#dOsc').getBoundingClientRect(), w = pO.offsetWidth;
+  if (!b.width){ pO.style.removeProperty('--oscL'); return; }
+  pO.style.setProperty('--oscL', Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width/2 - w/2)) + 'px');
 }
 addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); clampPanel(pT); });
 /* one shared way to open a phone sheet: its state is set from defaults, nothing animates from a stale size, and the same tap cannot toggle twice */
@@ -5651,7 +5668,7 @@ function showPanel(p, on){
   document.body.classList.toggle('sheet', phone.matches && (!pL.hidden || !pI.hidden || !pO.hidden || !pM.hidden || !pT.hidden));
   syncSides(); try { applySheet(); } catch(e){}
   if (on && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });   // settle once layout is final
-  if (p === pO){ UI.set('oscOpen', !!on); if (on && oscReady) oscDrawSoon(); }
+  if (p === pO){ UI.set('oscOpen', !!on); if (on) placeOsc(); if (on && oscReady) oscDrawSoon(); }
   if (p === pT && on && TL) renderTL();
 }
 $('#dLayers').onclick = tapOnce(() => showPanel(pL, pL.hidden));
@@ -5862,7 +5879,7 @@ function oscCard(o){
 function renderOsc(){
   if (mapReady && mapArmed && !oscList().some(o => o.id === mapArmed)) disarmMap();
   const host = $('#oscRow'), list = oscList(), one = OSC_UI.compact; host.innerHTML = ''; oscCards.clear();
-  pO.classList.toggle('compact', one); syncOscModeBtn(); oscApplyWidth();
+  pO.classList.toggle('compact', one); syncOscModeBtn(); oscApplyWidth(); placeOsc();
   for (const id of [...OSC_RT.keys()]) if (!list.some(o => o.id === id)) OSC_RT.delete(id);
   if (mapReady && shownCats.has('mod')) renderMatrix();
   if (!list.length) host.insertAdjacentHTML('beforeend', '<p class="note ointro">Each oscillator is a wave that can drive any slider, locked to the tempo or running free in Hz. Add one to start.</p>');
@@ -7222,6 +7239,41 @@ if (refractOK){
 }
 /* ---- the Theme button's settings popover ---- */
 const lookPop = $('#lookPop');
+/* ---- desktop menus (More, Settings): open above their dock button, clear of the open panels; drag by the top strip and they reopen where you left them ---- */
+const menuFree = () => !(phone.matches || landscape.matches);
+function menuClamp(el){
+  const r = el.getBoundingClientRect();
+  el.style.left = Math.max(4, Math.min(innerWidth - r.width - 4, r.left)) + 'px';
+  el.style.top = Math.max(4, Math.min(innerHeight - 40, r.top)) + 'px';
+}
+function placeMenu(el, btn, key){
+  if (!menuFree()){ el.style.left = el.style.top = el.style.right = el.style.bottom = ''; return; }
+  const pos = UI.get('pos.' + key, null);
+  if (pos){ el.style.left = pos[0] + 'px'; el.style.top = pos[1] + 'px'; el.style.right = el.style.bottom = 'auto'; menuClamp(el); return; }
+  const dk = document.querySelector('.dock').getBoundingClientRect(), b = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  let bottom = innerHeight - dk.top + 8;
+  const lo = 8, hi = Math.max(lo, innerWidth - w - 8), want = Math.max(lo, Math.min(hi, b.left + b.width/2 - w/2));
+  const panels = [pL, pI, pO, pM, pT].filter(q => !q.hidden).map(q => q.getBoundingClientRect());
+  const top = innerHeight - bottom - h, hit = panels.filter(r => r.width && r.bottom > top && r.top < innerHeight - bottom);
+  const blocked = hit.map(r => [r.left - w - 6, r.right + 6]), inside = x => blocked.some(iv => x > iv[0] + .5 && x < iv[1] - .5);
+  const cands = [want, ...blocked.flatMap(iv => [iv[0], iv[1]])].map(x => Math.max(lo, Math.min(hi, x))).filter(x => !inside(x)).sort((a, c) => Math.abs(a - want) - Math.abs(c - want));
+  let x = want;
+  if (!hit.length || cands.length) x = hit.length ? cands[0] : want;
+  else { const up = innerHeight - Math.min(...hit.map(r => r.top)) + 8; if (innerHeight - up - h >= 8) bottom = up; }   // no gap beside the panels: stack above them
+  el.style.left = x + 'px'; el.style.right = 'auto'; el.style.top = 'auto'; el.style.bottom = bottom + 'px';
+}
+function menuDrag(el, handle, btn, key){
+  handle.addEventListener('pointerdown', e => {
+    if (!menuFree() || e.button !== 0 || e.target.closest('button, input, select, a')) return;
+    const r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; handle.setPointerCapture(e.pointerId);
+    const mv = ev => { el.style.left = Math.max(4, Math.min(innerWidth - 80, ev.clientX - dx)) + 'px'; el.style.top = Math.max(4, Math.min(innerHeight - 40, ev.clientY - dy)) + 'px'; el.style.right = el.style.bottom = 'auto'; };
+    const up = () => { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); handle.removeEventListener('pointercancel', up); const q = el.getBoundingClientRect(); UI.set('pos.' + key, [Math.round(q.left), Math.round(q.top)]); };
+    handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up);
+  });
+  handle.addEventListener('dblclick', e => { if (e.target.closest('button, input, select, a')) return; UI.set('pos.' + key, null); placeMenu(el, btn, key); });
+}
+menuDrag(lookPop, lookPop.querySelector('h3'), $('#dTheme'), 'lookPop');
+addEventListener('resize', () => { try { if (!lookPop.hidden) placeMenu(lookPop, $('#dTheme'), 'lookPop'); if (!moreMenu.hidden) placeMenu(moreMenu, $('#dMore'), 'moreMenu'); placeOsc(); } catch(e){} });
 function syncLookPop(){
   lookPop.querySelectorAll('[data-lk]').forEach(b => b.setAttribute('aria-pressed', String(LOOK[b.dataset.lk]) === b.dataset.v));
   $('#lkColor').value = LOOK.color; $('#lkColorOut').textContent = LOOK.color.toUpperCase();
@@ -7241,7 +7293,7 @@ $('#lkFrost').addEventListener('dblclick', e => { e.stopPropagation(); LOOK.fros
 function toggleLookPop(on){
   if ((on ?? lookPop.hidden) && lookPop.hidden && phone.matches){ try { sheetOpening(![pL, pI, pO, pM, pT].some(x => !x.hidden)); } catch(e){} }
   lookPop.hidden = !(on ?? lookPop.hidden); $('#dTheme').setAttribute('aria-expanded', !lookPop.hidden); $('#dTheme').setAttribute('aria-pressed', !lookPop.hidden); if (!lookPop.hidden) syncLookPop();
-  if (!lookPop.hidden){ try { setMore(false); } catch(e){} if (phone.matches) for (const p of [pL, pI, pO, pM, pT]) if (!p.hidden) showPanel(p, false); }
+  if (!lookPop.hidden){ try { setMore(false); } catch(e){} if (phone.matches) for (const p of [pL, pI, pO, pM, pT]) if (!p.hidden) showPanel(p, false); placeMenu(lookPop, $('#dTheme'), 'lookPop'); }
   try { applySheet(); } catch(e){}
   if (!lookPop.hidden && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });
 }
@@ -8076,8 +8128,8 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
@@ -8231,6 +8283,10 @@ const testMode = (() => {
     S('lt5', LT, aLY, 'full', 'Light trace on a detailed picture layer (lots of fine lines): watch it run for a full lap.', 'The light flows along the lines with soft edges and no blocky patches or straight cut lines, at the same speed on big and small pieces.', '#olBox', {cat: 'layer', top: 1}),
     S('lt6', LT, aLY, 'full', 'Tick Gradient and move Trace tail hue.', 'The head keeps the Trace hue and the tail shifts toward the tail hue along its length.', '#olBox', {cat: 'layer', top: 1}),
     S('lt7', LT, aLY, 'full', 'Tick Outside edge only.', 'Only the outer silhouette of each separate part lights; holes and inner lines do not.', '#olBox', {cat: 'layer', top: 1}),
+    S('mp1', MP, aHU, '', 'Look at the Settings button in the dock.', 'It shows a cog wheel (not a moon).', '#dTheme'),
+    S('mp2', MP, aHU, 'desktop', 'Open the Layers and Inspector panels, then open Settings and the More (...) menu one at a time.', 'Each opens above its dock button and does not cover the Layers or Inspector panel.', '#dMore'),
+    S('mp3', MP, aHU, 'desktop', 'Drag Settings by its title and More by its top strip, close each, then reopen.', 'Each reopens where you left it, even after a reload. Double-click the title or strip to send it back above its button.', '#dTheme'),
+    S('mp4', MP, aOS, 'desktop', 'Open the Oscillators panel (O) without having moved it.', 'It opens centred above the Oscillators button. After you drag it elsewhere it reopens there.', '#dOsc'),
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
     S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
@@ -8621,8 +8677,9 @@ const moreMenu = $('#moreMenu'), dMore = $('#dMore');
 function setMore(open){
   if (open){ toggleLookPop(false); closeSearch(); }
   moreMenu.hidden = !open; dMore.setAttribute('aria-expanded', open); dMore.setAttribute('aria-pressed', open);
-  if (open){ syncMoreLook(); $('#mSave').focus(); }
+  if (open){ syncMoreLook(); placeMenu(moreMenu, dMore, 'moreMenu'); $('#mSave').focus(); }
 }
+menuDrag(moreMenu, $('#mHandle'), dMore, 'moreMenu');
 dMore.onclick = tapOnce(() => setMore(moreMenu.hidden));
 document.addEventListener('pointerdown', e => { if (!moreMenu.hidden && !e.target.closest('#moreMenu, #dMore')) setMore(false); });
 moreMenu.addEventListener('keydown', e => {
