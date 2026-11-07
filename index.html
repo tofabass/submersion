@@ -889,6 +889,11 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
 .gstop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .gcap{display:flex;justify-content:space-between;margin:0 12px;font:500 11px var(--f-ui);color:var(--dim)}
 #trGradBox[hidden]{display:none}
+.gpre{display:flex;flex-wrap:wrap;gap:6px;margin:4px 12px 0}
+.gpre button{display:grid;gap:4px;justify-items:center;min-width:58px;min-height:44px;padding:5px 6px;border:1px solid var(--line);border-radius:8px;background:var(--raise);color:var(--ink);font:500 11px var(--f-ui);cursor:pointer}
+.gpre button:hover{border-color:var(--accent)}
+.gpre button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.gpre i{display:block;width:46px;height:10px;border-radius:5px}
 body.lite #trGradBox{opacity:.45;pointer-events:none}
 @media (min-width:761px){
   .mHandle{display:grid;place-items:center;height:14px;margin:-2px 0 0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -1253,17 +1258,18 @@ body.easy .moreMenu .onlyCmp{display:flex}
           <div id="olBox" data-adv class="stack" hidden>
             <div class="lbl">Outline <span class="liteOnly">Full mode only</span></div>
             <label class="check"><input type="checkbox" id="olOn"> Draw an outline around this layer</label>
+            <label class="check"><input type="checkbox" id="trOuter"> Outline the outside edge only (silhouette)</label>
             <div class="bgcol" id="olColRow"><label for="olCol">Colour</label><input type="color" id="olCol" value="#ffffff"><output id="olColOut">#FFFFFF</output></div>
             <label class="check"><input type="checkbox" id="olOnly"> Show outline only (hide the picture)</label>
             <label class="check"><input type="checkbox" id="trOn"> Light trace: a light travels round the outline</label>
             <label class="check"><input type="checkbox" id="trOnly"> Light only (hide the steady outline)</label>
             <label class="check"><input type="checkbox" id="trGrad"> Gradient: the tail shifts to the tail hue</label>
-            <label class="check"><input type="checkbox" id="trOuter"> Outside edge only (skip holes and inner lines)</label>
             <div id="g-lol" class="stack"></div>
             <div id="trGradBox" class="stack" hidden>
               <div class="lbl">Light gradient <span class="meta">head to tail</span></div>
               <div class="gbar" id="trBar" role="group" aria-label="Light gradient from head to tail. Click to add a colour stop, drag a stop to move it."></div>
               <div class="gcap"><span>Head</span><span>Tail</span></div>
+              <div class="gpre" id="trPresets" role="group" aria-label="Gradient presets"></div>
               <div class="bgcol" id="trStopRow"><label for="trStopCol">Stop colour</label><input type="color" id="trStopCol" value="#00e5ff"><output id="trStopOut">#00E5FF</output><button class="btn" id="trStopDel" type="button">Remove stop</button></div>
               <p class="note">Click the bar to add a stop (up to 4). Drag a stop to move it, tap one to choose its colour.</p>
             </div>
@@ -2556,6 +2562,7 @@ vec4 imageLayer(int i, vec2 uv){
   return vec4(c, m);
 }
 float hueDrift(float phi){ return uHSpeed > 0. ? uHMin + uHRange*(.5 - .5*cos(uHSpeed*phi)) : 0.; }
+float silA(int i, vec2 t){ return uA[i].x > .5 ? texture(uTrS, vec3(t, uA[i].y)).a : texture(uTrI, vec3(t, uA[i].y)).a; }   // filled silhouette (alpha of the trace map)
 vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   phi += uH[i].z;   // instance copies run their timed effects later
   vec4 A = uA[i], B = uB[i], C = uC[i], Q = uD[i], F = uF[i];
@@ -2718,6 +2725,9 @@ void main(){
     }
     if (uI[i].x > 0. && (uI[i].z > 0. || uK[i].z > 0.)){
       // outline: look around each pixel for the layer's edge; softness widens the fade past the set width
+      float pkd = uK[i].w, fl = floor(pkd/36360.); pkd -= fl*36360.;
+      float satQ = floor(pkd/360.), hueQ = pkd - satQ*360., nL = mod(fl, 6.) + 1., flg = floor(fl/6.);
+      bool so = flg > 3.5;                                  // outside edge only: the outline follows the filled silhouette, not the layer itself
       float W = uI[i].x*.001, R = W*(1. + uI[i].y*.8), mx = 0.;
       for (int k=0; k<12; k++){
         for (int j=1; j<=3; j++){
@@ -2725,18 +2735,17 @@ void main(){
           float wgt = r <= W + 1e-5 ? 1. : max(0., 1. - (r - W)/max(R - W, 1e-5));
           if (wgt <= 0.) continue;
           vec4 G = evalL(i, p + r*vec2(cos(an), sin(an)), phi, false, zd);
-          mx = max(mx, G.a*wgt);
+          mx = max(mx, (so ? silA(i, gTr) : G.a)*wgt);
         }
       }
-      float ringRaw = clamp(mx - la, 0., 1.), steady = ringRaw*uI[i].z, lcov = 0.;
-      float pkd = uK[i].w, fl = floor(pkd/36360.); pkd -= fl*36360.;
-      float satQ = floor(pkd/360.), hueQ = pkd - satQ*360., nL = mod(fl, 6.) + 1., flg = floor(fl/6.);
+      float ringRaw = clamp(mx - (so ? silA(i, tUV) : la), 0., 1.), steady = ringRaw*uI[i].z, lcov = 0.;
       vec3 lcol = vec3(0.);
       if (uK[i].z > 0. && ringRaw > 0.){
         // light trace: the baked outline map says how far along its loop this spot is; a soft comet runs round it at one speed on every piece
         vec4 tx = uA[i].x > .5 ? texture(uTrS, vec3(tUV, uA[i].y)) : texture(uTrI, vec3(tUV, uA[i].y));
-        if (tx.a > .003){
-          float kk = max(1., floor(tx.b/tx.a + .5));
+        float cov = length(tx.rg);
+        if (cov > .003){
+          float kk = max(1., floor(tx.b/cov + .5));
           float tp = fract(atan(tx.g, tx.r)/6.2831853), head = uK[i].x*kk*phi/6.2831853;
           float tl = clamp(uK[i].y*kk, .02, .98), ff = clamp(tl*.2, .004, .06), acc = 0., bu = 0.;
           for (int q=0; q<6; q++){
@@ -2746,13 +2755,13 @@ void main(){
             float v = f*f*(3. - 2.*f)*(1. - smoothstep(1. - ff, 1., d));
             if (v > acc){ acc = v; bu = u; }
           }
-          lcov = ringRaw*acc*tx.a;
+          lcov = ringRaw*acc*min(cov, 1.);
           vec3 base = uM[i].x >= 0. ? texture(uTrG, vec2(.5/64. + clamp(bu, 0., 1.)*(63./64.), (float(i) + .5)/24.)).rgb : hsv2rgb(vec3(fract(hueQ/360.), satQ/100., 1.));
           lcol = base*uK[i].z;
         }
       }
       if (mod(flg, 2.) > .5){ lc = vec3(0.); la = 0.; }    // outline only: the picture itself is not drawn
-      if (flg > 1.5) steady = 0.;                           // light only: no steady outline
+      if (mod(floor(flg/2.), 2.) > .5) steady = 0.;         // light only: no steady outline
       lc = lc + (uJ[i].rgb*steady + lcol*lcov)*(1. - la); la = la + clamp(steady + lcov, 0., 1.)*(1. - la);
     }
     float gw = uH[i].y > .5 ? 0. : uC[i].z;
@@ -3806,6 +3815,21 @@ $('#trBar').addEventListener('keydown', e => {
   trSetStops(st); const b = $('#trBar').querySelector(`.gstop[data-i="${trSel}"]`); if (b) b.focus();
 });
 $('#trStopCol').addEventListener('input', e => { const st = trStopsOf(getL(sel)).map(x => ({...x})); st[trSel].c = e.target.value; trSetStops(st); });
+const TR_PRESETS = [
+  ['Neon',    [{p:0, c:'#00e5ff'}, {p:1, c:'#ff2bd6'}]],
+  ['Fire',    [{p:0, c:'#ffe14d'}, {p:.5, c:'#ff8a00'}, {p:1, c:'#ff2a1a'}]],
+  ['Aurora',  [{p:0, c:'#3dff8f'}, {p:.5, c:'#00d5ff'}, {p:1, c:'#8b5cff'}]],
+  ['Sunset',  [{p:0, c:'#ffc247'}, {p:.5, c:'#ff4f8b'}, {p:1, c:'#7a2cff'}]],
+  ['Rainbow', [{p:0, c:'#ff3b3b'}, {p:.33, c:'#ffe14d'}, {p:.66, c:'#3dff6e'}, {p:1, c:'#3b7bff'}]],
+  ['Toxic',   [{p:0, c:'#7dff1a'}, {p:.5, c:'#d4ff3d'}, {p:1, c:'#00c9a7'}]],
+  ['Ice',     [{p:0, c:'#ffffff'}, {p:.5, c:'#7fe8ff'}, {p:1, c:'#1f4fff'}]],
+];
+for (const [name, st] of TR_PRESETS){
+  const b = document.createElement('button'); b.type = 'button'; b.title = name + ' gradient';
+  b.innerHTML = `<i style="background:linear-gradient(to right,${st.map(x => `${x.c} ${x.p*100}%`).join(',')})"></i>${name}`;
+  b.onclick = () => { trSel = 0; trSetStops(st); toast(name, 900); };
+  $('#trPresets').appendChild(b);
+}
 $('#trStopDel').onclick = () => { const st = trStopsOf(getL(sel)).map(x => ({...x})); if (st.length <= 2) return; st.splice(trSel, 1); trSel = Math.max(0, trSel - 1); trSetStops(st); };
 $('#olCol').addEventListener('input', e => { getL(sel).olCol = e.target.value; $('#olColOut').textContent = e.target.value.toUpperCase(); changed(); });
 $('#rcOn').addEventListener('change', e => { getL(sel).rcOn = e.target.checked ? 1 : 0; changed(); });
@@ -5532,7 +5556,7 @@ function marchLoops(g, gw, gh, minLen){          // closed outlines of the shape
   }
   return out.sort((a, b) => b[0] - a[0]).slice(0, 3000);
 }
-function traceField(loops, TW, TH, bandFrac, core){
+function traceField(loops, TW, TH, bandFrac, sil){
   const N = TW*TH; let Pmax = 0, cnt = 0;
   for (const [P, lp] of loops){ Pmax = Math.max(Pmax, P); for (let i = 0; i < lp.length; i++){ const a = lp[i], b = lp[(i + 1)%lp.length]; cnt += Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1])*2) + 1; } }
   const sx = new Float32Array(cnt), sy = new Float32Array(cnt), sa = new Float32Array(cnt), sk = new Uint8Array(cnt);
@@ -5565,10 +5589,12 @@ function traceField(loops, TW, TH, bandFrac, core){
   for (let y = 0; y < TH; y++){
     const row = (TH - 1 - y)*TW*4;
     for (let x = 0; x < TW; x++){
-      const i = y*TW + x, s = best[i]; if (s < 0 || (core && core[i])) continue;      // outside edge only: nothing is lit inside the silhouette
+      const i = y*TW + x, s = best[i], o = row + x*4;
+      if (sil) out[o + 3] = sil[i]/255;                       // alpha: the filled silhouette, so the outline can follow only its outside edge
+      if (s < 0) continue;
       const d = Math.sqrt(bd[i]); if (d >= band) continue;
-      const u = (d - band*.55)/(band*.45), cv = u <= 0 ? 1 : 1 - u*u*(3 - 2*u), o = row + x*4;
-      out[o] = Math.cos(sa[s])*cv; out[o + 1] = Math.sin(sa[s])*cv; out[o + 2] = sk[s]*cv; out[o + 3] = cv;
+      const u = (d - band*.55)/(band*.45), cv = u <= 0 ? 1 : 1 - u*u*(3 - 2*u);
+      out[o] = Math.cos(sa[s])*cv; out[o + 1] = Math.sin(sa[s])*cv; out[o + 2] = sk[s]*cv;
     }
   }
   return out;
@@ -5583,9 +5609,10 @@ function ensureTrace(x, l){
   const now = performance.now(), outer = l.trOuter ? 1 : 0;
   const cached = (key, make) => { let v = TRC.loops.get(key); if (!v){ if (TRC.loops.size > 10) TRC.loops.clear(); v = make(); TRC.loops.set(key, v); } return v; };
   const shapeOf = (grid, gw, gh) => {
-    if (!outer) return {loops: marchLoops(grid, gw, gh, 12), core: null};
-    const sil = silhouette(grid, gw, gh);
-    return {loops: marchLoops(sil, gw, gh, 24), core: morph(sil, gw, gh, 2, false)};     // core: inside the shape, a little in from its edge
+    if (!outer) return {loops: marchLoops(grid, gw, gh, 12), sil: null};
+    const sil = silhouette(grid, gw, gh), soft = new Uint8Array(sil.length);
+    for (let i = 0; i < soft.length; i++) soft[i] = sil[i] ? 255 : grid[i];      // keep the art's own soft edge outside the filled shape
+    return {loops: marchLoops(sil, gw, gh, 24), sil: soft};
   };
   if (x.type === 0){
     const id = x.orig.id, m = masks.get(id); if (!m || m.length !== MW*MH) return;
@@ -5598,7 +5625,7 @@ function ensureTrace(x, l){
     const have = TRC.got.img[slice];
     if (have === key || (have && now - TRC.at < 350)) return;     // while painting, keep the old one for a moment
     const sh = cached(key, () => shapeOf(boxDown(m, MW, MH, 512, TH, 1, 0), 512, TH));
-    traceUpload(12, texTrI, slice, traceField(sh.loops, 512, TH, outer ? .03 : .07, sh.core), 512, TH); TRC.got.img[slice] = key; TRC.at = now;
+    traceUpload(12, texTrI, slice, traceField(sh.loops, 512, TH, .07, sh.sil), 512, TH); TRC.got.img[slice] = key; TRC.at = now;
   } else if (x.type === 1){
     const which = iconCv[l.which] ? l.which : 'eye', src = iconCv[which], slice = x.idx, key = which + ':' + cvId(src) + ':' + outer;
     if (!TRC.icnReady){
@@ -5607,7 +5634,7 @@ function ensureTrace(x, l){
     }
     if (TRC.got.icn[slice] === key) return;
     const sh = cached(key, () => shapeOf(boxDown(src.getContext('2d').getImageData(0, 0, 512, 512).data, 512, 512, 512, 512, 4, 3), 512, 512));
-    traceUpload(13, texTrS, slice, traceField(sh.loops, 512, 512, outer ? .03 : .07, sh.core), 512, 512); TRC.got.icn[slice] = key;
+    traceUpload(13, texTrS, slice, traceField(sh.loops, 512, 512, .07, sh.sil), 512, 512); TRC.got.icn[slice] = key;
   }
 }
 function draw(w, h){
@@ -5637,9 +5664,10 @@ function draw(w, h){
     { const c = olRGB(l.olCol); Jv[o] = c[0]; Jv[o+1] = c[1]; Jv[o+2] = c[2]; Jv[o+3] = 0; }
     { const tr = ol && l.trOn, hq = ((Math.round(l.trHue || 0) % 360) + 360) % 360, sq = Math.round(clamp01(l.trSat ?? .6)*100), nl = Math.max(1, Math.min(6, Math.round(l.trN || 1)));
       Kv[o] = tr ? (l.trSpeed ?? 1) : 0; Kv[o+1] = l.trLen ?? .35; Kv[o+2] = tr ? Math.max(0, l.trInt ?? 1.5) : 0;
-      Kv[o+3] = hq + 360*sq + 36360*((nl - 1) + 6*((ol && l.olOnly ? 1 : 0) + (tr && l.trOnly ? 2 : 0)));
+      const so = ol && l.trOuter;
+      Kv[o+3] = hq + 360*sq + 36360*((nl - 1) + 6*((ol && l.olOnly ? 1 : 0) + (tr && l.trOnly ? 2 : 0) + (so ? 4 : 0)));
       const gr = tr && l.trGrad; Mv[o] = gr ? 1 : -1; if (gr) trLutRow(i, trStopsOf(l));
-      if (tr) ensureTrace(x, l); }
+      if (tr || so) ensureTrace(x, l); }
     if (l.rcOn && x.type < 2){                                   // recolour: strength (negative = keep shading) and the colour packed as one 24-bit number
       const s = clamp01(l.rcStr ?? 1); if (s > 0){ const c = olRGB(l.rcCol); Iv[o+3] = l.rcKeep ? -s : s; Jv[o+3] = Math.round(c[0]*255)*65536 + Math.round(c[1]*255)*256 + Math.round(c[2]*255); }
     }
@@ -8411,11 +8439,13 @@ const testMode = (() => {
     S('lt4', LT, aLY, 'lite', 'Switch to Lite.', 'The outline and light trace controls are dimmed and nothing extra is drawn.', '#olBox', {cat: 'layer', top: 1}),
     S('lt5', LT, aLY, 'full', 'Light trace on a detailed picture layer (lots of fine lines): watch it run for a full lap.', 'The light flows along the lines with soft edges and no blocky patches or straight cut lines, at the same speed on big and small pieces.', '#olBox', {cat: 'layer', top: 1}),
     S('lt6', LT, aLY, 'full', 'Tick Gradient, then click the gradient bar to add a stop (up to 4), drag stops and tap one to change its colour.', 'The Hue and Colour strength sliders give way to the gradient bar; the light runs from the head colour to the tail colour through your stops.', '#olBox', {cat: 'layer', top: 1}),
-    S('lt7', LT, aLY, 'full', 'Tick Outside edge only.', 'Only the outer silhouette of each separate part lights; nothing in the middle (holes, inner lines, small gaps in the art) does.', '#olBox', {cat: 'layer', top: 1}),
+    S('lt7', LT, aLY, 'full', 'With Light trace on, tick Outline the outside edge only.', 'Only the outer silhouette of each separate part is outlined and lit; nothing in the middle (holes, inner lines, gaps in the art) shows any line or light, and there are no cut lines along the edge.', '#olBox', {cat: 'layer', top: 1}),
     S('mp1', MP, aHU, '', 'Look at the Settings button in the dock.', 'It shows a cog wheel (not a moon).', '#dTheme'),
     S('mp2', MP, aHU, 'desktop', 'Open the Layers and Inspector panels, then open Settings and the More (...) menu one at a time.', 'Each opens above its dock button and does not cover the Layers or Inspector panel.', '#dMore'),
     S('mp3', MP, aHU, 'desktop', 'Drag Settings by its title and More by its top strip, close each, then reopen.', 'Each reopens where you left it, even after a reload. Double-click the title or strip to send it back above its button.', '#dTheme'),
     S('mp4', MP, aOS, 'desktop', 'Open the Oscillators panel (O) without having moved it.', 'It opens centred above the Oscillators button. After you drag it elsewhere it reopens there.', '#dOsc'),
+    S('lt8', LT, aLY, 'full', 'Turn Light trace off, keep Draw an outline on, and tick Outline the outside edge only.', 'The steady outline follows only the outer silhouette; inner lines and holes get no outline. With Show outline only it draws just the silhouette line.', '#olBox', {cat: 'layer', top: 1}),
+    S('lt9', LT, aLY, 'full', 'With Gradient on, tap each preset under the gradient bar (Neon, Fire, Aurora, Sunset, Rainbow, Toxic, Ice).', 'The bar and the light take the preset colours; the stops can still be dragged and recoloured afterwards.', '#olBox', {cat: 'layer', top: 1}),
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
     S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
