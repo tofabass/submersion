@@ -677,6 +677,7 @@ body.lite .tst .tutSpot{transition:none}
 #tsBody textarea{box-sizing:border-box;width:100%;min-height:120px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--raise);color:var(--ink);font:11.5px/1.4 var(--f-num,monospace)}
 #tsBody .tsCount{font:500 12px var(--f-num,monospace);color:var(--ink)}
 .tsChk{display:flex;align-items:center;gap:8px;font:500 12px var(--f-ui)}
+.tsDev{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px;font:500 12px var(--f-ui)}
 .itCh.bad .ck{background:var(--rec);border-color:var(--rec);color:#fff}
 .tsBtnRow{display:flex;flex-wrap:wrap;gap:8px}
 .tsBtnRow .btn{flex:1;min-height:38px}
@@ -5781,8 +5782,23 @@ function arrange(U){                                     // rebuild PINS: locked
   let u = 0; for (let i = 0; i < n; i++) if (!arr[i]) arr[i] = U[u++];
   PINS = arr;
 }
+// Auto pin on: a pin is "manual" when it is not an auto pin, or when it is locked (a locked pin is one you chose to keep).
+// Manual pins are never dropped by auto pin. The bar holds max(Pinned slots, manual count), so it only grows past the limit
+// once every auto pin has gone, and no auto pin ever sits beside more manual pins than the limit.
+let AUTOHIST = [];                                       // auto pins a manual pin pushed out, most recent first; they refill a freed slot (not saved)
+const isManualPin = id => PINS.includes(id) && (!AUTOPIN.has(id) || LOCKED.has(id));
+const manualCount = () => PINS.filter(isManualPin).length;
 function trimAuto(keep){
   const U = PINS.filter(i => !LOCKED.has(i));
+  if (AUTO_ON){
+    const lim = Math.max(SLOTS, manualCount());
+    while (LOCKED.size + U.length > lim){
+      let k = -1; for (let i = U.length - 1; i >= 0; i--) if (AUTOPIN.has(U[i]) && U[i] !== keep){ k = i; break; }   // least recently used auto pin
+      if (k < 0) break;
+      AUTOHIST = [U[k], ...AUTOHIST.filter(x => x !== U[k])].slice(0, 12); AUTOPIN.delete(U[k]); U.splice(k, 1);
+    }
+    arrange(U); return;
+  }
   while (LOCKED.size + U.length > SLOTS){
     let k = -1; for (let i = U.length - 1; i >= 0; i--) if (AUTOPIN.has(U[i]) && U[i] !== keep){ k = i; break; }
     if (k < 0) for (let i = U.length - 1; i >= 0; i--) if (U[i] !== keep){ k = i; break; }
@@ -5800,9 +5816,25 @@ function setPins(o){                                     // from a preset or pro
 const AUDIO_DRIVEN = {'g-depth-strength':['bassDepth','rDepth'], 'g-sym-zoom':['bassZoom','rZoom'], 'g-sym-spin':['highSpin','rSpin'], 'g-color-hue':['midHue','rHue'], 'g-part-count':['pCountAmt','rPCount'], 'g-part-psize':['pSizeAmt','rPSize']};
 const audioDriven = id => { const a = AUDIO_DRIVEN[id]; return !!a && P[a[0]] > 0 && P[a[1]] !== 'off' && ((!!analyser && (!audioEl.paused || liveIn)) || P.bpm > 0); };  // only while sound or tempo is actually running
 function autoPin(id){
-  if (!AUTO_ON || PINS.includes(id) || audioDriven(id) || (mapReady && modDriven(id))) return; if (LOCKED.size >= SLOTS) return;
-  const U = PINS.filter(i => !LOCKED.has(i)); U.unshift(id); AUTOPIN.add(id); arrange(U);
+  if (!AUTO_ON || PINS.includes(id) || audioDriven(id) || (mapReady && modDriven(id))) return; if (manualCount() >= SLOTS) return;
+  const U = PINS.filter(i => !LOCKED.has(i)); U.unshift(id); AUTOPIN.add(id); AUTOHIST = AUTOHIST.filter(x => x !== id); arrange(U);
   trimAuto(id); if (!PINS.includes(id)) AUTOPIN.delete(id);
+  savePins(); drawMacros();
+}
+function pinManual(id){                                  // the pin button on a slider
+  if (PINS.includes(id)) return;
+  if (!AUTO_ON){ PINS.push(id); AUTOPIN.delete(id); }
+  else {                                                 // goes to the start of the bar and takes the place of the least recently used auto pin
+    const U = PINS.filter(i => !LOCKED.has(i)); U.unshift(id); AUTOPIN.delete(id); AUTOHIST = AUTOHIST.filter(x => x !== id); arrange(U); trimAuto(id);
+  }
+  savePins(); drawMacros();
+}
+function unpinPin(id){                                   // pin button, dock menu
+  const wasManual = isManualPin(id);
+  PINS = PINS.filter(p => p !== id); AUTOPIN.delete(id); LOCKED.delete(id);
+  if (AUTO_ON && wasManual){                             // over the limit the bar just shrinks; at or under it, auto pins refill the free slot
+    while (PINS.length < SLOTS && AUTOHIST.length){ const a = AUTOHIST.shift(); if (!PINS.includes(a) && pinnable(a)){ PINS.push(a); AUTOPIN.add(a); } }
+  }
   savePins(); drawMacros();
 }
 const LAYERS_CAT = {id:'layers', name:'Layers', icon:'i-layers', c:'--c-layer'};
@@ -5813,7 +5845,7 @@ for (const row of RANGE_ROWS){
   const pin = document.createElement('button'); pin.type = 'button'; pin.className = 'pin'; pin.dataset.pin = inp.id; pin.innerHTML = use('i-pin');
   const nm = (lab ? lab.textContent : inp.id);
   pin.dataset.nm = nm; pin.title = 'Pin ' + nm + ' to the dock'; pin.setAttribute('aria-label', 'Pin ' + nm + ' to the dock');
-  pin.onclick = () => { const i = PINS.indexOf(inp.id); if (i < 0){ PINS.push(inp.id); AUTOPIN.delete(inp.id); } else { PINS.splice(i, 1); AUTOPIN.delete(inp.id); LOCKED.delete(inp.id); } savePins(); drawMacros(); };
+  pin.onclick = () => { if (PINS.includes(inp.id)) unpinPin(inp.id); else pinManual(inp.id); };
   row.appendChild(pin);
   inp.addEventListener('pointerdown', e => { if (e.isTrusted) autoPin(inp.id); });
   inp.addEventListener('input', e => { if (e.isTrusted) autoPin(inp.id); });
@@ -6399,7 +6431,7 @@ function openPinMenu(id, x, y){
   item('i-lock', lockd ? 'Unlock' : 'Lock in place', () => { if (LOCKED.has(id)) LOCKED.delete(id); else LOCKED.add(id); savePins(); drawMacros(); });
   item('i-next', 'Move left', () => movePin(id, -1), {flip: true, off: at <= 0});
   item('i-next', 'Move right', () => movePin(id, 1), {off: at < 0 || at >= PINS.length - 1});
-  item('i-close', 'Unpin', () => { PINS = PINS.filter(p => p !== id); AUTOPIN.delete(id); LOCKED.delete(id); savePins(); drawMacros(); });
+  item('i-close', 'Unpin', () => unpinPin(id));
   item('i-close', 'Unpin all', unpinAll, {off: PINS.length < 2});
   menuKeys(m); document.body.append(m); placeMenu(m, x, y, false);
   m.querySelector('button:not(:disabled)').focus();
@@ -7829,20 +7861,24 @@ const testMode = (() => {
   const touchy = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
   const lsGet = k => { try { const v = localStorage.getItem(k); return v == null ? null : JSON.parse(v); } catch(e){ return null; } };
   const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  /* Mobile / Desktop: which steps count as "touch" or "desktop". Defaults to the device detected now; a choice is remembered. */
+  const DEV_KEY = 'submersion.test.device';
+  const devPick = () => { const v = lsGet(DEV_KEY); return v === 'mobile' || v === 'desktop' ? v : null; };
+  const devNow = () => devPick() || (touchy() ? 'mobile' : 'desktop');
   let unlockedMem = false;
   const isUnlocked = () => { if (unlockedMem) return true; try { return sessionStorage.getItem(UNLOCK_KEY) === '1'; } catch(e){ return false; } };
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
   const aFR = 'First run and Easy / Full', aLY = 'Layers', aIM = 'Image import', aSC = 'Sample scenes', aDP = 'Depth and parallax', aSY = 'Symmetry', aCO = 'Colour and Recolour',
     aFX = 'Effects', aMO = 'Motion and loop', aOS = 'Oscillators and Mod', aAU = 'Audio', aRL = 'Randomize and Roll', aLC = 'Layer colours', aPN = 'Pins and phone pin bar',
     aUD = 'Undo and redo', aPJ = 'Projects and presets', aOU = 'Output', aLF = 'Lite vs Full', aLK = 'Look settings', aHU = 'Hide UI and mini menu', aPS = 'Phone sheets',
-    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline';
+    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode';
   const LK = {look: 1, lkg: ['iface']};
   /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
   const STEPS = [
@@ -7943,6 +7979,12 @@ const testMode = (() => {
     S('pn3', B, aPN, 'adv', 'Settings › Pins: set Pinned slots to 4.', 'The dock bar fits four sliders.', '#lkSlots', {look: 1, lkg: ['pins']}),
     S('pn4', B, aPN, 'adv', 'Tick Auto pin and move a few sliders.', 'Sliders you use pin themselves; ones an oscillator or audio is moving are skipped.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
     S('pn5', B, aPN, 'touch adv', 'On the phone pin three sliders and close the panels.', 'The pin bar sits above the dock, each slider drags with a thumb, and nothing covers the picture.', '#macros'),
+    S('pn6', PD, aPN, 'adv', 'Settings › Pins: tick Auto pin and set Pinned slots to 4. Move sliders until the bar holds four auto pins, then pin a different slider by hand with its pin icon.', 'The new pin lands at the start of the bar and the least recently used auto pin drops off; the most recent auto pins stay and the bar stays at four.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
+    S('pn7', PD, aPN, 'adv', 'Keep pinning sliders by hand until four are manual, then pin a fifth. Then move some other sliders.', 'Each manual pin pushes out an auto pin. Once every auto pin has gone the bar grows past four (five pins show) and moving other sliders adds no auto pin.', '#macros'),
+    S('pn8', PD, aPN, 'adv', 'Unpin a manual pin while the bar is over the limit; then unpin another so the bar is at or under four.', 'Over the limit the bar shrinks by one. At or under it the freed slot is refilled by an auto pin that was pushed out (if none was, it fills as you move sliders).', '#macros'),
+    S('pn9', PD, aPN, 'adv', 'Untick Auto pin, then pin and unpin a slider by hand.', 'Same as before: the new pin goes to the end of the bar, nothing else is dropped or added, and unpinning just removes it.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
+    S('pn10', PD, aPN, 'touch adv', 'On the phone with Auto pin on and more than 3 pins, swipe the pin bar sideways and pin one more slider by hand.', 'The bar still scrolls with a thumb; the new pin sits first; nothing covers the picture.', '#macros'),
+    S('pn11', PD, aPN, 'adv', 'With Auto pin on and a mix of manual and auto pins, press Roll, load a Look preset, then Export and Import a project.', 'Roll and Reset all leave the pins alone; a preset or project that saved pins brings them back; nothing errors.', '#macros'),
 
     S('ud1', B, aUD, '', 'Delete a layer, then press Undo (desktop: Ctrl+Z).', 'The layer returns in its old place with its settings.', '#layerList', {panel: 'L'}),
     S('ud2', B, aUD, '', 'Load a Look preset, Undo it, then Redo (desktop: Ctrl+Shift+Z or Ctrl+Y).', 'The look reverts, then returns.'),
@@ -8014,13 +8056,17 @@ const testMode = (() => {
     S('tu9', TU, aTU, 'lite', 'In Lite play the Layer tab chapter up to Effects.', 'The Effects step shows "Full mode only".'),
     S('tu10', D3, aTU, '', 'Play the Layers chapter to its last step, 3D view, then choose 3D view and drag the picture.', 'The stack turns and tilts while only the View switch and the picture respond; Next still works.'),
 
-    S('ky1', B, aKY, '', 'Settings › Shortcuts (or T, then Shortcuts).', 'A table of keys opens; Esc closes it.', '#lkKeys', {look: 1}),
+    S('ky1', B, aKY, 'desktop', 'Settings › Shortcuts (or T, then Shortcuts).', 'A table of keys opens; Esc closes it.', '#lkKeys', {look: 1}),
     S('ky2', B, aKY, 'desktop', 'Press Space, then M four times in rhythm, then R twice.', 'Play / pause toggles; tap tempo follows; recording starts and stops.'),
     S('ky3', B, aKY, 'desktop', 'Press I, L, O and T, then H twice, then Shift+F.', 'Inspector, Layers, Oscillators (Full) and Settings toggle; the UI hides and shows; full screen toggles.'),
     S('ky4', B, aKY, 'desktop adv', 'Press Ctrl+F and type a control name.', 'A find box lists matching controls; Esc closes it.'),
     S('ky5', B, aKY, 'desktop', 'Press ? (or /), Z and Shift+I, then ↑ ↓ to pick a layer and E and S on it.', 'Roll, Reset all and Invert all work; the selection moves; E hides and S solos the layer.'),
     S('ky6', B, aKY, 'desktop', 'Click the Project name box and type the letters e, s, r and h.', 'Typing never triggers a shortcut.', '#projName', {cat: 'project'}),
     S('ky7', B, aKY, 'desktop', 'Compare each row of the Shortcuts table with what its key does.', 'Any row that does nothing or does something else: mark Fail and name the key.'),
+
+    S('td1', PD, aTM, '', 'Tap Areas on this card and look for Testing as.', 'A Mobile / Desktop choice shows with the device this looks like selected, and this card\'s step count ends with Mobile or Desktop.'),
+    S('td2', PD, aTM, '', 'Switch Testing as to the other choice, tap Back to steps and move through a few steps; then switch it back.', 'Steps tagged for the other device are skipped with a reason like "needs Mobile (testing as Desktop)"; switching back opens them again. Lite / Full and Easy / Full skipping still works.'),
+    S('td3', PD, aTM, '', 'Choose the other device, Exit, then reopen Test mode (Settings › Test mode); then Finish and report.', 'Your choice is still selected, and the report has a "Testing as" line.'),
   ];
 
   const MODES = {new: {name: 'What’s new'}, full: {name: 'Full test'}};
@@ -8033,9 +8079,9 @@ const testMode = (() => {
 
   /* does this step fit the current setup? '' = yes, otherwise the reason */
   function naOf(s){
-    const t = s.tags, tc = touchy();
-    if (t.includes('touch') && !tc) return 'needs a touch device';
-    if (t.includes('desktop') && tc) return 'needs a desktop pointer';
+    const t = s.tags, dv = devNow();
+    if (t.includes('touch') && dv !== 'mobile') return 'needs Mobile (testing as Desktop)';
+    if (t.includes('desktop') && dv !== 'desktop') return 'needs Desktop (testing as Mobile)';
     if (t.includes('lite') && !LITE.on) return 'needs Lite mode';
     if (t.includes('full') && LITE.on) return 'needs Full mode';
     if (t.includes('easy') && !easyOn()) return 'needs the Easy interface';
@@ -8105,7 +8151,7 @@ const testMode = (() => {
     const L = stepsNow(); idx = Math.max(0, Math.min(idx, L.length - 1));
     const s = L[idx], tok = ++showTok; run.i = idx; saveRun();
     phase = 'step'; panel.hidden = true; root.classList.remove('list'); card.hidden = false;
-    $('#tsArea').textContent = s.area; $('#tsN').textContent = (idx + 1) + ' / ' + L.length;
+    $('#tsArea').textContent = s.area; $('#tsN').textContent = (idx + 1) + ' / ' + L.length + ' · ' + devName();
     $('#tsAct').textContent = s.action; $('#tsExp').textContent = s.expect;
     const why = naOf(s), na = $('#tsNa'); na.textContent = why ? 'N/A: ' + why + ' (shown because Show all is on)' : skipNote; na.hidden = !na.textContent; skipNote = '';
     const r = run.res[s.id]; noteEl.value = r && r.note || '';
@@ -8168,6 +8214,12 @@ const testMode = (() => {
     } catch(e){}
     toast(n ? 'Deleted ' + n + ' TEST- ' + (n === 1 ? 'item' : 'items') : 'No TEST- items found');
   }
+  const devName = () => devNow() === 'mobile' ? 'Mobile' : 'Desktop';
+  const devRow = () => `<div class="tsDev" role="group" aria-label="Test as"><b>Testing as</b>${['mobile', 'desktop'].map(d => `<button class="btn${devNow() === d ? ' primary' : ''}" type="button" data-act="dev" data-d="${d}" aria-pressed="${devNow() === d}">${d === 'mobile' ? 'Mobile' : 'Desktop'}</button>`).join('')}</div><p class="note">This device looks like ${touchy() ? 'Mobile' : 'Desktop'}. Mobile skips desktop-only steps; Desktop skips touch-only steps.</p>`;
+  function setDev(d){
+    if (d !== 'mobile' && d !== 'desktop') return;
+    lsSet(DEV_KEY, d); if (run) normalize(); rerender();
+  }
   function showPick(){
     const rows = Object.keys(MODES).map(m => {
       const L = listFor(m), r = loadRun(m), c = r ? tally(L, r.res) : null, a = armKey === 'start:' + m;
@@ -8175,7 +8227,7 @@ const testMode = (() => {
       if (r) h += `<button class="pk" type="button" data-act="resume" data-m="${m}"><b>${r.done ? 'View results' : 'Resume'}: ${esc(MODES[m].name)}</b><span>${L.length - c.todo} of ${L.length} done · ${c.fail} failed</span></button>`;
       return h;
     }).join('');
-    openPanel('pick', 'Test mode', '', `<p class="note">Do each step, compare it with what is expected, then mark Pass, Fail or Skip. A run puts Tr1ppical Butterfly on screen and your own project comes back when you exit. Saving stays on: name anything you save TEST-…</p>${rows}<div class="tsBtnRow">${cleanBtn()}<button class="btn" type="button" data-act="close">Close</button></div>`);
+    openPanel('pick', 'Test mode', '', `<p class="note">Do each step, compare it with what is expected, then mark Pass, Fail or Skip. A run puts Tr1ppical Butterfly on screen and your own project comes back when you exit. Saving stays on: name anything you save TEST-…</p>${devRow()}${rows}<div class="tsBtnRow">${cleanBtn()}<button class="btn" type="button" data-act="close">Close</button></div>`);
   }
   function showAreas(){
     normalize();
@@ -8187,7 +8239,7 @@ const testMode = (() => {
     });
     const rows = areas.map((a, k) => `<button class="itCh${a.done === a.n ? ' done' : ''}${a.bad ? ' bad' : ''}" type="button" data-act="area" data-k="${a.todo >= 0 ? a.todo : a.first}"><span class="ck" aria-hidden="true">${a.bad ? '✗' : a.done === a.n ? '✓' : k + 1}</span><span>${esc(a.name)}</span><small>${a.done} / ${a.n}</small></button>`).join('');
     openPanel('areas', 'Areas', (L.length - c.todo) + ' / ' + L.length,
-      `<div class="tsBar" aria-hidden="true"><span style="width:${Math.round((L.length - c.todo) / L.length * 100)}%"></span></div><div class="itChs">${rows}</div>
+      `<div class="tsBar" aria-hidden="true"><span style="width:${Math.round((L.length - c.todo) / L.length * 100)}%"></span></div>${devRow()}<div class="itChs">${rows}</div>
       <label class="tsChk"><input type="checkbox" id="tsShow"${run.show ? ' checked' : ''}> Show all (include steps that do not fit this setup)</label>
       <div class="tsBtnRow"><button class="btn" type="button" data-act="exit">Exit</button><button class="btn" type="button" data-act="finish">Finish and report</button><button class="btn primary" type="button" data-act="back">Back to steps</button></div>`);
   }
@@ -8198,6 +8250,7 @@ const testMode = (() => {
       'Date: ' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()),
       'Mode: ' + MODES[r.mode].name + ' (' + L.length + ' steps)',
       'Update tag: ' + (r.mode === 'new' ? newest : 'all (newest: ' + newest + ')'),
+      'Testing as: ' + devName() + (devPick() ? ' (chosen)' : ' (detected)'),
       'Device: ' + [touchy() ? 'touch' : 'desktop', LITE.on ? 'Lite' : 'Full', (easyOn() ? 'Easy' : 'Full') + ' interface', 'screen ' + screen.width + 'x' + screen.height, 'window ' + innerWidth + 'x' + innerHeight, ua].join(' | '),
       'Results: ' + c.pass + ' pass, ' + c.fail + ' fail, ' + c.skip + ' skip' + (c.na ? ' (' + c.na + ' n/a)' : '') + (c.todo ? ', ' + c.todo + ' not run' : '')];
     const fails = L.filter(s => r.res[s.id] && r.res[s.id].r === 'fail');
@@ -8293,6 +8346,7 @@ const testMode = (() => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
     const a = b.dataset.act, m = b.dataset.m;
     if (a === 'start'){ if (loadRun(m) && armKey !== 'start:' + m){ armIt('start:' + m); return; } armKey = ''; begin(m, false); }
+    else if (a === 'dev') setDev(b.dataset.d);
     else if (a === 'resume') begin(m, true);
     else if (a === 'clean'){ if (armKey !== 'clean'){ armIt('clean'); return; } armKey = ''; cleanUp(); rerender(); }
     else if (a === 'close') closeAll();
