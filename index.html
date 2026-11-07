@@ -405,6 +405,14 @@ body{background:var(--stage)}
 .miniBtn:hover:not(:disabled){background:var(--accent-soft)}
 .miniBtn:disabled{opacity:.4;cursor:default}
 .miniBtn .gi-svg{width:18px;height:18px}
+#mnPins[aria-pressed="true"]{background:var(--accent-soft)}
+/* pinned sliders popup (Hide UI): sits left of the quick menu and stays up until its button is pressed again */
+.miniPins{position:fixed;right:calc(76px + env(safe-area-inset-right));bottom:calc(62px + env(safe-area-inset-bottom));z-index:57;width:min(280px,calc(100vw - 96px - env(safe-area-inset-right)));max-height:min(60vh,420px);overflow-y:auto;overscroll-behavior:contain;padding:6px;border-radius:14px;background:var(--menu-surface);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);--track:#6F8177;--sep:#6F8177}
+.miniPins[hidden]{display:none}
+.miniPinsList{display:grid;gap:6px}
+.miniPins .macro{width:auto}
+.miniPins .macro .mn{color:var(--ink)}
+@media (pointer:coarse),(max-width:760px){ .miniPins .macro input[type=range]{height:34px} }
 #mnRec .gi-svg{color:var(--rec)}
 #mnRec.on{background:var(--rec)}
 #mnRec.on .gi-svg{color:#fff;animation:mnPulse 1s ease-in-out infinite}
@@ -1520,7 +1528,9 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <button class="miniBtn" id="mnRec" type="button" aria-label="Record one loop" title="Record (R)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-rec"/></svg></button>
     <button class="miniBtn" id="mnPlay" type="button" aria-label="Pause" title="Play / pause (Space)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-pause"/></svg></button>
     <button class="miniBtn" id="mnCap" type="button" aria-label="Capture still (PNG)" title="Capture still (PNG)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-image"/></svg></button>
+    <button class="miniBtn" id="mnPins" type="button" aria-label="Pinned sliders" aria-pressed="false" aria-controls="miniPins" title="Pinned sliders"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-pin"/></svg></button>
   </div>
+  <div class="miniPins" id="miniPins" role="group" aria-label="Pinned sliders" hidden><div class="miniPinsList" id="miniPinsList"></div></div>
 </div>
 <div class="easyChip" id="easyChip" role="status" hidden><span>Easy mode</span><button class="btn" id="easyChipGo" type="button">Switch to Full</button></div>
 <div class="tutOffer" id="tutOffer" role="status" hidden><span>New here? Take a quick tour of the controls.</span><button class="btn primary" id="tutOfferGo" type="button">Show me</button><button class="btn" id="tutOfferNo" type="button">No thanks</button></div>
@@ -6218,7 +6228,7 @@ function proxyRow(id, kind){
   inp._def = o._def; if (o.dataset.reset != null) inp.dataset.reset = o.dataset.reset;
   const po = document.createElement('output');
   const isLayer = !!o.closest('[data-cat="layer"]');
-  if (kind === 'macro'){
+  if (kind === 'macro' || kind === 'mini'){   // 'mini' = the Hide UI popup: the same fader, without reorder or the pin menu
     el.className = 'macro';
     el.innerHTML = `<span class="mn">${use(glyphFor(label))}<span>${label}</span>${LOCKED.has(id) ? `<span class="lk" title="Locked in place">${use('i-lock')}</span>` : ''}</span>`; el.append(po);
     if (isLayer){ const sc = document.createElement('span'); sc.className = 'ms'; el.append(sc); el._scope = sc; sc.style.gridColumn = '1/-1'; }
@@ -6226,10 +6236,12 @@ function proxyRow(id, kind){
     el.classList.toggle('locked', LOCKED.has(id)); el.dataset.pid = id;
     el.title = `${label} · ${c.name}${isLayer ? ' (selected layer)' : ''} · drag the name to reorder · right-click for lock, move and unpin`;
     el.querySelector('.mn').title = label;
-    el.addEventListener('contextmenu', e => { e.preventDefault(); openPinMenu(id, e.clientX, e.clientY); });
-    let lp = 0; el.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.target.tagName !== 'INPUT'){ const x = e.clientX, y = e.clientY; lp = setTimeout(() => openPinMenu(id, x, y), 550); } });
-    for (const ev of ['pointerup','pointercancel','pointermove']) el.addEventListener(ev, () => clearTimeout(lp));
-    attachPinDrag(el, id);
+    if (kind === 'macro'){
+      el.addEventListener('contextmenu', e => { e.preventDefault(); openPinMenu(id, e.clientX, e.clientY); });
+      let lp = 0; el.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.target.tagName !== 'INPUT'){ const x = e.clientX, y = e.clientY; lp = setTimeout(() => openPinMenu(id, x, y), 550); } });
+      for (const ev of ['pointerup','pointercancel','pointermove']) el.addEventListener(ev, () => clearTimeout(lp));
+      attachPinDrag(el, id);
+    } else el.title = `${label} · ${c.name}${isLayer ? ' (selected layer)' : ''}`;
   } else {
     el.className = 'ctl'; const gi = document.createElement('span'); gi.className = 'gi'; gi.innerHTML = use(glyphFor(label));
     const lb = document.createElement('label'); lb.textContent = label; el.append(gi, lb, inp, po);
@@ -6241,7 +6253,7 @@ function proxyRow(id, kind){
 function syncProxy(px){
   if (document.activeElement !== px.inp) px.inp.value = px.o.value;
   px.po.textContent = px.out.textContent; paintFill(px.inp);
-  const na = !!px.o.closest('.ctl').closest('[hidden]') || px.o.disabled;
+  const na = px.kind !== 'macro' && px.kind !== 'mini' && (!!px.o.closest('.ctl').closest('[hidden]') || px.o.disabled);   // pinned sliders (dock and Hide UI popup) always work
   px.el.classList.toggle('na', na); px.inp.disabled = na;
   if (px.el._scope) px.el._scope.textContent = na ? 'not for this layer' : $('#layerCtlName').textContent;
 }
@@ -6365,6 +6377,7 @@ function drawMacros(){
   m.classList.toggle('autoOn', AUTO_ON);
   m.style.setProperty('--mn', Math.max(1, Math.min(3, m.querySelectorAll('.macro').length)));   // phone: how many share the bar's width
   try { setDockH(); applySheet(); } catch(e){}
+  try { drawMiniPins(); } catch(e){}
   document.querySelectorAll('.pin').forEach(b => { const on = PINS.includes(b.dataset.pin), t = b.dataset.nm ? (on ? `Unpin ${b.dataset.nm} from the dock` : `Pin ${b.dataset.nm} to the dock`) : null; b.setAttribute('aria-pressed', on); if (t){ b.title = t; b.setAttribute('aria-label', t); } });
 }
 
@@ -6505,14 +6518,25 @@ const miniEl = $('#mini'), miniTab = $('#miniTab'), miniMenu = $('#miniMenu');
 let miniFadeT = 0, miniCloseT = 0;
 function miniWake(){ miniTab.classList.remove('faded'); clearTimeout(miniFadeT); miniFadeT = setTimeout(() => { if (miniMenu.hidden) miniTab.classList.add('faded'); }, 2000); }
 function miniClose(){ miniMenu.hidden = true; miniTab.setAttribute('aria-expanded', 'false'); clearTimeout(miniCloseT); miniWake(); }
-function miniIdle(){ clearTimeout(miniCloseT); miniCloseT = setTimeout(miniClose, 4000); }
+function miniIdle(){ clearTimeout(miniCloseT); }   // the menu stays open until the arrow is clicked
 function miniOpen(){ miniMenu.hidden = false; miniTab.setAttribute('aria-expanded', 'true'); miniTab.classList.remove('faded'); clearTimeout(miniFadeT); miniIdle(); }
 miniTab.addEventListener('click', () => { if (miniMenu.hidden) miniOpen(); else miniClose(); miniTab.blur(); });
 for (const [id, fn] of [['mnRoll', () => $('#bDice').click()], ['mnRec', recKey], ['mnPlay', () => $('#hPause').click()], ['mnCap', () => $('#bPng').click()]]){
   const b = $('#' + id); b.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') e.preventDefault(); });
   b.addEventListener('click', () => { if (!b.disabled) fn(); b.blur(); miniIdle(); });
 }
-window.addEventListener('pointerdown', e => { if (!document.body.classList.contains('clean')) return; if (!miniMenu.hidden && !miniEl.contains(e.target)) miniClose(); else miniWake(); }, true);
+window.addEventListener('pointerdown', e => { if (!document.body.classList.contains('clean')) return; miniWake(); }, true);   // tapping the picture no longer closes the menu
+/* pinned sliders popup: a toggle in the quick menu; it stays up (even with the menu closed) until the toggle is pressed again */
+const mnPins = $('#mnPins'), miniPins = $('#miniPins');
+function drawMiniPins(){
+  proxies = proxies.filter(p => p.kind !== 'mini');
+  const host = $('#miniPinsList'); host.innerHTML = '';
+  if (miniPins.hidden) return;
+  for (const id of PINS){ const el = proxyRow(id, 'mini'); if (el) host.appendChild(el); }
+  if (!host.children.length) host.innerHTML = '<span class="empty-m">Nothing pinned yet. Use the pin beside any slider to keep it here.</span>';
+}
+mnPins.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') e.preventDefault(); });
+mnPins.addEventListener('click', () => { miniPins.hidden = !miniPins.hidden; mnPins.setAttribute('aria-pressed', String(!miniPins.hidden)); drawMiniPins(); mnPins.blur(); miniIdle(); });
 window.addEventListener('pointermove', () => { if (document.body.classList.contains('clean')) miniWake(); }, {passive:true});
 function miniSync(){
   if (!document.body.classList.contains('clean')) return;
@@ -7687,8 +7711,8 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
@@ -7789,6 +7813,7 @@ const testMode = (() => {
     S('lc3', B, aLC, 'adv', 'Random tab › Layer colours: turn it on, then Roll.', 'A plain Roll also recolours the chosen layers.', '#fltLC', {cat: 'random'}),
 
     S('pn1', B, aPN, 'adv', 'Pin Zoom (the pin icon next to the slider in Symmetry).', 'Zoom appears in the dock bar.', '.ctl:has(#g-sym-zoom)', {cat: 'sym'}),
+    S('pn0', PP, aPN, 'adv', 'Pin a slider whose Inspector tab is closed, then drag it in the dock.', 'Pinned sliders are never greyed out: they work whichever panel is open.', '#macros'),
     S('pn2', B, aPN, 'adv', 'Close all panels and drag the pinned slider in the dock.', 'The picture changes live and the panels stay closed.', '#macros'),
     S('pn3', B, aPN, 'adv', 'Settings › Pins: set Pinned slots to 4.', 'The dock bar fits four sliders.', '#lkSlots', {look: 1, lkg: ['pins']}),
     S('pn4', B, aPN, 'adv', 'Tick Auto pin and move a few sliders.', 'Sliders you use pin themselves; ones an oscillator or audio is moving are skipped.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
@@ -7827,6 +7852,7 @@ const testMode = (() => {
     S('hu1', B, aHU, '', 'Hide UI (dock button; desktop: H).', 'Panels and dock vanish; a Show UI button stays.', '#dHide'),
     S('hu2', B, aHU, '', 'Open the mini menu tab and use each button once.', 'Roll rolls; Play pauses; Capture saves a still; Record starts one loop.', '#miniTab'),
     S('hu3', B, aHU, '', 'Press Show UI (desktop: H).', 'Everything returns as it was.', '#showUI'),
+    S('hu4', PP, aHU, 'adv', 'Hide the UI, open the mini menu tab and press the pin button; drag a slider in the popup; then close the menu with the arrow.', 'The menu stays open until you click the arrow (not when you tap the picture); the pinned-sliders popup works, and stays up after the menu closes until you press the pin button again.', '#miniTab'),
     S('hu4', B, aHU, 'touch', 'Hide the UI from More › Hide UI.', 'The same result on the phone.', '#mHide', {more: 1}),
 
     S('ps1', PH, aPS, 'touch', 'Open Layers on the phone.', 'A bottom sheet opens at half height with a handle; the picture stays visible above it.', '#pLayers', {panel: 'L'}),
