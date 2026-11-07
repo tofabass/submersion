@@ -879,6 +879,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   .sheet .stage,.sheetT .stage{bottom:calc(var(--dockH,118px) + var(--stH,52vh))}
   .fp{bottom:var(--dockH,118px);height:var(--shH,52vh);overflow:hidden}
   .fp.folded{height:auto}
+  .dwscroll{max-height:clamp(96px,calc(var(--shH,52vh) - 100px),min(50vh,440px))}   /* Source & Depth must fit inside the sheet, or its lower part is cut off at the dock */
   body:not(.shDrag):not(.shOpen) .fp,body:not(.shDrag):not(.shOpen) .lookpop{transition:height .2s ease}
   #pOsc{bottom:var(--dockH,118px)}
   /* pin bar: up to 3 pins share the bar's width; with more, each stays a third wide and the bar scrolls sideways */
@@ -5591,8 +5592,10 @@ function setDrawer(open, tab){
   for (const id of ['view', 'depth']) document.querySelector(`.cat[data-cat="${id}"]`).hidden = id !== tab;
   drawer.querySelectorAll('[data-dw]').forEach(b => b.setAttribute('aria-pressed', b.dataset.dw === tab));
 }
-$('#dwBar').onclick = () => setDrawer(drawer.dataset.open !== 'true');
-$('#dwTabs').addEventListener('click', e => { const b = e.target.closest('[data-dw]'); if (b) setDrawer(true, b.dataset.dw); });
+/* on a phone, opening the drawer lifts a peek-height sheet to half so the drawer is not clipped at the dock */
+const drawerFit = () => { try { if (phone.matches && drawer.dataset.open === 'true' && sheetMode === 'peek') setSheetMode('half'); } catch(e){} };
+$('#dwBar').onclick = () => { setDrawer(drawer.dataset.open !== 'true'); drawerFit(); };
+$('#dwTabs').addEventListener('click', e => { const b = e.target.closest('[data-dw]'); if (b){ setDrawer(true, b.dataset.dw); drawerFit(); } });
 setDrawer(UI.get('drawerOpen', false));
 
 /* ---- inspector: chips choose which categories are listed ---- */
@@ -5634,7 +5637,7 @@ function drawInsp(){
   if (mapReady && shownCats.has('mod')) renderMatrix();
 }
 function openCat(id, add){
-  if (CATS.some(c => c.id === id && c.drawer)){ setDrawer(true, id); showPanel(pL, true); pL.classList.remove('folded'); return; }
+  if (CATS.some(c => c.id === id && c.drawer)){ setDrawer(true, id); showPanel(pL, true); pL.classList.remove('folded'); drawerFit(); return; }
   if (add) shownCats.add(id); else if (!shownCats.has(id)){ shownCats.clear(); shownCats.add(id); }
   drawInsp(); if (pI.hidden) showPanel(pI, true); pI.classList.remove('folded');
 }
