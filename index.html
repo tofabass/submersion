@@ -465,6 +465,7 @@ body{background:var(--stage)}
 body{background:var(--surround)}
 .stage{background:var(--surround)}
 .stage>#cv{position:relative;z-index:1}
+.stage>#cv.orbit3d{touch-action:none}   /* 3D view only: a drag on the picture turns it instead of scrolling or zooming the page */
 #bgcv{position:absolute;left:-6%;top:-6%;width:112%;height:112%;z-index:0;pointer-events:none;filter:blur(26px) saturate(.72) brightness(.82)}
 :root[data-theme="light"] #bgcv{filter:blur(26px) saturate(.72) brightness(.95)}
 /* panel tier: Layers, Inspector, dock, calibration bar */
@@ -3200,6 +3201,7 @@ function addLayer(){
   P.L.layers.push(L); startCal(id); status(); markDirty();
 }
 function showCal(on){
+  try { syncOrbitTouch(); } catch(e){}   // `cal` is already set or cleared when this runs
   $('#calCard').hidden = !on; $('#layerEd').hidden = on; $('#layerCtlCal').hidden = !on;
   document.querySelectorAll('#viewSeg button').forEach(b => b.disabled = on);
   if (on){
@@ -3575,7 +3577,7 @@ const VIEW_NOTES = {
   final: 'Final: the finished output with every layer, effect, symmetry and motion. This is what records and saves.',
   depth: 'Depth map: the depth guess as a heatmap (bright is near). The selected layer stays bright; the rest dims.',
   paint: 'Paint depth: brush depth onto the whole image. The flat photo shows with depth tinted over it.',
-  '3d': '3D view: each layer drawn as a flat card at its depth so you can check the stack. For inspection only; not recorded.',
+  '3d': '3D view: each layer drawn as a flat card at its depth. Drag the picture to turn and tilt, pinch or scroll to spread, double-tap to centre. Inspection only; not recorded.',
 };
 function anySolo(){ return P.L.layers.some(b=>b.solo) || P.L.bg.solo || P.L.icon.solo || P.L.obj.solo || P.L.part.solo || (P.L.xs || []).some(b => b.solo); }
 function updateBadge(){
@@ -4507,6 +4509,7 @@ $('#viewSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b || cal) return;
   view = b.dataset.v; setSeg($('#viewSeg'),'v',view); $('#viewNote').textContent = VIEW_NOTES[view];
   $('#brushBox').hidden = view !== 'paint'; $('#box3d').hidden = view !== '3d'; if (view!=='paint') $('#cursor').hidden = true;
+  endOrbit(); syncOrbitTouch();
 });
 $('#brushSeg').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; brush = b.dataset.b; setSeg($('#brushSeg'),'b',brush); });
 
@@ -4515,7 +4518,7 @@ const xyPad = $('#xyPad');
 function syncXY(){
   $('#xyDot').style.left = (V.yaw/80*.5 + .5)*100 + '%';
   $('#xyDot').style.top = (.5 - V.pitch/80*.5)*100 + '%';
-  $('#xyOut').textContent = `turn ${V.yaw}° · tilt ${V.pitch}°`;
+  $('#xyOut').textContent = `turn ${Math.round(V.yaw)}° · tilt ${Math.round(V.pitch)}°`;   // a canvas drag keeps fractions; only the readout rounds
 }
 function xyFrom(e){
   const r = xyPad.getBoundingClientRect();
@@ -4693,7 +4696,7 @@ cv.addEventListener('pointermove', e => {
   const [bx, by] = brushPoint(e, stroke);
   ptr.x = bx; ptr.y = by; ptr.over = true;
   const r = cv.getBoundingClientRect();
-  steerT = [((e.clientX-r.left)/r.width-.5)*2, -((e.clientY-r.top)/r.height-.5)*2];
+  steerT = (view === '3d' && !cal) ? [0,0] : [((e.clientX-r.left)/r.width-.5)*2, -((e.clientY-r.top)/r.height-.5)*2];   // 3D view holds still for inspection
   const showCur = (view === 'paint' && !cal) || calBrushing();
   const cur = $('#cursor'); cur.hidden = !showCur;
   if (showCur){
@@ -4725,6 +4728,13 @@ const endPaint = e => {
 cv.addEventListener('pointerup', endPaint); cv.addEventListener('pointercancel', endPaint);
 /* scroll wheel resizes whichever brush is active; elsewhere the page scrolls normally */
 cv.addEventListener('wheel', e => {
+  if (view === '3d' && !cal){   // 3D view: the wheel changes Layer spacing; the camera does not zoom
+    e.preventDefault();
+    const d3 = e.deltaMode === 1 ? e.deltaY*16 : e.deltaMode === 2 ? e.deltaY*400 : e.deltaY;
+    V.spread = Math.min(2, Math.max(0, V.spread - Math.max(-200, Math.min(200, d3))*.002));
+    tCtl.forEach(c => c.sync());
+    return;
+  }
   const calBrush = cal && cal.id !== 'bg' && isBrushTool(), depthBrush = view === 'paint' && !cal;
   if (!calBrush && !depthBrush) return;   // (3D view pad has its own controls)
   e.preventDefault();
@@ -4738,6 +4748,65 @@ cv.addEventListener('wheel', e => {
   toast(`Brush ${size} px`);
 }, {passive:false});
 cv.addEventListener('pointerleave', () => { if (!painting && !calPainting) vrx = null; ptr.over = false; if(!painting && !calPainting && !clickDrag){ steerT = [0,0]; $('#cursor').hidden = true; } });
+
+/* 3D view: drag the picture to turn and tilt, pinch (or wheel) to change Layer spacing, double-tap / double-click to centre.
+   Inspection only: it just moves V (never saved or recorded). Never runs while calibration is open or in any other view. */
+const ORBIT_DEG = 160;                         // one canvas width (or height) of drag
+const orbit = {pts:new Map(), mode:'', x0:0, y0:0, yaw0:0, pitch0:0, d0:0, sp0:1, tapOk:false, tap:null};
+const orbitOn = () => view === '3d' && !cal;
+function syncOrbitTouch(){ cv.classList.toggle('orbit3d', orbitOn()); }
+const orbitAnchor = p => { orbit.x0 = p.x; orbit.y0 = p.y; orbit.yaw0 = V.yaw; orbit.pitch0 = V.pitch; };
+const orbitDist = () => { const [a, b] = [...orbit.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+function endOrbit(){
+  for (const id of orbit.pts.keys()){ try { if (cv.hasPointerCapture(id)) cv.releasePointerCapture(id); } catch(e){} }
+  orbit.pts.clear(); orbit.mode = ''; orbit.tapOk = false;
+}
+function orbitCentre(){ V.yaw = 0; V.pitch = 0; syncXY(); }
+cv.addEventListener('pointerdown', e => {
+  if (!orbitOn()) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  orbit.pts.set(e.pointerId, {x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, t:e.timeStamp});
+  try { cv.setPointerCapture(e.pointerId); } catch(err){}
+  if (orbit.pts.size === 1){ orbit.mode = 'orbit'; orbit.tapOk = true; orbitAnchor(orbit.pts.get(e.pointerId)); }
+  else if (orbit.pts.size === 2){ orbit.mode = 'pinch'; orbit.tapOk = false; orbit.d0 = orbitDist() || 1; orbit.sp0 = V.spread; }
+});
+cv.addEventListener('pointermove', e => {
+  const p = orbit.pts.get(e.pointerId);
+  if (!p) return;
+  if (!orbitOn()){ endOrbit(); return; }
+  p.x = e.clientX; p.y = e.clientY;
+  if (Math.hypot(p.x - p.x0, p.y - p.y0) > 10) orbit.tapOk = false;
+  const r = cv.getBoundingClientRect();
+  if (orbit.mode === 'orbit'){
+    V.yaw = Math.max(-80, Math.min(80, orbit.yaw0 + (p.x - orbit.x0)/r.width*ORBIT_DEG));
+    V.pitch = Math.max(-80, Math.min(80, orbit.pitch0 - (p.y - orbit.y0)/r.height*ORBIT_DEG));
+    syncXY();
+  } else if (orbit.mode === 'pinch'){
+    V.spread = Math.max(0, Math.min(2, orbit.sp0 + (orbitDist() - orbit.d0)/Math.min(r.width, r.height)*2));
+    tCtl.forEach(c => c.sync());
+  }
+});
+const orbitUp = e => {
+  const p = orbit.pts.get(e.pointerId);
+  if (!p) return;
+  orbit.pts.delete(e.pointerId);
+  try { if (cv.hasPointerCapture(e.pointerId)) cv.releasePointerCapture(e.pointerId); } catch(err){}
+  if (e.type === 'pointercancel'){ endOrbit(); return; }
+  if (orbit.mode === 'pinch' && orbit.pts.size === 1){           // one finger left: carry on turning from where it is, no jump
+    orbit.mode = 'orbit'; orbitAnchor([...orbit.pts.values()][0]);
+  } else if (orbit.pts.size === 0){
+    const wasTap = orbit.mode === 'orbit' && orbit.tapOk && e.pointerType !== 'mouse' && e.timeStamp - p.t < 300;
+    orbit.mode = ''; orbit.tapOk = false;
+    if (wasTap){                                                  // two quick taps close together centre the view
+      const t = orbit.tap;
+      if (t && e.timeStamp - t.t < 300 && Math.hypot(e.clientX - t.x, e.clientY - t.y) < 25){ orbit.tap = null; orbitCentre(); }
+      else orbit.tap = {t:e.timeStamp, x:e.clientX, y:e.clientY};
+    } else orbit.tap = null;
+  }
+};
+cv.addEventListener('pointerup', orbitUp); cv.addEventListener('pointercancel', orbitUp);
+cv.addEventListener('dblclick', () => { if (orbitOn()) orbitCentre(); });
+window.addEventListener('blur', endOrbit);
 
 $('#bLoad').onclick = () => $('#fImg').click();
 $('#fImg').onchange = e => { const f = e.target.files[0]; if (f){ if (easyOn()) importFiles([f], 0); else loadImageFile(f); } e.target.value=''; };
@@ -7607,8 +7676,8 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
@@ -7653,6 +7722,7 @@ const testMode = (() => {
     S('dp1', B, aDP, '', 'Open the Depth tab and drag its sliders one at a time.', 'Nearer layers move more than farther ones; nothing flickers.', '#g-depth', {cat: 'depth'}),
     S('dp2', B, aDP, '', 'Layer tab › Depth offset: drag it.', 'That layer moves nearer or farther against the others.', '#g-lpos', {cat: 'layer', top: 1}),
     S('dp3', B, aDP, '', 'Layer tab › Instances: raise it to 3.', 'Three copies stack in depth; Offset delays timed effects on each copy.', '#instBox', {cat: 'layer', top: 1}),
+    S('dp4', D3, aDP, '', 'Open Layers, choose 3D view, then drag the picture (one finger or the mouse).', 'The stack turns and tilts, the pad dot follows, and the angle stays when you let go. Pinch or scroll changes Layer spacing; double-tap or double-click centres it.', '#viewSeg', {panel: 'L'}),
 
     S('sy1', B, aSY, '', 'Symmetry tab › Segments: set 6.', 'Kaleidoscope slices appear; 1 turns symmetry off.', '#g-sym', {cat: 'sym'}),
     S('sy2', B, aSY, '', 'Tick Mirror.', 'Every other slice flips.', 'label:has(#p-mirror)', {cat: 'sym'}),
