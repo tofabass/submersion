@@ -1713,7 +1713,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const clamp01 = v => Math.max(0, Math.min(1, v));
 
 /* ---------- parameters ---------- */
-const LD = {ltwist:0, ltwSpeed:0, ltwBounce:0, ltwBounceRate:1, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
+const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsrcAngle:0, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
   seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trOuter:0, trStops:[{p:0,c:'#00e5ff'},{p:1,c:'#9b5cff'}], rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
@@ -1739,8 +1739,8 @@ function defLayers(){
 const P0 = {
   gamma:1, strength:.08, focus:.5, steer:0, depthScale:.6, cross:.08,
   hueSpeed:0, hueMin:0, hueMax:360,
-  seg:1, mirror:1, twist:0, twSpeed:0, twBounce:0, twBounceRate:1, zoom:1, srcOrbit:0,
-  loop:12, drift:0, spin:0, breathe:0, hueCycle:0,
+  seg:1, mirror:1, twist:0, twBounce:0, twBounceRate:1, zoom:1, srcOrbit:0,
+  loop:12, drift:0, spin:0, symAngle:0, breathe:0, hueCycle:0,
   hue:0, depthHue:0, sat:1, fog:0, edges:0, ginv:0,
   wet:1, wetSwing:0, wetRate:1,
   bassDepth:1, bassZoom:.3, highSpin:.5, midHue:.3, bpm:0,
@@ -1785,7 +1785,6 @@ const SPEC = {
   'g-sym':[
     ['seg','Segments',1,24,1,v=>v==1?'off':v+'-fold'],
     ['twist','Twist',-3,3,.01,fx(2)],
-    ['twSpeed','Twist speed',-4,4,1,v=>(v>0?'→ ':v<0?'← ':'')+Math.abs(v)+' /loop'],
     ['zoom','Zoom',.3,4,.01,v=>(+v).toFixed(2)+'×'],
     ['srcOrbit','Source orbit',0,.5,.005,fx(3)],
   ],
@@ -1793,6 +1792,7 @@ const SPEC = {
     ['loop','Loop length',4,32,1,v=>v+' s'],
     ['drift','Camera drift',0,1,.01,fx(2)],
     ['spin','Spin',-4,4,1,turns],
+    ['symAngle','Angle',0,360,1,v=>v+'°'],
     ['hueCycle','Hue cycle',-3,3,1,v=>v+' /loop'],
     ['glide','Global smoothing',0,3,.05,v=>v==0?'off':(+v).toFixed(2)+' s'],
   ],
@@ -1848,8 +1848,10 @@ const LSPECS = {
   'g-lsym':[
     ['seg','Symmetry',0,24,1,v=>v==0?'global':v==1?'off':v+'-fold'],
     ['spin','Symmetry spin',-4,4,1,turns],
+    ['lsrcSpin','Source spin',-4,4,1,turns],
+    ['lsymAngle','Symmetry angle',0,360,1,v=>v+'°'],
+    ['lsrcAngle','Source angle',0,360,1,v=>v+'°'],
     ['ltwist','Twist',-3,3,.01,fx(2)],
-    ['ltwSpeed','Twist speed',-4,4,1,v=>(v>0?'→ ':v<0?'← ':'')+Math.abs(v)+' /loop'],
   ],
   'g-lcol':[
     ['hue','Hue',-180,180,1,v=>v+'°'],
@@ -2519,7 +2521,7 @@ vec2 gTr;
 uniform vec2 uRes, uSteer, uRange;
 uniform float uPitch, uCross, uHSpeed, uHMin, uHRange, uExposure, uLite;
 uniform vec4 uSymB;
-uniform float uImgAspect, uPhi, uSpin, uAudioRot, uTwist, uMirror, uZoom, uBreathe, uZoomMod, uSrcOrbit, uDrift, uStrength, uFocus, uEdge, uHue, uDepthHue, uHueCycle, uSat, uFog, uGamma, uSegG;
+uniform float uImgAspect, uPhi, uSpin, uAudioRot, uTwist, uMirror, uZoom, uBreathe, uZoomMod, uSrcOrbit, uSymAng, uDrift, uStrength, uFocus, uEdge, uHue, uDepthHue, uHueCycle, uSat, uFog, uGamma, uSegG;
 uniform float uSelMask, uSelI, uYaw, uSpread, uRangeOn, uCalOverlay, uPreview, uCalBg;
 uniform int uView, uCount;
 uniform vec4 uA[24], uB[24], uC[24], uD[24], uE[24], uF[24], uG[24], uH[24], uI[24], uJ[24];
@@ -2566,7 +2568,10 @@ float silA(int i, vec2 t){ return uA[i].x > .5 ? texture(uTrS, vec3(t, uA[i].y))
 vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   phi += uH[i].z;   // instance copies run their timed effects later
   vec4 A = uA[i], B = uB[i], C = uC[i], Q = uD[i], F = uF[i];
-  vec2 uv = toUV(fold(p0, uSpin*phi + uAudioRot + B.x*phi, A.w, uG[i].w)/F.y/(uH[i].w > 0. ? uH[i].w : 1.), phi);
+  // uM.y = Symmetry angle, uM.z = Source spin (turns per loop), uM.w = Source angle. The symmetry is turned first (mirror lines move), then the folded point is turned (the picture moves inside fixed mirror lines).
+  vec2 pf = fold(p0, uSpin*phi + uAudioRot + uSymAng + uM[i].y + B.x*phi, A.w, uG[i].w)/F.y/(uH[i].w > 0. ? uH[i].w : 1.);
+  float sa = uM[i].z*phi + uM[i].w; float sc = cos(sa), ss = sin(sa);
+  vec2 uv = toUV(vec2(sc*pf.x - ss*pf.y, ss*pf.x + sc*pf.y), phi);
   vec2 cam = uDrift*vec2(sin(phi), .6*sin(2.*phi)) + uSteer;
   float dz = A.x < .5 ? Q.z*(D(uv) - F.w) : 0.;   // inner depth: per-pixel parallax inside the layer
   float zz = A.z - uFocus + dz;
@@ -2661,7 +2666,7 @@ void main(){
     o = vec4(c, 1.); return;
   }
   if (uView == 1){
-    vec2 uv = toUV(fold(p, uSpin*phi + uAudioRot, uSegG, uTwist), phi);
+    vec2 uv = toUV(fold(p, uSpin*phi + uAudioRot + uSymAng, uSegG, uTwist), phi);
     vec3 c = heat(D(uv));
     if (uSelMask > -.5) c *= .22 + .78*texture(uMasks, vec3(uv, uSelMask)).r;
     else if (uSelMask < -1.5) c *= .22 + .78*(1. - texture(uOther, uv).r);
@@ -2889,7 +2894,7 @@ gl.useProgram(prog);
 /* ---------- Lite / Full: runtime caps only; saved values are never rewritten, so presets open in either mode ---------- */
 var LITE = {on:false, fps:30, entries:12, dpr:1, partRes:512, partMul:.35, objRes:512, lastDraw:0};
 const U = {};
-for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uTrG']) U[n] = gl.getUniformLocation(prog, n);
+for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uTrG']) U[n] = gl.getUniformLocation(prog, n);
 const MU = {}; for (const n of ['uMVP','uR','uOff','uMode','uPh','uDim']) MU[n] = gl.getUniformLocation(mprog, n);
 const PU = {}; for (const n of ['uTw','uTwRot','uCountF','uPh','uPhi','uSize','uSizeVar','uSpeed','uAngle','uSpread','uTurb','uWobble','uTwinkle','uHue','uHueVar','uSat','uBright','uSymN','uSymMirror','uMode','uAspect','uSeed','uScale','uCenter','uShape']) PU[n] = gl.getUniformLocation(pprog, n);
 
@@ -3870,6 +3875,27 @@ const BUILTIN = {
   'Raw parallax': {g:{drift:.7, steer:.5, strength:.1, fog:.2}},
 };
 function globalsOf(s){ const o = clone(s); delete o.L; for (const k of TOOL_KEYS) delete o[k]; return o; }
+/* Twist speed (twSpeed, ltwSpeed) was removed: it only ever added to Spin. Old files fold it into spin (spin += twSpeed) so they look the same,
+   and oscillator mappings and pins that pointed at it are re-pointed to Spin. Works on a preset, a project's P or a timeline scene's P. */
+const TW_ID = {'g-sym-twSpeed': 'g-motion-spin', 'g-lsym-ltwSpeed': 'g-lsym-spin'};
+function twFold(o){
+  if (!o || typeof o !== 'object') return;
+  if ('twSpeed' in o){ o.spin = (+o.spin || 0) + (+o.twSpeed || 0); delete o.twSpeed; }
+  if ('ltwSpeed' in o){ o.spin = (+o.spin || 0) + (+o.ltwSpeed || 0); delete o.ltwSpeed; }
+}
+function migrateTw(s){
+  if (!s || typeof s !== 'object') return s;
+  twFold(s);
+  const L = s.L;
+  if (L && typeof L === 'object'){
+    for (const k of ['layersFx', 'bands', 'layers', 'xs']) if (Array.isArray(L[k])) L[k].forEach(twFold);
+    for (const k of ['bg', 'bgFx', 'icon', 'obj', 'part']) twFold(L[k]);
+  }
+  const maps = s.mod && s.mod.maps;
+  if (Array.isArray(maps)) for (const m of maps) if (m && TW_ID[m.tgt]) m.tgt = TW_ID[m.tgt];
+  if (s.pins && typeof s.pins === 'object'){ const f = a => Array.isArray(a) ? [...new Set(a.map(i => TW_ID[i] || i))] : a; s.pins.list = f(s.pins.list); s.pins.auto = f(s.pins.auto); s.pins.locked = f(s.pins.locked); }
+  return s;
+}
 function builtinState(name){
   const pr = BUILTIN[name], g = {...globalsOf(P0), ...(pr.g || {})};
   const n = P.L.layers.length + 1, f = pr.fx || (() => ({}));
@@ -3883,6 +3909,7 @@ function presetOf(s){
   return {...globalsOf(s), mod: modForSave(s), L:{ layersFx: s.L.layers.map(l => ({...fxPick(l), name: l.name})), bgFx: {...fxPick(s.L.bg), name: s.L.bg.name, solid: s.L.bg.solid || 0, solidCol: s.L.bg.solidCol}, icon: clone(s.L.icon), obj: clone(s.L.obj), part: clone(s.L.part), xs: clone(s.L.xs || []) }, pins: pinsOf()};
 }
 function applyState(s){
+  s = migrateTw(clone(s));
   const tools = {}; for (const k of TOOL_KEYS) tools[k] = P[k];
   const sL = s.L || {};
   const list = sL.layersFx || sL.bands || [];
@@ -4122,7 +4149,7 @@ async function restoreProject(st, urlOf, objTextIn){
   cctx.clearRect(0,0,imgW,imgH); cctx.drawImage(im, 0, 0);
   const dm = await loadImgURL(urlOf('depth')); dctx.drawImage(dm, 0, 0, imgW, imgH); markDepth();
   if (st.pins) { try { setPins(st.pins); } catch(e){} }
-  const sP = st.P || {}, tools = {}; for (const k of TOOL_KEYS) tools[k] = P[k];
+  const sP = migrateTw(st.P || {}), tools = {}; for (const k of TOOL_KEYS) tools[k] = P[k];
   P = {...clone(P0), ...clone(sP), ...tools};
   const di = defLayers();
   P.L = {layers: (sP.L?.layers || []).map(l => ({...LD, ...l})), bg: {...di.bg, ...(sP.L?.bg || {})}, icon: {...di.icon, ...(sP.L?.icon || {})}, obj: {...di.obj, ...(sP.L?.obj || {})}, part: {...di.part, ...(sP.L?.part || {})}, xs: (sP.L?.xs || []).filter(l => l && ['icon','obj','part'].includes(l.kind)).map(l => ({...di[l.kind], ...l}))};
@@ -4386,8 +4413,8 @@ $('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(
 /* randomizer presets: built-in themes plus the user's own saved tick sets */
 const RP_BUILTIN = [
   {id:'b:colour', name:'Colour only', amt:.8, keys:['g:hue','g:depthHue','g:sat','g:hueCycle','l:hue','l:sat','l:con','l:phue','l:phueVar','l:psat','l:pbright']},
-  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:twSpeed','g:zoom','g:spin','g:srcOrbit','l:seg','l:spin','l:ltwist','l:ltwSpeed','l:psymN','l:psymMirror','l:ptwist']},
-  {id:'b:motion', name:'Motion + depth', amt:.6, keys:['g:strength','g:focus','g:depthScale','g:drift','g:srcOrbit','g:spin','g:twSpeed','g:fog','l:z','l:relief','l:inst','l:instSp','l:instOff','l:spinX','l:spinY','l:pspeed','l:pangle','l:pturb','l:pmode']},
+  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:psymN','l:psymMirror','l:ptwist']},
+  {id:'b:motion', name:'Motion + depth', amt:.6, keys:['g:strength','g:focus','g:depthScale','g:drift','g:srcOrbit','g:spin','l:lsrcSpin','g:fog','l:z','l:relief','l:inst','l:instSp','l:instOff','l:spinX','l:spinY','l:pspeed','l:pangle','l:pturb','l:pmode']},
   {id:'b:fx', name:'FX', amt:.7, keys:['l:wig','l:glow','l:melt','l:trail','l:blend','g:edges','g:fog','l:ptwinkle','l:pshape']},
   {id:'b:chaos', name:'Chaos (everything, 100%)', amt:1, keys:'*'},
 ];
@@ -5395,7 +5422,7 @@ function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el
 const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
-const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','twSpeed','twBounceRate','ltwSpeed','ltwBounceRate','ptwSpeed','ptwBounceRate','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
+const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
 let frameDt = 1/60;
 function smooth(key, target){
   if (!(P.glide > 0)){ GLIDE.set(key, target); return target; }
@@ -5651,7 +5678,7 @@ function draw(w, h){
   list.forEach((x, i) => {
     const l = x.L, o = i*4;
     A[o]=x.type; A[o+1]=x.idx; A[o+2]=x.z; A[o+3]= l.seg ? l.seg : Q.seg;
-    B[o]=l.spin + (l.ltwSpeed || 0); B[o+1]=l.hue/360 + (x.off ? (instG(Q, 'hue', x.off) - Q.hue)/360 : 0); B[o+2]=l.sat; B[o+3]=l.con;
+    B[o]=l.spin; B[o+1]=l.hue/360 + (x.off ? (instG(Q, 'hue', x.off) - Q.hue)/360 : 0); B[o+2]=l.sat; B[o+3]=l.con;
     C[o]=l.op*x.fade; C[o+1]=l.wig; C[o+2]=l.glow; C[o+3]=l.melt;
     Dv[o]=l.trail; Dv[o+1]=x.isBg ? 1 : 0; Dv[o+2]=x.type === 0 ? l.relief : 0; Dv[o+3]=x.seed;
     if (x.type === 0){ E[o] = ownCols.has(l.id) ? 1 : 0; E[o+1] = 0; E[o+2] = 1; E[o+3] = 0; }
@@ -5667,6 +5694,7 @@ function draw(w, h){
       const so = ol && l.trOuter;
       Kv[o+3] = hq + 360*sq + 36360*((nl - 1) + 6*((ol && l.olOnly ? 1 : 0) + (tr && l.trOnly ? 2 : 0) + (so ? 4 : 0)));
       const gr = tr && l.trGrad; Mv[o] = gr ? 1 : -1; if (gr) trLutRow(i, trStopsOf(l));
+      Mv[o+1] = (l.lsymAngle || 0)*Math.PI/180; Mv[o+2] = l.lsrcSpin || 0; Mv[o+3] = (l.lsrcAngle || 0)*Math.PI/180;
       if (tr || so) ensureTrace(x, l); }
     if (l.rcOn && x.type < 2){                                   // recolour: strength (negative = keep shading) and the colour packed as one 24-bit number
       const s = clamp01(l.rcStr ?? 1); if (s > 0){ const c = olRGB(l.rcCol); Iv[o+3] = l.rcKeep ? -s : s; Jv[o+3] = Math.round(c[0]*255)*65536 + Math.round(c[1]*255)*256 + Math.round(c[2]*255); }
@@ -5689,7 +5717,8 @@ function draw(w, h){
   gl.uniform1f(U.uFocus, Q.focus);
   gl.uniform1f(U.uGamma, Q.gamma);
   gl.uniform1f(U.uMirror, Q.mirror);
-  gl.uniform1f(U.uSpin, Q.spin + Q.twSpeed);
+  gl.uniform1f(U.uSpin, Q.spin);
+  gl.uniform1f(U.uSymAng, (Q.symAngle || 0)*Math.PI/180);
   gl.uniform1f(U.uAudioRot, audioRot);
   gl.uniform1f(U.uTwist, twG);
   gl.uniform1f(U.uZoom, Q.zoom);
@@ -6147,11 +6176,14 @@ const GLYPHS = [[/speed|rate|tempo|loop length/i,'g-speed'],[/swing|bounce|wiggl
   [/wet|opacity|smooth|softness|mix/i,'g-mix'],[/gate|crossover|offset|position|center|axis|limit|tolerance|steer/i,'g-range']];
 const glyphFor = t => (GLYPHS.find(([re]) => re.test(t)) || [0, 'g-amount'])[1];
 const RANGE_ROWS = [...document.querySelectorAll('#pLayers .ctl, #pInsp .ctl')].filter(r => r.querySelector('input[type=range]'));
-const PHONE_PINS = phone.matches;   // on a phone the bar starts with 3 pins and Auto pin on; saved choices still win
+const PHONE_PINS = phone.matches;   // on a phone the bar starts with 3 pins, on desktop 6; Auto pin starts on for both; saved choices still win
+const PINS_FRESH = UI.get('pins', null) === null;         // nothing saved yet: the starting pins are only a starting set
 let PINS = UI.get('pins', PHONE_PINS ? ['g-sym-seg','g-sym-zoom','g-color-hue'] : ['g-sym-seg','g-sym-twist','g-sym-zoom','g-color-hue','g-depth-strength','g-layers-wet']);
-let AUTOPIN = new Set(UI.get('pinsAuto', []));            // which pins were added automatically
-let AUTO_ON = !!UI.get('autoPin', PHONE_PINS), SLOTS = Math.min(12, Math.max(2, +UI.get('pinSlots', PHONE_PINS ? 3 : 6) || (PHONE_PINS ? 3 : 6)));
+// The starting pins count as auto pins. As manual pins they would fill every slot (6 pins, 6 slots) and Auto pin could never add one.
+let AUTOPIN = new Set(PINS_FRESH ? PINS : UI.get('pinsAuto', []));   // which pins were added automatically
+let AUTO_ON = !!UI.get('autoPin', true), SLOTS = Math.min(12, Math.max(2, +UI.get('pinSlots', PHONE_PINS ? 3 : 6) || (PHONE_PINS ? 3 : 6)));
 let LOCKED = new Set(UI.get('pinsLocked', []));
+{ const fixId = id => TW_ID[id] || id; PINS = [...new Set(PINS.map(fixId))]; AUTOPIN = new Set([...AUTOPIN].map(fixId)); LOCKED = new Set([...LOCKED].map(fixId)); }   // a pin on the removed Twist speed moves to Spin
 const savePins = () => { markDirty(); UI.set('pins', PINS); UI.set('pinsAuto', [...AUTOPIN]); UI.set('pinsLocked', [...LOCKED]); };
 const pinnable = id => RANGE_ROWS.some(r => r.querySelector('input[type=range]').id === id);
 // Locked pins keep their place and are never dropped. Over the limit, the oldest unlocked pin goes (auto pins first).
@@ -6189,14 +6221,20 @@ function trimAuto(keep){
 const pinsOf = () => ({list: [...PINS], auto: PINS.filter(i => AUTOPIN.has(i)), locked: PINS.filter(i => LOCKED.has(i))});
 function setPins(o){                                     // from a preset or project; older saves have none and keep the current pins
   if (!o || !Array.isArray(o.list)) return;
+  { const fixId = id => TW_ID[id] || id; o = {list: [...new Set(o.list.map(fixId))], auto: (o.auto || []).map(fixId), locked: (o.locked || []).map(fixId)}; }
   PINS = o.list.filter(pinnable); AUTOPIN = new Set((o.auto || []).filter(i => PINS.includes(i))); LOCKED = new Set((o.locked || []).filter(i => PINS.includes(i)));
   savePins(); drawMacros();
 }
 // audio-driven sliders: the ones a band route is moving right now
 const AUDIO_DRIVEN = {'g-depth-strength':['bassDepth','rDepth'], 'g-sym-zoom':['bassZoom','rZoom'], 'g-sym-spin':['highSpin','rSpin'], 'g-color-hue':['midHue','rHue'], 'g-part-count':['pCountAmt','rPCount'], 'g-part-psize':['pSizeAmt','rPSize']};
 const audioDriven = id => { const a = AUDIO_DRIVEN[id]; return !!a && P[a[0]] > 0 && P[a[1]] !== 'off' && ((!!analyser && (!audioEl.paused || liveIn)) || P.bpm > 0); };  // only while sound or tempo is actually running
+let pinFullT = 0;
 function autoPin(id){
-  if (!AUTO_ON || PINS.includes(id) || audioDriven(id) || (mapReady && modDriven(id))) return; if (manualCount() >= SLOTS) return;
+  if (!AUTO_ON || PINS.includes(id) || audioDriven(id) || (mapReady && modDriven(id))) return;
+  if (manualCount() >= SLOTS){                           // every slot is held by a pin you chose: say why nothing is being added (at most every 20 s)
+    if (Date.now() - pinFullT > 20000){ pinFullT = Date.now(); toast('Auto pin is paused: your pins fill all ' + SLOTS + ' slots. Raise Pinned slots in Settings, or unpin one.', 3600); }
+    return;
+  }
   const U = PINS.filter(i => !LOCKED.has(i)); U.unshift(id); AUTOPIN.add(id); AUTOHIST = AUTOHIST.filter(x => x !== id); arrange(U);
   trimAuto(id); if (!PINS.includes(id)) AUTOPIN.delete(id);
   savePins(); drawMacros();
@@ -7442,7 +7480,7 @@ function syncLookPop(){
 lookPop.addEventListener('click', e => { const b = e.target.closest('[data-lk]'); if (!b) return; LOOK[b.dataset.lk] = b.dataset.v; applyLook(); });
 let colRaf = 0;
 $('#lkColor').addEventListener('input', e => { LOOK.color = e.target.value; cancelAnimationFrame(colRaf); colRaf = requestAnimationFrame(applyLook); });
-$('#lkAutoPin').onchange = e => { AUTO_ON = e.target.checked; UI.set('autoPin', AUTO_ON); drawMacros(); };
+$('#lkAutoPin').onchange = e => { AUTO_ON = e.target.checked; UI.set('autoPin', AUTO_ON); drawMacros(); if (AUTO_ON && manualCount() >= SLOTS) toast('Auto pin is on, but your pins fill all ' + SLOTS + ' slots. Raise Pinned slots, or unpin one.', 3600); };
 $('#lkSlots').addEventListener('change', e => { SLOTS = Math.min(12, Math.max(2, Math.round(+e.target.value) || 6)); e.target.value = SLOTS; UI.set('pinSlots', SLOTS); trimAuto(); savePins(); drawMacros(); });
 $('#lkReset').onclick = () => { LOOK.color = LOOK_DEF.color; applyLook(); };
 $('#lkFrost').addEventListener('input', e => { LOOK.frost = +e.target.value; applyFrost(); $('#lkFrostOut').textContent = Math.round(LOOK.frost*100) + '%'; paintFill(e.target); clearTimeout(rDeb); rDeb = setTimeout(() => { refractAll(); try { localStorage.setItem('submersion.look', JSON.stringify(LOOK)); } catch(err){} }, 120); });
@@ -7753,8 +7791,8 @@ const itut = (() => {
     {id:'sym', t:'Symmetry tab', steps:[
       {t:'Segments and mirror', sel:[chip('sym'), row('g-sym', 'seg'), 'label:has(#p-mirror)'], open:{cat:'sym'},
        x:'Segments sets how many kaleidoscope slices there are; 1 turns symmetry off. Mirror flips every other slice.', tr:'Drag Segments up and down.'},
-      {t:'Twist', sel:[row('g-sym', 'twist'), row('g-sym', 'twSpeed')], open:{cat:'sym'}, list:1,
-       x:'Twist spirals the slices around the centre; Twist speed keeps them turning.', tr:'Drag Twist slowly.'},
+      {t:'Twist', sel:[row('g-sym', 'twist')], open:{cat:'sym'}, list:1,
+       x:'Twist spirals the slices around the centre. Use Spin in the Motion tab to keep them turning.', tr:'Drag Twist slowly.'},
       {t:'Zoom and orbit', sel:[row('g-sym', 'zoom'), row('g-sym', 'srcOrbit')], open:{cat:'sym'}, list:1,
        x:'Zoom moves into or out of the pattern; Source orbit slides the picture underneath the slices.', tr:'Zoom in, then back out.'},
     ]},
@@ -8285,8 +8323,8 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
@@ -8335,7 +8373,7 @@ const testMode = (() => {
 
     S('sy1', B, aSY, '', 'Symmetry tab › Segments: set 6.', 'Kaleidoscope slices appear; 1 turns symmetry off.', '#g-sym', {cat: 'sym'}),
     S('sy2', B, aSY, '', 'Tick Mirror.', 'Every other slice flips.', 'label:has(#p-mirror)', {cat: 'sym'}),
-    S('sy3', B, aSY, '', 'Drag Twist, then Twist speed.', 'Twist spirals the slices; Twist speed keeps them turning.', '#g-sym', {cat: 'sym'}),
+    S('sy3', B, aSY, '', 'Drag Twist.', 'Twist spirals the slices around the centre.', '#g-sym', {cat: 'sym'}),
     S('sy4', B, aSY, '', 'Drag Zoom in and out, then Source orbit.', 'Zoom moves into and out of the pattern; Source orbit slides the picture under the slices.', '#g-sym', {cat: 'sym'}),
     S('sy5', B, aSY, '', 'Layer tab › Symmetry: raise it for one layer.', 'Only that layer gets its own kaleidoscope on top of the global one.', '#g-lsym', {cat: 'layer', top: 1}),
 
@@ -8446,6 +8484,15 @@ const testMode = (() => {
     S('mp4', MP, aOS, 'desktop', 'Open the Oscillators panel (O) without having moved it.', 'It opens centred above the Oscillators button. After you drag it elsewhere it reopens there.', '#dOsc'),
     S('lt8', LT, aLY, 'full', 'Turn Light trace off, keep Draw an outline on, and tick Outline the outside edge only.', 'The steady outline follows only the outer silhouette; inner lines and holes get no outline. With Show outline only it draws just the silhouette line.', '#olBox', {cat: 'layer', top: 1}),
     S('lt9', LT, aLY, 'full', 'With Gradient on, tap each preset under the gradient bar (Neon, Fire, Aurora, Sunset, Rainbow, Toxic, Ice).', 'The bar and the light take the preset colours; the stops can still be dragged and recoloured afterwards.', '#olBox', {cat: 'layer', top: 1}),
+    S('sp1', SP, aPN, 'desktop adv', 'On a desktop, open Settings › Pins and tick Auto pin (it now starts ticked on a fresh profile). Drag a slider that is not in the dock bar, for example Camera drift.', 'It pins itself to the start of the bar and the least recently used auto pin drops off; the bar keeps its Pinned slots count. If every pin was chosen by hand and they fill all the slots, a message says Auto pin is paused and to raise Pinned slots or unpin one.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
+    S('sp2', SP, aPN, 'desktop adv', 'With Auto pin on, pin a different slider by hand with its pin icon, then untick Auto pin and drag another slider.', 'The hand-pinned slider takes the place of the least recently used auto pin. With Auto pin off, dragging a slider pins nothing.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
+    S('sp3', SP, aSY, 'adv', 'Open the Symmetry tab and the layer Symmetry group.', 'There is no Twist speed slider in either place; Twist (and its bounce) are still there. Spin lives in the Motion tab.', '#g-sym', {cat: 'sym'}),
+    S('sp4', SP, aPJ, 'adv', 'Open a project, Look preset or timeline scene saved before this update that had Twist speed set.', 'It looks and moves exactly as before. Spin now holds the old Spin plus Twist speed; any oscillator that drove Twist speed now drives Spin.', '#bProjImport', {cat: 'project'}),
+    S('sp5', SP, aSY, 'adv', 'Select a picture layer, set Segments to 6 and open its Symmetry group. Set Source spin to 1.', 'The picture turns once per loop inside the symmetry while the mirror lines stay put. Symmetry spin instead turns the whole pattern including the mirror lines. The four labels (Symmetry spin, Source spin, Symmetry angle, Source angle) read as different controls, and they are hidden in Easy.', '#g-lsym', {cat: 'layer', top: 1}),
+    S('sp6', SP, aSY, 'adv', 'Move Source angle, Symmetry angle and the Motion tab Angle (0–360°).', 'Source angle turns the picture inside the fixed mirror lines. Symmetry angle turns that layer\'s whole pattern. Angle turns every layer\'s pattern together. Double-click or double-tap each slider to put it back to 0.', '#g-lsym', {cat: 'layer', top: 1}),
+    S('sp7', SP, aSY, 'adv', 'Pin Source spin, map an oscillator to it, press Roll with Geometry and Motion ticked, then Reset all and Undo.', 'Pin, mapping and Roll work for the new sliders; Reset all returns them to 0 and Undo brings the values back. Save and import a project and the values are kept.', '#g-lsym', {cat: 'layer', top: 1}),
+    S('sp8', SP, aTL, 'adv', 'Set different Source angle values in two timeline scenes and play with Glide. Give the scenes different Source spin values.', 'The angle glides smoothly between scenes. Source spin switches at the middle of the transition, like Spin, because gliding a turns-per-loop speed would make the picture jump.', '#tlPlay', {panel: 'T'}),
+    S('sp9', SP, aLF, 'lite', 'In Lite, turn Source spin and Source angle on.', 'The picture still turns inside the symmetry with no extra stutter.', '#g-lsym', {cat: 'layer', top: 1}),
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
     S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
@@ -9315,6 +9362,7 @@ function tlPrune(){
   for (const h in TL.pics) if (!keep.has(h)) delete TL.pics[h];
 }
 function tlNorm(sc){
+  if (sc && sc.P) migrateTw(sc.P);   // scenes saved before Twist speed was removed
   const unit = sc.unit === 'sec' ? 'sec' : 'loops';
   return {...sc, id: String(sc.id || tlNewId()), name: String(sc.name || 'Scene').slice(0, 40), unit, len: tlClampLen(+sc.len, unit),
     tr: TL_TR_IDS.has(sc.tr) ? sc.tr : 'glide', trLen: tlClampTr(+sc.trLen),
