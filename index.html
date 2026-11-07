@@ -7126,6 +7126,10 @@ const itut = (() => {
        x:'Auto layers… finds the objects in a flat picture and splits them into layers by depth for you.', tr:'Choose Auto layers…, then Generate layers or Cancel.'},
       {t:'Roll colours', sel:['#lcRow'], allow:['#lcList'], open:{panel:'L'},
        x:'Roll colours recolours the ticked layers with a random scheme. Layers ▾ chooses which ones it touches.', tr:'Tap Roll colours a few times.'},
+      {t:'3D view', sel:['#viewSeg'], allow:['#box3d', '#cv'], open:{drawer:'view'},
+       x:'3D view draws each layer as a flat card at its depth, just to check the stack. Drag the picture to turn and tilt it, scroll to spread the layers, double-click to centre.',
+       xt:'3D view draws each layer as a flat card at its depth, just to check the stack. Drag the picture to turn and tilt it, pinch to spread the layers, double-tap to centre.',
+       tr:'Choose 3D view, then drag the picture.'},
     ]},
     {id:'ltab', t:'Layer tab', steps:[
       {t:'Layer tab', sel:[chip('layer'), '#inspTitle'], open:{cat:'layer', top:1}, key:['Inspector'],
@@ -7833,6 +7837,7 @@ const testMode = (() => {
     S('tu7', TU, aTU, 'touch', 'On the phone, touch a slider during a tutorial step, then scroll the open sheet.', 'The card sits at the top and steps aside while your finger is down; scrolling stops at the highlighted controls.'),
     S('tu8', TU, aTU, 'easy', 'Run the interactive tutorial in Easy.', 'Steps for hidden controls are skipped; an Unlock more chapter appears.'),
     S('tu9', TU, aTU, 'lite', 'In Lite play the Layer tab chapter up to Effects.', 'The Effects step shows "Full mode only".'),
+    S('tu10', D3, aTU, '', 'Play the Layers chapter to its last step, 3D view, then choose 3D view and drag the picture.', 'The stack turns and tilts while only the View switch and the picture respond; Next still works.'),
 
     S('ky1', B, aKY, '', 'Settings › Shortcuts (or T, then Shortcuts).', 'A table of keys opens; Esc closes it.', '#lkKeys', {look: 1}),
     S('ky2', B, aKY, 'desktop', 'Press Space, then M four times in rhythm, then R twice.', 'Play / pause toggles; tap tempo follows; recording starts and stops.'),
