@@ -600,6 +600,40 @@ body[data-ac="cat"] :is(.cchip[aria-pressed="true"],.dk[aria-pressed="true"],.to
 .itCh small{margin-left:auto;color:var(--dim);font:500 11px var(--f-num)}
 .itList .tutBtns .btn.primary{margin-left:auto}
 body.itOn .toast,body.itOn .atoast{z-index:9100}
+/* Test mode: the tutorial's spotlight and card, but nothing is dimmed or locked while a step is open, so the app can be used freely */
+.lkTest{border-top:1px solid var(--sep,var(--line-soft));margin-top:8px;padding-top:4px;text-align:right}
+.lkTestBtn{background:none;border:0;color:var(--dim);font:500 11px var(--f-ui);padding:6px 4px;cursor:pointer;text-decoration:underline;text-decoration-color:transparent}
+.lkTestBtn:hover,.lkTestBtn:focus-visible{color:var(--ink);text-decoration-color:currentColor;outline:none}
+.tst .tutSpot{box-shadow:none}
+body.lite .tst .tutSpot{transition:none}
+.tst .tutCard{width:min(340px,calc(100vw - 20px))}
+.tst .itList.tutCard{width:min(400px,calc(100vw - 24px))}
+.tst .tutHead h4{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tst .tutHead span{font:500 11px var(--f-num,monospace);flex:none}
+.tsBar{height:4px;border-radius:2px;background:var(--line)}
+.tsBar span{display:block;height:100%;width:0;border-radius:2px;background:var(--accent)}
+.tsAct::before{content:"Do: ";color:var(--accent);font-weight:700}
+.tsAct{font-weight:600}
+.tsExp::before{content:"Expect: ";color:var(--dim);font-weight:700}
+.tsNote{box-sizing:border-box;flex:1;min-width:0;width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--raise);color:var(--ink);font:12.5px var(--f-ui)}
+.tsNote:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tsRes{display:flex;gap:8px}
+.tsRes .btn{flex:1;min-height:38px}
+.tsRes .btn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tsRes #tsFail.on{background:var(--rec);border-color:var(--rec);color:#fff}
+.tst .tutBtns .btn{flex:1;min-height:36px}
+#tsBody{display:grid;gap:8px}
+#tsBody .pk[disabled]{opacity:.5;cursor:default}
+#tsBody .pk.armed{border-color:var(--rec)}
+#tsBody .btn.armed{background:var(--rec);border-color:var(--rec);color:#fff}
+#tsBody ol{margin:0;padding-left:20px;display:grid;gap:6px}
+#tsBody li small{display:block;color:var(--dim)}
+#tsBody textarea{box-sizing:border-box;width:100%;min-height:120px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--raise);color:var(--ink);font:11.5px/1.4 var(--f-num,monospace)}
+#tsBody .tsCount{font:500 12px var(--f-num,monospace);color:var(--ink)}
+.tsChk{display:flex;align-items:center;gap:8px;font:500 12px var(--f-ui)}
+.itCh.bad .ck{background:var(--rec);border-color:var(--rec);color:#fff}
+.tsBtnRow{display:flex;flex-wrap:wrap;gap:8px}
+.tsBtnRow .btn{flex:1;min-height:38px}
 @media (max-width:760px){ .itList.tutCard{top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);max-height:calc(100vh - var(--dockH,118px) - 24px)} }
 .lkg{border-top:1px solid var(--sep,var(--line-soft))}
 .lkg>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:9px 2px 2px;font:700 12.5px var(--f-ui);color:var(--ink)}
@@ -1466,6 +1500,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <div class="lrowp"><span>Auto pin</span><label class="check"><input type="checkbox" id="lkAutoPin"> Pin sliders to the bar as I use them</label><p class="note">Skips sliders that an oscillator or audio is moving. Hover a pin in the bar and tap its lock to keep it in place; locked pins are never dropped.</p></div>
   <div class="lrowp"><span>Pinned slots</span><div class="slotrow"><input type="number" id="lkSlots" min="2" max="12" step="1" inputmode="numeric" data-typing aria-label="Pinned slots"><span>sliders fit in the bar (2–12)</span></div></div>
   </div></details>
+  <div class="lkTest"><button class="lkTestBtn" id="lkTest" type="button">Test mode</button></div>
 </div>
 <div class="modeScrim" id="keysSheet" hidden><div class="modeBox keysBox" role="dialog" aria-modal="true" aria-labelledby="keysT">
   <div class="keysHead"><h3 id="keysT">Keyboard shortcuts</h3><button class="ib" id="keysClose" aria-label="Close shortcuts" title="Close (Esc)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
@@ -1515,6 +1550,29 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <p>You are practising on Tr1ppical Butterfly. Your own project comes back when you exit, and nothing here is saved.</p>
     <div class="itChs" id="itChs"></div>
     <div class="tutBtns"><button class="btn" id="itListExit" type="button">Exit tutorial</button><button class="btn primary" id="itAll" type="button">Play all</button></div>
+  </div>
+</div>
+<div class="modeScrim" id="tstGate" hidden><div class="modeBox" role="dialog" aria-modal="true" aria-labelledby="tstGateT">
+  <h3 id="tstGateT">Test mode</h3>
+  <p class="note">Enter the test password.</p>
+  <form class="btns" id="tstGateForm" autocomplete="off"><input type="password" class="tsNote" id="tstGatePw" data-typing inputmode="numeric" maxlength="20" autocomplete="off" aria-label="Test password"><button class="btn primary" type="submit">Unlock</button></form>
+  <p class="note" id="tstGateMsg" role="alert" hidden></p>
+  <div class="btns"><button class="btn" id="tstGateX" type="button">Cancel</button></div>
+</div></div>
+<div class="itut tst" id="tst" hidden><div class="tutSpot" id="tsSpot"></div>
+  <div class="tutCard" id="tsCard" role="dialog" aria-label="Test step" tabindex="-1" hidden>
+    <div class="tutHead"><h4 id="tsArea"></h4><span id="tsN"></span></div>
+    <div class="tsBar" aria-hidden="true"><span id="tsBarFill"></span></div>
+    <p class="tsAct" id="tsAct"></p>
+    <p class="tsExp" id="tsExp"></p>
+    <p class="itKey" id="tsNa" hidden></p>
+    <input type="text" class="tsNote" id="tsNote" data-typing maxlength="300" placeholder="Note (optional)" aria-label="Note for this step" autocomplete="off">
+    <div class="tsRes"><button class="btn" id="tsPass" type="button">Pass</button><button class="btn" id="tsFail" type="button">Fail</button><button class="btn" id="tsSkip" type="button">Skip</button></div>
+    <div class="tutBtns"><button class="btn" id="tsAreas" type="button">Areas</button><button class="btn" id="tsBack" type="button">Back</button><button class="btn" id="tsNext" type="button">Next</button></div>
+  </div>
+  <div class="tutCard itList" id="tsPanel" role="dialog" aria-labelledby="tsPanelT" tabindex="-1" hidden>
+    <div class="tutHead"><h4 id="tsPanelT"></h4><span id="tsPanelN"></span></div>
+    <div id="tsBody"></div>
   </div>
 </div>
 <audio id="audioEl" loop hidden></audio>
@@ -7155,19 +7213,23 @@ const itut = (() => {
   let active = false, busy = false, SB = null, run = null, pollT = null, backFocus = null, chipShown = false, internal = 0, showTok = 0;
 
   /* ---- sandbox: copy the project in memory, practise on the sample, put it back on exit ---- */
-  function sbStart(){
+  function sbStart(free){   // free = Test mode: same sandbox, but saving stays on
     const cap = capProject();
-    if (!cap){ toast('The interactive tutorial could not start here'); return false; }
+    if (!cap){ toast(free ? 'Test mode could not start here' : 'The interactive tutorial could not start here'); return false; }
     const lkg = {}; document.querySelectorAll('#lookPop .lkg').forEach(d => { lkg[d.dataset.lkg] = d.open; });
-    SB = {cap, dirty: DIRTY, hu: HIST.u, hr: HIST.r, cats: [...shownCats], drOpen: drawer.dataset.open === 'true', drTab: UI.get('drawerTab', 'view'),
+    SB = {free: !!free, cap, dirty: DIRTY, hu: HIST.u, hr: HIST.r, cats: [...shownCats], drOpen: drawer.dataset.open === 'true', drTab: UI.get('drawerTab', 'view'),
       slots: SLOTS, auto: AUTO_ON, sheet: sheetMode, lkg, det: new Map(), chip: easyChip.hidden, clean: document.body.classList.contains('clean'),
       ps: [pL, pI, pO, pM].map(p => [p, p.hidden, p.classList.contains('folded')])};
     HIST.u = []; HIST.r = []; syncHist();       // the tour has its own undo history; yours comes back on exit
     TUT_SB = true;
-    $('#bSample2').click();                      // the same path as the Tr1ppical Butterfly button
+    if (!free) $('#bSample2').click();           // the same path as the Tr1ppical Butterfly button
+    else makeSample('Tr1ppical Butterfly', 2).then(ok => {   // Test mode: the same loader, but the unsaved dot works again once the scene is in
+      if (ok) toast('Tr1ppical Butterfly');
+      if (SB && SB.free){ TUT_SB = false; clearDirty(800); }
+    });
     return true;
   }
-  async function sbEnd(){
+  async function sbEnd(msg){
     const s = SB; if (!s) return;
     sampleTok++;                                 // a sample still loading must not land on top of your project
     try { if (mapArmed) disarmMap(); } catch(e){}
@@ -7189,7 +7251,7 @@ const itut = (() => {
     } catch(e){}
     SB = null; TUT_SB = false;
     if (s.dirty){ DIRTY = false; markDirty(); } else clearDirty(1500);
-    toast(ok ? 'Tutorial closed. Your project is back.' : 'Could not bring your project back. Use Ctrl+Z or import your last save.', ok ? 2200 : 5000);
+    toast(ok ? (msg || 'Tutorial closed. Your project is back.') : 'Could not bring your project back. Use Ctrl+Z or import your last save.', ok ? 2200 : 5000);
   }
 
   /* ---- the lock: only the step's own controls (and the tutorial card) take clicks, taps and keys ---- */
@@ -7233,11 +7295,11 @@ const itut = (() => {
   /* saving is off: Save, project files, Look presets and Roll presets */
   const SAVE_SEL = '#mSave, #bProjExport, #bProjImport, #bPresetSave, #bPresetUpdate, #bPresetDelete, #bPresetImport, #bPresetExport, #bRandSave, #bRandSaveOk, #bRandDel';
   const saveOff = () => toast('Saving is off during the tutorial');
-  document.addEventListener('click', e => { if (SB && !internal && e.target.closest && e.target.closest(SAVE_SEL)){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); } }, true);
+  document.addEventListener('click', e => { if (SB && !SB.free && !internal && e.target.closest && e.target.closest(SAVE_SEL)){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); } }, true);
   window.addEventListener('keydown', e => {
     if (!SB) return;
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's'){ e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) saveOff(); return; }
-    if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('#presetName, #randPresetName, #projName')){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); return; }
+    if (!SB.free && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's'){ e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) saveOff(); return; }
+    if (!SB.free && e.key === 'Enter' && e.target && e.target.matches && e.target.matches('#presetName, #randPresetName, #projName')){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); return; }
     if (!active || busy) return;
     const t = e.target, typing = isTyping(t);
     if (e.key === 'Escape' && !typing){ e.preventDefault(); e.stopImmediatePropagation(); exit(); return; }
@@ -7464,6 +7526,7 @@ const itut = (() => {
   /* ---- start and exit ---- */
   function start(){
     if (active || busy) return;
+    if (SB){ toast('Leave Test mode first (Esc), then start the tutorial'); return; }
     if (!$('#modePrompt').hidden) return;
     try { if (tutorialMode.isActive()) tutorialMode.end(); } catch(e){}
     try { closeKeys(); } catch(e){}
@@ -7511,7 +7574,510 @@ const itut = (() => {
   $('#lkTut').onclick = openPick;
   $('#tutOfferGo').onclick = openPick;
   $('#tutDeepGo').onclick = () => { tutorialMode.end(); start(); };
-  return {start, exit, openPick, isActive: () => active};
+  /* Test mode reuses this sandbox (snapshot, Sample scene 2, restore) and the step opener; the tutorial itself is untouched */
+  const sandbox = {
+    idle: () => !active && !busy && !SB,
+    begin: () => (active || busy || SB) ? false : sbStart(true),
+    end: msg => sbEnd(msg),
+    prep: st => prep(st),
+    rect: sel => {   // the on-screen part of everything the selector matches, as one box
+      let r = null;
+      for (const el of all(sel)){ if (!visRect(el)) continue; const b = clipRect(el); if (!b) continue; r = r ? {l: Math.min(r.l, b.l), t: Math.min(r.t, b.t), r: Math.max(r.r, b.r), b: Math.max(r.b, b.b)} : b; }
+      return r;
+    },
+  };
+  return {start, exit, openPick, isActive: () => active, sandbox};
+})();
+
+/* ---------- Test mode: a password-gated, step-by-step walkthrough for testing the app. Theme menu > Test mode.
+   The gate is casual only (the repo is public); it is not security.
+   It reuses the interactive tutorial's sandbox: your project is copied in memory, Sample scene 2 goes on screen, and Exit or finish puts your project back.
+   Unlike the tutorial, saving stays on: anything saved while testing is named TEST-… and the finish screen can delete those.
+   Results sit in localStorage (one run per mode). Nothing here starts the mic, capture or playback by itself. ---------- */
+const testMode = (() => {
+  const PW = '515151';
+  const UNLOCK_KEY = 'submersion.test.unlocked', RUN_KEY = 'submersion.test.run.';
+  const root = $('#tst'), spot = $('#tsSpot'), card = $('#tsCard'), panel = $('#tsPanel'), bodyEl = $('#tsBody'), noteEl = $('#tsNote');
+  const gate = $('#tstGate'), gatePw = $('#tstGatePw'), gateMsg = $('#tstGateMsg');
+  const touchy = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const lsGet = k => { try { const v = localStorage.getItem(k); return v == null ? null : JSON.parse(v); } catch(e){ return null; } };
+  const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  let unlockedMem = false;
+  const isUnlocked = () => { if (unlockedMem) return true; try { return sessionStorage.getItem(UNLOCK_KEY) === '1'; } catch(e){ return false; } };
+  const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
+
+  /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial';
+  /* tags (steps that do not fit the current setup are skipped with a reason):
+     desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
+  const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
+  const aFR = 'First run and Easy / Full', aLY = 'Layers', aIM = 'Image import', aSC = 'Sample scenes', aDP = 'Depth and parallax', aSY = 'Symmetry', aCO = 'Colour and Recolour',
+    aFX = 'Effects', aMO = 'Motion and loop', aOS = 'Oscillators and Mod', aAU = 'Audio', aRL = 'Randomize and Roll', aLC = 'Layer colours', aPN = 'Pins and phone pin bar',
+    aUD = 'Undo and redo', aPJ = 'Projects and presets', aOU = 'Output', aLF = 'Lite vs Full', aLK = 'Look settings', aHU = 'Hide UI and mini menu', aPS = 'Phone sheets',
+    aTU = 'Tutorial', aKY = 'Keyboard shortcuts';
+  const LK = {look: 1, lkg: ['iface']};
+  /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
+  const STEPS = [
+    S('fr1', B, aFR, '', 'Optional: open the live link in a private window (a fresh browser profile).', 'It starts in Easy with an "Easy mode" chip offering Switch to Full, and a tour offer at the bottom.'),
+    S('fr2', EZ, aFR, '', 'Open the Theme menu (T) and find Interface › Controls.', 'Easy and Full buttons, one of them pressed.', '#lkEasy', LK),
+    S('fr3', EZ, aFR, '', 'Switch Controls to Easy.', 'A message says Easy mode; fewer controls show; the picture does not change.', '#lkEasy', LK),
+    S('fr4', EZ, aFR, 'easy', 'Open the Inspector (I) and look at its tabs.', 'No Mod or Random tab and no Oscillators panel; the other tabs are all there.', '#cchips', {panel: 'I'}),
+    S('fr5', EZ, aFR, '', 'Switch Controls to Full.', 'Mod, Random, Oscillators and Find come back; every slider keeps its value.', '#lkEasy', LK),
+    S('fr6', EZ, aFR, 'adv', 'Press O (or the Oscillators button).', 'The Oscillators panel opens with Add oscillator.', '#pOsc', {panel: 'O'}),
+
+    S('ly1', B, aLY, '', 'Open Layers (L).', 'Six picture layers plus Particles and Background are listed.', '#layerList', {panel: 'L'}),
+    S('ly2', B, aLY, '', 'Tap Add layer.', 'A menu offers a picture, a link, and Auto layers.', '#addMenu', {panel: 'L', add: 1}),
+    S('ly3', B, aLY, '', 'Rename a layer: double-click (desktop) or double-tap (touch) its name, type, confirm.', 'The row shows the new name; Esc cancels the edit.', '#layerList', {panel: 'L'}),
+    S('ly4', B, aLY, '', 'Tap the duplicate button on a picture layer.', 'A copy appears with the same look; Background cannot be duplicated.', '#layerList', {panel: 'L'}),
+    S('ly5', B, aLY, '', 'Hide a layer with its eye (desktop: E), then show it again.', 'It vanishes from the picture and its row dims, then comes back.', '#layerList', {panel: 'L'}),
+    S('ly6', B, aLY, '', 'Solo a layer (solo button, desktop: S), then solo it off.', 'Only that layer shows while solo is on; the rest return after.', '#layerList', {panel: 'L'}),
+    S('ly7', B, aLY, 'adv', 'Right-click (desktop) or press and hold (touch) a layer row.', 'A menu lists Rename, Duplicate, Outline, Hide, Solo and Delete.', '#layerList .lrow', {panel: 'L'}),
+    S('ly8', B, aLY, 'adv', 'In that menu tap Delete twice.', 'The first tap turns it red ("Confirm delete") and it reverts after 3 seconds; the second removes the layer; Undo brings it back.'),
+    S('ly9', B, aLY, 'full', 'Layer tab › Outline: turn it on for a picture layer.', 'A line follows the layer shape; its colour and softness sliders change it.', '#olBox', {cat: 'layer', top: 1}),
+    S('ly10', B, aLY, '', 'Add layer › Auto layers…, then Generate layers (or Cancel).', 'Generate splits a flat picture into depth layers; Cancel changes nothing.', '#addMenu', {panel: 'L', add: 1}),
+    S('ly11', B, aLY, 'adv', 'Select an image layer and start calibration (Calibrate, desktop: Enter).', 'Selection tools appear; Done returns and keeps the selection. On desktop P peeks and B switches tool.', '#bCalibrate', {cat: 'layer', top: 1}),
+
+    S('im1', B, aIM, 'adv', 'View › Load image: choose any picture from your device.', 'With a picture already open you are asked Add or Replace.', '#bLoad', {drawer: 'view'}),
+    S('im2', B, aIM, 'adv', 'Choose Add.', 'The picture lands as a new top layer; the existing layers stay.'),
+    S('im3', B, aIM, 'adv', 'Load another picture and choose Replace.', 'The old picture is replaced and the layer list matches the new one.'),
+    S('im4', EZ, aIM, 'easy', 'Add layer › upload a picture.', 'In Easy the new picture replaces the old one without asking.', '#addMenu', {panel: 'L', add: 1}),
+    S('im5', B, aIM, '', 'Press Undo straight after an import (Ctrl+Z or the Undo message).', 'The previous scene returns exactly.'),
+    S('im6', B, aIM, '', 'Add layer › paste a link to an image or a shared folder of images.', 'A progress bar with Cancel shows; pictures land as layers; Cancel stops cleanly. Needs internet.', '#addMenu', {panel: 'L', add: 1}),
+    S('im7', B, aIM, 'desktop', 'Drag an image file onto the page, then copy an image and press Ctrl+V.', 'Both bring up the Add or Replace question (in Easy the picture just replaces).'),
+
+    S('sc1', B, aSC, '', 'View › Sacred Tree.', 'The tree scene loads with its own layers and a message.', '#bSample', {drawer: 'view'}),
+    S('sc2', B, aSC, '', 'View › Tr1ppical Butterfly.', 'The butterfly scene loads: six picture layers and particles.', '#bSample2', {drawer: 'view'}),
+    S('sc3', B, aSC, '', 'Press Undo right after loading a sample.', 'The previous scene returns. If no Undo is offered, mark Fail and say so.'),
+
+    S('dp1', B, aDP, '', 'Open the Depth tab and drag its sliders one at a time.', 'Nearer layers move more than farther ones; nothing flickers.', '#g-depth', {cat: 'depth'}),
+    S('dp2', B, aDP, '', 'Layer tab › Depth offset: drag it.', 'That layer moves nearer or farther against the others.', '#g-lpos', {cat: 'layer', top: 1}),
+    S('dp3', B, aDP, '', 'Layer tab › Instances: raise it to 3.', 'Three copies stack in depth; Offset delays timed effects on each copy.', '#instBox', {cat: 'layer', top: 1}),
+
+    S('sy1', B, aSY, '', 'Symmetry tab › Segments: set 6.', 'Kaleidoscope slices appear; 1 turns symmetry off.', '#g-sym', {cat: 'sym'}),
+    S('sy2', B, aSY, '', 'Tick Mirror.', 'Every other slice flips.', 'label:has(#p-mirror)', {cat: 'sym'}),
+    S('sy3', B, aSY, '', 'Drag Twist, then Twist speed.', 'Twist spirals the slices; Twist speed keeps them turning.', '#g-sym', {cat: 'sym'}),
+    S('sy4', B, aSY, '', 'Drag Zoom in and out, then Source orbit.', 'Zoom moves into and out of the pattern; Source orbit slides the picture under the slices.', '#g-sym', {cat: 'sym'}),
+    S('sy5', B, aSY, '', 'Layer tab › Symmetry: raise it for one layer.', 'Only that layer gets its own kaleidoscope on top of the global one.', '#g-lsym', {cat: 'layer', top: 1}),
+
+    S('co1', B, aCO, '', 'Color tab › Hue shift: drag slowly, then raise Depth rainbow.', 'Colours turn around the wheel; Depth rainbow colours the picture by depth.', '#g-color', {cat: 'color'}),
+    S('co2', B, aCO, '', 'Lower Saturation, then raise it.', 'Colours grey out, then get rich.', '#g-color', {cat: 'color'}),
+    S('co3', B, aCO, '', 'Tap Invert (desktop: Shift+I), then tap it again.', 'Every image layer flips black to white, then back.', 'label:has(#gInv)', {cat: 'color'}),
+    S('co4', B, aCO, '', 'Raise Depth fog, then Depth edges.', 'Far layers fade into haze; edges outline where depths meet.', '#g-color', {cat: 'color'}),
+    S('co5', B, aCO, '', 'Layer tab: lower Opacity, then turn the layer Invert on.', 'The layer fades; Invert flips only that layer.', '#layerInvRow', {cat: 'layer', top: 1}),
+    S('co6', B, aCO, '', 'Layer tab › Recolour: turn it on and pick a colour.', 'The layer is painted in that one colour.', '#rcBox', {cat: 'layer', top: 1}),
+    S('co7', B, aCO, '', 'Layer tab: set Dry / wet to 0, then set Blend to Screen.', 'Dry / wet 0 shows the plain layer; Screen blends it with what is behind.', '#g-lmix', {cat: 'layer', top: 1}),
+
+    S('fx1', B, aFX, 'full', 'Layer tab › Effects: raise Glow, then Trails.', 'The layer glows and leaves trails.', '#g-lfx', {cat: 'layer', top: 1}),
+    S('fx2', B, aFX, 'lite', 'In Lite, open Layer tab › Effects and raise Glow.', 'A hint says Lite softens glow and shortens trails; glow and trails are capped but still work.', '.liteHint', {cat: 'layer', top: 1}),
+    S('fx3', B, aFX, '', 'Select Particles in Layers and raise Count and Size.', 'Particles multiply and grow.', '#layerList', {panel: 'L'}),
+
+    S('mo1', B, aMO, '', 'Motion tab › Loop length: change it.', 'The speed of all motion changes and it still loops cleanly.', '#g-motion', {cat: 'motion'}),
+    S('mo2', B, aMO, '', 'Raise Spin, then Hue cycle, then Global smoothing.', 'The kaleidoscope turns; colours sweep through each loop; sudden jumps are softened.', '#g-motion', {cat: 'motion'}),
+    S('mo3', B, aMO, '', 'Press Play / pause (desktop: Space), then again.', 'Motion freezes, then resumes from the same point.', '#dPlay'),
+    S('mo4', B, aMO, '', 'Watch one full loop end and begin again.', 'No jump or flash at the seam.'),
+
+    S('os1', B, aOS, 'adv', 'Open Oscillators (O, or the Oscillators button).', 'The panel opens with Add oscillator.', '#pOsc', {panel: 'O'}),
+    S('os2', B, aOS, 'adv', 'Add an oscillator; change its shape and switch Sync / Hz.', 'A wave card appears; shape and rate respond; up to 8 are allowed.', '#pOsc .oadd', {panel: 'O'}),
+    S('os3', B, aOS, 'adv', 'Tap an oscillator node, then tap a slider in the Inspector.', 'The slider now moves with the wave.', '#pOsc .onode', {panel: 'O'}),
+    S('os4', B, aOS, 'adv', 'Open the Mod tab, lower the mapping amount, then remove the mapping.', 'The mapping is listed with source, target and amount; movement shrinks, then stops.', '#modList', {cat: 'mod'}),
+    S('os5', B, aOS, 'adv', 'In Mod use Filter and Sort, then click a target.', 'The list narrows and reorders; clicking a target jumps to its slider.', '.cat[data-cat="mod"] .mtool', {cat: 'mod'}),
+
+    S('au1', B, aAU, '', 'Sound tab › Load audio: pick a song you own, then press Play.', 'It plays only after you press Play; the picture reacts. Nothing is uploaded.', '#bAudio', {cat: 'audio'}),
+    S('au2', B, aAU, '', 'Click Microphone and allow access if asked.', 'Meters move with room sound; clicking again stops it and the browser mic indicator goes away.', '.cat[data-cat="audio"] .lv', {cat: 'audio'}),
+    S('au3', B, aAU, 'desktop', 'Click Device audio and share a tab or screen that plays sound (desktop Chrome or Edge).', 'Meters follow what plays; stopping the share stops it cleanly.', '.cat[data-cat="audio"] .lv', {cat: 'audio'}),
+    S('au4', B, aAU, '', 'More › Streaming.', 'The Streaming panel opens with a link box.', '#mMusic', {more: 1}),
+    S('au5', B, aAU, '', 'Paste a SoundCloud or Spotify link in Streaming.', 'It loads (needs internet); on desktop Listen lets the picture react.'),
+    S('au6', B, aAU, 'adv', 'With sound playing, watch the Low, Mid and High meters, move a crossover and try Gate solo.', 'Each band follows its part of the sound; crossovers move the split; solo isolates a band.', '.cat[data-cat="audio"] .bands', {cat: 'audio'}),
+    S('au7', B, aAU, '', 'Pick the Kick Pulse Beat sync style.', 'The picture pulses on the kick; Edit in Mod lists the effects it set.', '#bsSel', {cat: 'audio'}),
+    S('au8', B, aAU, '', 'Move Reactivity up and down.', 'Every sound effect gets stronger or gentler together.', '#reactRow', {cat: 'audio'}),
+    S('au9', B, aAU, '', 'With no sound, raise Tempo pulse.', 'The picture beats at the tempo in silence.', '#g-apulse', {cat: 'audio'}),
+    S('au10', B, aAU, '', 'Tap Tap tempo four times in rhythm (desktop: M).', 'The tempo follows your taps and the pulse matches.', '#bTap', {cat: 'audio'}),
+    S('au11', B, aAU, '', 'Stop everything you started: audio, microphone, device audio, stream.', 'Meters drop to zero, no sound plays, and the browser shows no capture indicator.'),
+
+    S('rl1', B, aRL, '', 'Tap Roll (dock button; desktop: ? or /).', 'A new random look appears with a message offering Undo.', '#dRoll'),
+    S('rl2', B, aRL, '', 'Press Undo on that message (desktop: Ctrl+Z).', 'The previous look returns exactly.'),
+    S('rl3', B, aRL, 'adv', 'Random tab: set Random amount low, then Roll.', 'Changes are small compared with a high amount.', '#g-randamt', {cat: 'random'}),
+    S('rl4', B, aRL, 'adv', 'Switch Roll preset (Select all, Basic, None), untick an effect, and Roll.', 'Each preset changes a different set of controls; None and unticked controls stay put.', '#randPreset', {cat: 'random'}),
+    S('rl5', B, aRL, 'adv', 'Press Reset all (button; desktop: Z).', 'Every effect returns to its start; Undo brings your look back.', '#bResetAll', {cat: 'random'}),
+    S('rl6', B, aRL, 'adv', 'Save a Roll preset named TEST-roll.', 'It appears under My Roll presets with a Saved message.', '#bRandSave', {cat: 'random'}),
+    S('rl7', B, aRL, 'adv', 'Pick TEST-roll in Roll presets and Roll.', 'Only the controls that preset allows change.', '#randPreset', {cat: 'random'}),
+
+    S('lc1', B, aLC, '', 'Layers panel › Roll colours.', 'Ticked layers get a random colour scheme; Undo restores them.', '#lcRow', {panel: 'L'}),
+    S('lc2', B, aLC, '', 'Open Layers ▾, untick one layer, and Roll colours.', 'The unticked layer keeps its colours.', '#lcList', {panel: 'L'}),
+    S('lc3', B, aLC, 'adv', 'Random tab › Layer colours: turn it on, then Roll.', 'A plain Roll also recolours the chosen layers.', '#fltLC', {cat: 'random'}),
+
+    S('pn1', B, aPN, 'adv', 'Pin Zoom (the pin icon next to the slider in Symmetry).', 'Zoom appears in the dock bar.', '.ctl:has(#g-sym-zoom)', {cat: 'sym'}),
+    S('pn2', B, aPN, 'adv', 'Close all panels and drag the pinned slider in the dock.', 'The picture changes live and the panels stay closed.', '#macros'),
+    S('pn3', B, aPN, 'adv', 'Theme › Pins: set Pinned slots to 4.', 'The dock bar fits four sliders.', '#lkSlots', {look: 1, lkg: ['pins']}),
+    S('pn4', B, aPN, 'adv', 'Tick Auto pin and move a few sliders.', 'Sliders you use pin themselves; ones an oscillator or audio is moving are skipped.', '#lkAutoPin', {look: 1, lkg: ['pins']}),
+    S('pn5', B, aPN, 'touch adv', 'On the phone pin three sliders and close the panels.', 'The pin bar sits above the dock, each slider drags with a thumb, and nothing covers the picture.', '#macros'),
+
+    S('ud1', B, aUD, '', 'Delete a layer, then press Undo (desktop: Ctrl+Z).', 'The layer returns in its old place with its settings.', '#layerList', {panel: 'L'}),
+    S('ud2', B, aUD, '', 'Load a Look preset, Undo it, then Redo (desktop: Ctrl+Shift+Z or Ctrl+Y).', 'The look reverts, then returns.'),
+
+    S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
+    S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
+    S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
+    S('pj4', B, aPJ, 'touch', 'More › Save project.', 'A TEST-project file downloads and the unsaved dot clears.', '#mSave', {more: 1}),
+    S('pj5', B, aPJ, 'desktop', 'Clear the project name and press Ctrl+S.', 'It asks you to name the project and focuses the box; Enter then saves.', '#projName', {cat: 'project'}),
+    S('pj6', B, aPJ, '', 'Import file: choose the TEST-project file you saved.', 'A "Project file opened" message shows; layers and settings match; the dot shows.', '#bProjImport', {cat: 'project'}),
+    S('pj7', B, aPJ, '', 'Undo the import.', 'The previous scene returns.'),
+    S('pj8', B, aPJ, '', 'Save a Look preset named TEST-look.', 'It appears under Your Look presets with a Saved message.', '#presetName', {cat: 'project'}),
+    S('pj9', B, aPJ, '', 'Pick a built-in Look preset, then TEST-look again.', 'The look changes each time; TEST-look brings back the saved look.', '#presetSel', {cat: 'project'}),
+    S('pj10', B, aPJ, '', 'Change something and press Update.', 'A message says Updated TEST-look.', '#bPresetUpdate', {cat: 'project'}),
+    S('pj11', B, aPJ, '', 'Export the presets, then Import that file back.', 'A file downloads; importing adds presets (names stay TEST-…) without errors.', '#bPresetExport', {cat: 'project'}),
+    S('pj12', B, aPJ, '', 'Select one TEST-look and press Delete twice.', 'The first press arms "Confirm delete" and reverts after 3 seconds; the second deletes it.', '#bPresetDelete', {cat: 'project'}),
+
+    S('ou1', B, aOU, '', 'Change Aspect.', 'The frame changes shape and the picture refits.', '.ctl:has(#aspectSel)', {cat: 'project'}),
+    S('ou2', B, aOU, '', 'Switch Quality.', 'The picture re-renders sharper or lighter; Lite limits the top choice.', '#qSeg', {cat: 'project'}),
+    S('ou3', B, aOU, '', 'Capture a PNG still.', 'A PNG downloads and matches what you see.', '#bPng', {cat: 'project'}),
+    S('ou4', B, aOU, '', 'Record one loop (button; desktop: R).', 'It stops by itself after one loop; the video downloads and loops cleanly.', '#bRec', {cat: 'project'}),
+
+    S('lf1', B, aLF, '', 'Theme › Performance: switch to the other mode and back.', 'The picture re-renders each time with no blank frame; a message names the mode.', '#lkMode', {look: 1, lkg: ['perf']}),
+    S('lf2', B, aLF, 'lite', 'In Lite look at Output Quality and the Mirror backdrop.', 'The top Quality and Mirror are disabled with "Full mode only".', '#qSeg', {cat: 'project'}),
+    S('lf3', B, aLF, 'full', 'In Full pick the Mirror backdrop and the top Quality.', 'Both can be chosen.', '#qSeg', {cat: 'project'}),
+    S('lf4', B, aLF, '', 'Switch back to the mode you normally use.', 'Everything keeps its settings.', '#lkMode', {look: 1, lkg: ['perf']}),
+
+    S('lk1', B, aLK, '', 'Theme › Look: switch Light and Dark, then Backdrop and Accent.', 'The whole interface recolours and stays readable; Mirror is Full only.', '#lookPop', {look: 1, lkg: ['look']}),
+    S('lk2', B, aLK, '', 'Pick a Global colour, then press Default.', 'Accents, text and slider colours follow; Default restores them.', '#lkColor', {look: 1, lkg: ['look']}),
+    S('lk3', B, aLK, '', 'Move Frost.', 'Panels get clearer or frostier.', '#lkFrost', {look: 1, lkg: ['look']}),
+
+    S('hu1', B, aHU, '', 'Hide UI (dock button; desktop: H).', 'Panels and dock vanish; a Show UI button stays.', '#dHide'),
+    S('hu2', B, aHU, '', 'Open the mini menu tab and use each button once.', 'Roll rolls; Play pauses; Capture saves a still; Record starts one loop.', '#miniTab'),
+    S('hu3', B, aHU, '', 'Press Show UI (desktop: H).', 'Everything returns as it was.', '#showUI'),
+    S('hu4', B, aHU, 'touch', 'Hide the UI from More › Hide UI.', 'The same result on the phone.', '#mHide', {more: 1}),
+
+    S('ps1', PH, aPS, 'touch', 'Open Layers on the phone.', 'A bottom sheet opens at half height with a handle; the picture stays visible above it.', '#pLayers', {panel: 'L'}),
+    S('ps2', PH, aPS, 'touch', 'Drag the sheet handle up and down.', 'It snaps between peek, half and full.', '#pLayers', {panel: 'L'}),
+    S('ps3', PH, aPS, 'touch', 'Close the sheet and open it again.', 'It reopens at the height you left it.', '#pLayers', {panel: 'L'}),
+    S('ps4', PH, aPS, 'touch', 'Open the Theme menu, then More.', 'Each sits above the dock and is not cut off; other panels close.', '#lookPop', {look: 1}),
+    S('ps5', PH, aPS, 'touch', 'Rotate to landscape and back.', 'Sheet and dock refit without overlap.'),
+
+    S('tu1', TU, aTU, '', 'Theme › Tutorial.', 'A picker offers Quick tutorial and Interactive tutorial.', '#lkTut', {look: 1}),
+    S('tu2', TU, aTU, '', 'Run the Quick tutorial; finish it or press Skip.', 'Five spotlight steps; Skip, Esc or Done puts every panel back as it was.'),
+    S('tu3', TU, aTU, '', 'On the last Quick step look for the interactive offer.', 'A "Want to dive deeper?" line with an Interactive tutorial button.'),
+    S('tu4', TU, aTU, '', 'Press Esc here (progress is kept), start Theme › Tutorial › Interactive tutorial and play the Layers chapter.', 'A chapter list opens on Tr1ppical Butterfly; only the step controls respond; Next advances and the spotlight follows.'),
+    S('tu5', TU, aTU, 'desktop', 'In the interactive tutorial press Ctrl+S.', 'A message says Saving is off during the tutorial.'),
+    S('tu6', TU, aTU, '', 'Choose Chapters, then Exit tutorial, then reopen Test mode and Resume.', 'Your own project is back with a "Tutorial closed" message; the test resumes at the next step.'),
+    S('tu7', TU, aTU, 'touch', 'On the phone, touch a slider during a tutorial step, then scroll the open sheet.', 'The card sits at the top and steps aside while your finger is down; scrolling stops at the highlighted controls.'),
+    S('tu8', TU, aTU, 'easy', 'Run the interactive tutorial in Easy.', 'Steps for hidden controls are skipped; an Unlock more chapter appears.'),
+    S('tu9', TU, aTU, 'lite', 'In Lite play the Layer tab chapter up to Effects.', 'The Effects step shows "Full mode only".'),
+
+    S('ky1', B, aKY, '', 'Theme › Shortcuts (or T, then Shortcuts).', 'A table of keys opens; Esc closes it.', '#lkKeys', {look: 1}),
+    S('ky2', B, aKY, 'desktop', 'Press Space, then M four times in rhythm, then R twice.', 'Play / pause toggles; tap tempo follows; recording starts and stops.'),
+    S('ky3', B, aKY, 'desktop', 'Press I, L, O and T, then H twice, then Shift+F.', 'Inspector, Layers, Oscillators (Full) and Theme toggle; the UI hides and shows; full screen toggles.'),
+    S('ky4', B, aKY, 'desktop adv', 'Press Ctrl+F and type a control name.', 'A find box lists matching controls; Esc closes it.'),
+    S('ky5', B, aKY, 'desktop', 'Press ? (or /), Z and Shift+I, then ↑ ↓ to pick a layer and E and S on it.', 'Roll, Reset all and Invert all work; the selection moves; E hides and S solos the layer.'),
+    S('ky6', B, aKY, 'desktop', 'Click the Project name box and type the letters e, s, r and h.', 'Typing never triggers a shortcut.', '#projName', {cat: 'project'}),
+    S('ky7', B, aKY, 'desktop', 'Compare each row of the Shortcuts table with what its key does.', 'Any row that does nothing or does something else: mark Fail and name the key.'),
+  ];
+
+  const MODES = {new: {name: 'What’s new'}, full: {name: 'Full test'}};
+  const newest = UPDATES[UPDATES.length - 1];
+  const listFor = m => m === 'new' ? STEPS.filter(s => s.update === newest) : STEPS;
+  let run = null, view = null, idx = 0, isOpen = false, inSb = false, busy = false, phase = '', showTok = 0, skipNote = '', backFocus = null, armKey = '', armT = 0;
+  const stepsNow = () => listFor(run.mode);
+  const saveRun = () => { if (run) lsSet(RUN_KEY + run.mode, run); };
+  const loadRun = m => { const r = lsGet(RUN_KEY + m); return r && r.mode === m && r.res && typeof r.res === 'object' && (m !== 'new' || r.update === newest) ? r : null; };
+
+  /* does this step fit the current setup? '' = yes, otherwise the reason */
+  function naOf(s){
+    const t = s.tags, tc = touchy();
+    if (t.includes('touch') && !tc) return 'needs a touch device';
+    if (t.includes('desktop') && tc) return 'needs a desktop pointer';
+    if (t.includes('lite') && !LITE.on) return 'needs Lite mode';
+    if (t.includes('full') && LITE.on) return 'needs Full mode';
+    if (t.includes('easy') && !easyOn()) return 'needs the Easy interface';
+    if (t.includes('adv') && easyOn()) return 'needs the Full interface';
+    return '';
+  }
+  function tally(L, res){
+    const c = {pass: 0, fail: 0, skip: 0, na: 0, todo: 0};
+    for (const s of L){
+      const r = res[s.id];
+      if (!r){ c.todo++; continue; }
+      if (r.r === 'pass') c.pass++; else if (r.r === 'fail') c.fail++; else { c.skip++; if (r.na) c.na++; }
+    }
+    return c;
+  }
+  /* a step skipped as not applicable becomes open again once the setup fits (the user switched Lite / Full or Easy / Full) */
+  function normalize(){ for (const s of stepsNow()){ const r = run.res[s.id]; if (r && r.na && !naOf(s)) delete run.res[s.id]; } }
+  /* first step at or after j (in direction dir) that fits; steps passed over going forward are recorded as skipped with their reason */
+  function seek(j, dir){
+    const L = stepsNow(), why = new Set(); let n = 0;
+    while (j >= 0 && j < L.length){
+      const s = L[j], w = naOf(s);
+      if (!w || run.show) break;
+      if (dir > 0){ if (!run.res[s.id]) run.res[s.id] = {r: 'skip', na: w}; n++; why.add(w); }
+      j += dir;
+    }
+    skipNote = n ? 'Skipped ' + n + (n === 1 ? ' step' : ' steps') + ' here. N/A: ' + [...why].join(', ') : '';
+    return j;
+  }
+
+  /* ---- the step card and the spotlight ---- */
+  function layout(){
+    if (!isOpen) return;
+    const vw = innerWidth, vh = innerHeight, m = 10, pad = 6;
+    const s = phase === 'step' && run ? stepsNow()[idx] : null;
+    const r = s && s.target ? itut.sandbox.rect(s.target) : null;
+    spot.classList.toggle('none', !r);
+    const q = r ? {l: Math.max(0, r.l - pad), t: Math.max(0, r.t - pad), r: Math.min(vw, r.r + pad), b: Math.min(vh, r.b + pad)} : {l: vw / 2, t: vh / 2, r: vw / 2, b: vh / 2};
+    spot.style.left = q.l + 'px'; spot.style.top = q.t + 'px'; spot.style.width = (q.r - q.l) + 'px'; spot.style.height = (q.b - q.t) + 'px';
+    if (phase !== 'step' || card.hidden) return;
+    if (phone.matches){
+      /* phones: docked at the top, and it stops above whichever sheet is open */
+      const top = 8, sh = sheetEl(), lim = sh ? sh.getBoundingClientRect().top : vh - Math.ceil(dockEl.getBoundingClientRect().height);
+      card.style.width = (vw - 16) + 'px'; card.style.left = '8px'; card.style.top = top + 'px';
+      card.style.maxHeight = Math.max(110, Math.min(lim - top - 8, Math.round(vh * 0.7))) + 'px';
+      return;
+    }
+    card.style.width = ''; card.style.maxHeight = '';
+    const cw = card.offsetWidth, ch = card.offsetHeight;
+    /* desktop: a bottom or side corner, whichever overlaps the spotlight least */
+    const c = [[vw - cw - m, vh - ch - m], [m, vh - ch - m], [(vw - cw) / 2, vh - ch - m], [vw - cw - m, m], [m, m]];
+    let best = null;
+    for (const p of c){
+      const x = Math.max(m, p[0]), y = Math.max(m, p[1]);
+      const ov = r ? Math.max(0, Math.min(x + cw, q.r) - Math.max(x, q.l)) * Math.max(0, Math.min(y + ch, q.b) - Math.max(y, q.t)) : 0;
+      if (!best || ov < best.ov) best = {x, y, ov};
+    }
+    card.style.left = best.x + 'px'; card.style.top = best.y + 'px';
+  }
+  function keepNote(){
+    if (!run || phase !== 'step') return;
+    const s = stepsNow()[idx], r = s && run.res[s.id]; if (!r) return;
+    const n = noteEl.value.trim(); if (n) r.note = n; else delete r.note;
+    saveRun();
+  }
+  function showStep(){
+    const L = stepsNow(); idx = Math.max(0, Math.min(idx, L.length - 1));
+    const s = L[idx], tok = ++showTok; run.i = idx; saveRun();
+    phase = 'step'; panel.hidden = true; root.classList.remove('list'); card.hidden = false;
+    $('#tsArea').textContent = s.area; $('#tsN').textContent = (idx + 1) + ' / ' + L.length;
+    $('#tsAct').textContent = s.action; $('#tsExp').textContent = s.expect;
+    const why = naOf(s), na = $('#tsNa'); na.textContent = why ? 'N/A: ' + why + ' (shown because Show all is on)' : skipNote; na.hidden = !na.textContent; skipNote = '';
+    const r = run.res[s.id]; noteEl.value = r && r.note || '';
+    for (const [id, k] of [['tsPass', 'pass'], ['tsFail', 'fail'], ['tsSkip', 'skip']]) $('#' + id).classList.toggle('on', !!r && r.r === k);
+    const c = tally(L, run.res); $('#tsBarFill').style.width = Math.round((L.length - c.todo) / L.length * 100) + '%';
+    try { itut.sandbox.prep({sel: s.target ? [s.target] : [], open: s.open || {}}); } catch(e){}
+    layout(); requestAnimationFrame(layout);
+    setTimeout(() => { if (tok === showTok && isOpen) layout(); }, 300);
+  }
+  function mark(kind){
+    if (!run || phase !== 'step') return;
+    const s = stepsNow()[idx], note = noteEl.value.trim();
+    run.res[s.id] = note ? {r: kind, note} : {r: kind};
+    saveRun(); advance();
+  }
+  function advance(){
+    keepNote();
+    const j = seek(idx + 1, 1);
+    if (j >= stepsNow().length){ finish(); return; }
+    idx = j; showStep();
+  }
+  function retreat(){
+    keepNote();
+    const j = seek(idx - 1, -1);
+    if (j < 0){ showAreas(); return; }
+    idx = j; showStep();
+  }
+
+  /* ---- the picker, area list and finish screen share one panel ---- */
+  const esc = escH;
+  function openPanel(ph, title, n, html){
+    phase = ph; showTok++;
+    card.hidden = true; panel.hidden = false; root.classList.add('list');
+    $('#tsPanelT').textContent = title; $('#tsPanelN').textContent = n || '';
+    bodyEl.innerHTML = html;
+    layout();
+    try { panel.focus({preventScroll: true}); } catch(e){}
+  }
+  const isTest = n => /^TEST-/i.test(String(n || '').trim());
+  function testCount(){
+    let n = 0;
+    try { n += userPresets.filter(p => isTest(p.name)).length; } catch(e){}
+    try { n += rpOwn.filter(o => isTest(o.name)).length; } catch(e){}
+    return n;
+  }
+  const cleanBtn = () => { const n = testCount(); return `<button class="btn${armKey === 'clean' ? ' armed' : ''}" type="button" data-act="clean"${n ? '' : ' disabled'}>${armKey === 'clean' ? 'Confirm delete' : n ? 'Clean up TEST- items (' + n + ')' : 'No TEST- items'}</button>`; };
+  function cleanUp(){
+    let n = 0;
+    try {
+      const keep = userPresets.filter(p => !isTest(p.name));
+      if (keep.length !== userPresets.length){
+        n += userPresets.length - keep.length;
+        const cur = $('#presetSel').value; userPresets = keep; writeLocal();
+        renderPresetSel(cur.startsWith('u:') && keep.some(x => 'u:' + x.id === cur) ? cur : 'b:Original (no effects)'); presetNote();
+      }
+    } catch(e){}
+    try {
+      const keep = rpOwn.filter(o => !isTest(o.name));
+      if (keep.length !== rpOwn.length){ n += rpOwn.length - keep.length; rpOwn = keep; rpSave(); rpPicked = ''; renderRandPresets(); }
+    } catch(e){}
+    toast(n ? 'Deleted ' + n + ' TEST- ' + (n === 1 ? 'item' : 'items') : 'No TEST- items found');
+  }
+  function showPick(){
+    const rows = Object.keys(MODES).map(m => {
+      const L = listFor(m), r = loadRun(m), c = r ? tally(L, r.res) : null, a = armKey === 'start:' + m;
+      let h = `<button class="pk${a ? ' armed' : ''}" type="button" data-act="start" data-m="${m}"${L.length ? '' : ' disabled'}><b>${a ? 'Tap again to replace the saved run' : esc(MODES[m].name)}</b><span>${L.length ? (m === 'new' ? L.length + ' steps for the newest update (' + esc(newest) + ')' : L.length + ' steps across every area') : 'No steps yet'}</span></button>`;
+      if (r) h += `<button class="pk" type="button" data-act="resume" data-m="${m}"><b>${r.done ? 'View results' : 'Resume'}: ${esc(MODES[m].name)}</b><span>${L.length - c.todo} of ${L.length} done · ${c.fail} failed</span></button>`;
+      return h;
+    }).join('');
+    openPanel('pick', 'Test mode', '', `<p class="note">Do each step, compare it with what is expected, then mark Pass, Fail or Skip. A run puts Tr1ppical Butterfly on screen and your own project comes back when you exit. Saving stays on: name anything you save TEST-…</p>${rows}<div class="tsBtnRow">${cleanBtn()}<button class="btn" type="button" data-act="close">Close</button></div>`);
+  }
+  function showAreas(){
+    normalize();
+    const L = stepsNow(), c = tally(L, run.res), areas = [];
+    L.forEach((s, i) => {
+      let a = areas.find(x => x.name === s.area); if (!a) areas.push(a = {name: s.area, n: 0, done: 0, bad: 0, first: i, todo: -1});
+      a.n++; const r = run.res[s.id];
+      if (r){ a.done++; if (r.r === 'fail') a.bad++; } else if (a.todo < 0) a.todo = i;
+    });
+    const rows = areas.map((a, k) => `<button class="itCh${a.done === a.n ? ' done' : ''}${a.bad ? ' bad' : ''}" type="button" data-act="area" data-k="${a.todo >= 0 ? a.todo : a.first}"><span class="ck" aria-hidden="true">${a.bad ? '✗' : a.done === a.n ? '✓' : k + 1}</span><span>${esc(a.name)}</span><small>${a.done} / ${a.n}</small></button>`).join('');
+    openPanel('areas', 'Areas', (L.length - c.todo) + ' / ' + L.length,
+      `<div class="tsBar" aria-hidden="true"><span style="width:${Math.round((L.length - c.todo) / L.length * 100)}%"></span></div><div class="itChs">${rows}</div>
+      <label class="tsChk"><input type="checkbox" id="tsShow"${run.show ? ' checked' : ''}> Show all (include steps that do not fit this setup)</label>
+      <div class="tsBtnRow"><button class="btn" type="button" data-act="exit">Exit</button><button class="btn" type="button" data-act="finish">Finish and report</button><button class="btn primary" type="button" data-act="back">Back to steps</button></div>`);
+  }
+  function report(r){
+    const L = listFor(r.mode), c = tally(L, r.res), d = new Date(), p = n => String(n).padStart(2, '0');
+    const ua = (navigator.userAgent || '').replace(/^Mozilla\/5\.0 /, '').replace(/\s+/g, ' ').slice(0, 100);
+    const out = ['Submersion test report',
+      'Date: ' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()),
+      'Mode: ' + MODES[r.mode].name + ' (' + L.length + ' steps)',
+      'Update tag: ' + (r.mode === 'new' ? newest : 'all (newest: ' + newest + ')'),
+      'Device: ' + [touchy() ? 'touch' : 'desktop', LITE.on ? 'Lite' : 'Full', (easyOn() ? 'Easy' : 'Full') + ' interface', 'screen ' + screen.width + 'x' + screen.height, 'window ' + innerWidth + 'x' + innerHeight, ua].join(' | '),
+      'Results: ' + c.pass + ' pass, ' + c.fail + ' fail, ' + c.skip + ' skip' + (c.na ? ' (' + c.na + ' n/a)' : '') + (c.todo ? ', ' + c.todo + ' not run' : '')];
+    const fails = L.filter(s => r.res[s.id] && r.res[s.id].r === 'fail');
+    if (fails.length){
+      out.push('', 'Failed steps:');
+      fails.forEach((s, i) => out.push((i + 1) + '. ' + s.id + ' | ' + s.area, '   Action: ' + s.action, '   Note: ' + (r.res[s.id].note || '(none)')));
+    }
+    return out.join('\n');
+  }
+  function showFinish(){
+    const r = view, L = listFor(r.mode), c = tally(L, r.res), fails = L.filter(s => r.res[s.id] && r.res[s.id].r === 'fail');
+    const list = fails.length ? `<ol>${fails.map(s => `<li><b>${esc(s.id)}</b> · ${esc(s.area)}<small>${esc(s.action)}</small>${r.res[s.id].note ? `<small>Note: ${esc(r.res[s.id].note)}</small>` : ''}</li>`).join('')}</ol>` : '<p class="note">No failed steps.</p>';
+    openPanel('finish', MODES[r.mode].name + ' results', '',
+      `<p class="tsCount">${c.pass} pass · ${c.fail} fail · ${c.skip} skip${c.na ? ' (' + c.na + ' n/a)' : ''}${c.todo ? ' · ' + c.todo + ' not run' : ''}</p>${list}
+      <textarea id="tsRep" readonly hidden aria-label="Test report"></textarea>
+      <p class="note">Project files you saved are on your computer; delete them there. Look and Roll presets named TEST- can be removed here.</p>
+      <div class="tsBtnRow"><button class="btn primary" type="button" data-act="copy">Copy report</button>${cleanBtn()}<button class="btn" type="button" data-act="close">Close</button></div>`);
+  }
+  async function copyReport(){
+    const text = report(view), box = $('#tsRep');
+    try { await navigator.clipboard.writeText(text); toast('Report copied'); return; } catch(e){}
+    box.hidden = false; box.value = text; box.focus(); box.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+    toast(ok ? 'Report copied' : 'Copy is blocked here. Select the text and copy it.', ok ? 2000 : 4000);
+  }
+  const rerender = () => { if (!isOpen) return; if (phase === 'pick') showPick(); else if (phase === 'areas') showAreas(); else if (phase === 'finish') showFinish(); };
+  function armIt(k){ armKey = k; clearTimeout(armT); armT = setTimeout(() => { armKey = ''; rerender(); }, 3000); rerender(); }
+
+  /* ---- start, exit, finish ---- */
+  function hide(){
+    isOpen = false; showTok++; root.hidden = true; panel.hidden = true; card.hidden = true; root.classList.remove('list'); document.body.classList.remove('itOn');
+    armKey = ''; clearTimeout(armT);
+    try { if (backFocus && backFocus.isConnected && backFocus.offsetParent !== null) backFocus.focus({preventScroll: true}); } catch(e){}
+    backFocus = null;
+  }
+  async function leave(msg){ if (!inSb) return; inSb = false; try { await itut.sandbox.end(msg); } catch(e){} }
+  async function exit(msg){
+    if (busy) return; busy = true;
+    try { keepNote(); saveRun(); hide(); await leave(msg || 'Test mode closed. Your project is back.'); } finally { busy = false; }
+  }
+  const closeAll = () => { if (inSb) exit(); else hide(); };
+  async function finish(){
+    if (busy || !run) return;
+    keepNote(); run.done = true; run.ended = Date.now(); saveRun(); view = run;
+    busy = true;
+    try { await leave('Test run finished. Your project is back.'); } finally { busy = false; }
+    run = null; showFinish();
+  }
+  function begin(mode, resume){
+    if (busy) return;
+    if (!itut.sandbox.idle()){ toast('Close the tutorial first'); return; }
+    const L = listFor(mode); if (!L.length){ toast('No steps for this mode yet'); return; }
+    let r = resume ? loadRun(mode) : null;
+    if (r && r.done){ view = r; showFinish(); return; }
+    try { if (tutorialMode.isActive()) tutorialMode.end(); } catch(e){}
+    if (!r) r = {mode, update: mode === 'new' ? newest : 'all', started: Date.now(), i: 0, res: {}, show: false, done: false};
+    if (!itut.sandbox.begin()) return;
+    inSb = true; run = r; armKey = ''; clearTimeout(armT); saveRun();
+    idx = Math.max(0, Math.min(+r.i || 0, L.length - 1));
+    const j = seek(idx, 1);
+    if (j >= L.length){ finish(); return; }
+    idx = j; showStep();
+  }
+  function openPicker(){
+    if (isOpen || busy) return;
+    if (!itut.sandbox.idle()){ toast('Close the tutorial first'); return; }
+    try { if (!$('#modePrompt').hidden) return; } catch(e){}
+    try { if (tutorialMode.isActive()) tutorialMode.end(); } catch(e){}
+    backFocus = document.activeElement; isOpen = true; root.hidden = false; document.body.classList.add('itOn'); showPick();
+  }
+
+  /* ---- the password gate: casual only ---- */
+  function openGate(){ gateMsg.hidden = true; gatePw.value = ''; gate.hidden = false; setTimeout(() => { try { gatePw.focus(); } catch(e){} }, 0); }
+  const closeGate = () => { gate.hidden = true; gatePw.value = ''; };
+  $('#tstGateForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (gatePw.value.trim() === PW){ setUnlocked(); closeGate(); openPicker(); }
+    else { gateMsg.textContent = 'Wrong password.'; gateMsg.hidden = false; gatePw.value = ''; gatePw.focus(); }
+  });
+  $('#tstGateX').onclick = closeGate;
+  gate.addEventListener('pointerdown', e => { if (e.target === gate) closeGate(); });
+  $('#lkTest').onclick = () => { try { toggleLookPop(false); } catch(e){} if (isUnlocked()) openPicker(); else openGate(); };
+
+  /* ---- buttons ---- */
+  $('#tsPass').onclick = () => mark('pass');
+  $('#tsFail').onclick = () => mark('fail');
+  $('#tsSkip').onclick = () => mark('skip');
+  $('#tsNext').onclick = advance;
+  $('#tsBack').onclick = retreat;
+  $('#tsAreas').onclick = () => { keepNote(); showAreas(); };
+  card.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTimeout(() => { try { b.blur(); } catch(err){} }, 0); });   // so Space and Enter go to the app's own shortcuts
+  bodyEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    const a = b.dataset.act, m = b.dataset.m;
+    if (a === 'start'){ if (loadRun(m) && armKey !== 'start:' + m){ armIt('start:' + m); return; } armKey = ''; begin(m, false); }
+    else if (a === 'resume') begin(m, true);
+    else if (a === 'clean'){ if (armKey !== 'clean'){ armIt('clean'); return; } armKey = ''; cleanUp(); rerender(); }
+    else if (a === 'close') closeAll();
+    else if (a === 'copy') copyReport();
+    else if (a === 'area'){
+      const j = seek(+b.dataset.k, 1);
+      if (j >= stepsNow().length){ toast('Nothing in that area fits this setup'); showAreas(); } else { idx = j; showStep(); }
+    }
+    else if (a === 'back') showStep();
+    else if (a === 'finish') finish();
+    else if (a === 'exit') exit();
+  });
+  bodyEl.addEventListener('change', e => { if (e.target.id === 'tsShow' && run){ run.show = e.target.checked; saveRun(); showAreas(); } });
+  /* the card is Test mode's own: its taps must not count as clicks outside the app's open menus */
+  for (const el of [card, panel]) for (const ev of ['pointerdown', 'click']) el.addEventListener(ev, e => e.stopPropagation());
+  addEventListener('resize', layout); addEventListener('orientationchange', () => setTimeout(layout, 200));
+  for (const ev of ['click', 'pointerup']) document.addEventListener(ev, () => { if (isOpen && phase === 'step') setTimeout(layout, 200); }, true);
+
+  /* Esc: closes the gate or the picker, goes from the area list back to the step, and from a step closes the tester (progress is kept; your project comes back) */
+  window.addEventListener('keydown', e => {
+    if (!gate.hidden && e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); closeGate(); return; }
+    if (!isOpen || busy) return;
+    const t = e.target;
+    if (e.key === 'Escape'){
+      if (e.defaultPrevented) return;
+      if (document.activeElement === noteEl){ noteEl.blur(); e.preventDefault(); e.stopImmediatePropagation(); return; }
+      if (!lookPop.hidden || !$('#keysSheet').hidden || !$('#addMenu').hidden || !moreMenu.hidden || !$('#impAsk').hidden || !$('#tutPick').hidden) return;   // those close themselves first
+      if (isTyping(t) && !(t.closest && t.closest('#tst'))) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (phase === 'areas' && run && inSb) showStep(); else closeAll();
+      return;
+    }
+    if (t && t.closest && t.closest('#tst button')) e.stopPropagation();   // a focused card button must not also fire an app shortcut
+  }, true);
+  return {open: () => $('#lkTest').click(), isOpen: () => isOpen};
 })();
 
 /* ================= UI-2: more menu, save, phone sheets, landscape ================= */
