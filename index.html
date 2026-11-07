@@ -5733,7 +5733,7 @@ for (const row of RANGE_ROWS){
 
 /* ================= Mapping: an oscillator drives a slider =================
    Arm an oscillator's node, then click a slider's icon or pick it in the search box. A mapping is saved in P.mod.maps as
-   {id, src (oscillator), tgt (slider id, or osc:<id>:rate|depth), layer (for layer sliders), on, amt (share of the range, −1..1),
+   {id, src (oscillator), tgt (slider id, or osc:<id>:rate|depth), layer (for layer sliders), on, amt (share of the range, −2..2; at ±1 the wave sweeps the slider's whole range, never past its ends),
    lo/hi (limits, null = the slider's own), smooth (s), curve}. Its movement is applied only while a frame is drawn. */
 var mapReady = false, mapArmed = null;
 const MAP_HOSTS = new Set([...Object.keys(SPEC).filter(h => !['g-snap','g-brush'].includes(h)), ...Object.keys(LSPECS), 'g-sprite', 'g-icon', 'g-objx', 'g-part']);
@@ -5793,6 +5793,13 @@ function mapDelta(m, span, dt){
   if (m.smooth > 0){ if (dt) r.y += (y - r.y)*(1 - Math.exp(-dt/m.smooth)); y = r.y; } else r.y = y;
   return (+m.amt || 0)*span*y;
 }
+// a bipolar wave (−1..1) moves half the range each way, so Amount 100% spans the whole range once; converted swings (free) keep their old reach
+function mapGain(m){ if (m.free) return 1; const s = srcInfo(m.src); return s && s.osc && s.osc.bip ? .5 : 1; }
+// the lowest and highest offset a mapping can give (nominal source range, times its depth)
+function mapReach(m, span){
+  const s = srcInfo(m.src), dep = s && s.osc ? clamp01(s.osc.depth ?? 1) : 1, lo = s && s.osc && s.osc.bip ? -dep : 0;
+  const k = (+m.amt || 0)*span*mapGain(m), a = k*lo, b = k*dep; return [Math.min(a, b), Math.max(a, b)];
+}
 const NO_ROUND = new Set(['hue', 'phue', 'pangle']);      // step-1 sliders that are still continuous: no stair steps while moving
 function modClamp(e, x){ let v = Math.max(Math.min(e.lo, e.hi), Math.min(e.hi, x)); if (e.round) v = Math.round(v/e.step)*e.step; return v; }
 function applyMods(dt){
@@ -5804,10 +5811,11 @@ function applyMods(dt){
     const info = MAPT.get(m.tgt); if (!info) continue;
     let obj = P;
     if (info.scope === 'l'){ if (!m.layer || !layerExists(m.layer) || !layerFits(info, m.layer)) continue; obj = getL(m.layer); }
-    const d = mapDelta(m, info.max - info.min, dt); if (d == null) continue;
+    const span = info.max - info.min, d = mapDelta(m, span, dt); if (d == null) continue;
     const key = m.tgt + '|' + (m.layer || ''); let a = acc.get(key);
-    if (!a) acc.set(key, a = {obj, info, d: 0, mlo: -Infinity, mhi: Infinity, free: false, maps: []});
-    a.d += d; a.maps.push(m);                                // two sources on one slider add, then clamp
+    if (!a) acc.set(key, a = {obj, info, d: 0, rlo: 0, rhi: 0, mlo: -Infinity, mhi: Infinity, free: false, maps: []});
+    const [r0, r1] = mapReach(m, span);
+    a.d += d*mapGain(m); a.rlo += r0; a.rhi += r1; a.maps.push(m);                                // two sources on one slider add, then clamp
     if (m.lo != null) a.mlo = Math.max(a.mlo, m.lo); if (m.hi != null) a.mhi = Math.min(a.mhi, m.hi);
     if (m.free) a.free = true;                              // converted swings keep their old reach past the slider's ends
   }
@@ -5815,7 +5823,13 @@ function applyMods(dt){
     const k = a.info.k, had = k in a.obj, base = had && typeof a.obj[k] === 'number' ? a.obj[k] : (a.info.inp._def ? +a.info.inp._def() : 0);
     const e = {base, d: a.d, maps: a.maps, span: a.info.max - a.info.min, step: a.info.step, round: a.info.step >= 1 && !NO_ROUND.has(k),
       lo: Math.max(a.free ? -Infinity : a.info.min, a.mlo), hi: Math.min(a.free ? Infinity : a.info.max, a.mhi)};
-    const v = modClamp(e, base + a.d);
+    if (!a.free && e.hi > e.lo){                            // slide the sweep inside the range so it never sits flat at an end
+      const w = a.rhi - a.rlo, R = e.hi - e.lo; let s = 0;
+      if (w > R) s = (e.lo + e.hi)/2 - (base + (a.rlo + a.rhi)/2);          // over 100%: centred, the extra pushes past both ends
+      else { if (base + a.rhi > e.hi) s = e.hi - (base + a.rhi); if (base + a.rlo + s < e.lo) s = e.lo - (base + a.rlo); }
+      e.base = base + s;
+    }
+    const v = modClamp(e, e.base + a.d);
     let md = MODD.get(a.obj); if (!md) MODD.set(a.obj, md = new Map()); md.set(k, e);
     MAP_SAVE.push([a.obj, k, had ? a.obj[k] : undefined, had]); a.obj[k] = v; MAP_VAL.set(key, v);
   }
@@ -5824,7 +5838,7 @@ function applyMods(dt){
 function srcValAt(id, shift){ const s = srcInfo(id); if (!s) return null; if (s.band != null) return band[s.band]; return shift ? oscValueAt(s.osc, -shift) : rtOf(s.osc).v; }
 function modAtShift(e, shift){
   let d = 0;
-  for (const m of e.maps){ const v = srcValAt(m.src, shift*(m.stag || 1)); if (v != null) d += (+m.amt || 0)*e.span*curveOf(v, m.curve); }
+  for (const m of e.maps){ const v = srcValAt(m.src, shift*(m.stag || 1)); if (v != null) d += (+m.amt || 0)*e.span*mapGain(m)*curveOf(v, m.curve); }
   return modClamp(e, (e.sb ?? e.base) + d);
 }
 function instL(L0, L, off){
@@ -6102,7 +6116,7 @@ function matrixRow(m){
       <span class="msrc"><span class="dot"></span><select aria-label="Source">${si ? '' : '<option value="" selected>Missing source</option>'}${srcOptions(m.src)}</select><canvas class="mwave" aria-hidden="true"></canvas></span>
       <button type="button" class="mtgt" title="Show this slider">${escH(targetName(m.tgt, m.layer))}${gone ? ' <i>(removed)</i>' : ''}</button>
       <button type="button" class="ib mdel" aria-label="Delete mapping" title="Delete mapping">${use('i-trash')}</button></div>
-    <div class="mr2"><span class="ml">Amount</span><input type="range" class="mamt" min="-100" max="100" step="1" aria-label="Amount, percent of the slider's range"><output class="mo"></output>
+    <div class="mr2"><span class="ml">Amount</span><input type="range" class="mamt" min="-200" max="200" step="1" aria-label="Amount, percent of the slider's range"><output class="mo"></output>
       <span class="ml">Smooth</span><span class="msmw"><input type="text" class="msm" inputmode="decimal" data-typing aria-label="Smooth, in seconds"><span class="mu">s</span></span></div>
     <div class="mr3"><span class="ml">Range</span><div class="rng2"><span class="rfill"></span><input type="range" class="rlo" aria-label="Lowest value it can reach"><input type="range" class="rhi" aria-label="Highest value it can reach"></div><output class="mo mro"></output>
       <select class="mcurve" aria-label="Curve"><option value="lin">Linear</option><option value="in">Ease in</option><option value="out">Ease out</option></select></div>`;
@@ -6113,7 +6127,7 @@ function matrixRow(m){
   q('.mtgt').onclick = () => jumpToMap(m);
   q('.mdel').onclick = () => { const ml = mapList(), i = ml.indexOf(m); if (i < 0) return; ml.splice(i, 1); save(); renderMatrix();
     actionToast(`Mapping removed: ${si ? si.name : 'source'} → ${targetName(m.tgt, m.layer)}`, 'Undo', () => { if (!mapList().includes(m)){ mapList().splice(Math.min(i, mapList().length), 0, m); save(); renderMatrix(); } }); };
-  const syncAmt = () => { const v = Math.round((+m.amt || 0)*100); amt.value = v; amtO.textContent = (v > 0 ? '+' : '') + v + '%'; amt.style.setProperty('--fill', ((v + 100)/2) + '%'); };
+  const syncAmt = () => { const v = Math.round((+m.amt || 0)*100); amt.value = v; amtO.textContent = (v > 0 ? '+' : '') + v + '%'; amt.style.setProperty('--fill', Math.max(0, Math.min(100, (v + 200)/4)) + '%'); };
   amt.addEventListener('input', () => { m.amt = +amt.value/100; syncAmt(); save(); }); amt._def = () => 100; syncAmt();
   sm.value = +(+m.smooth || 0).toFixed(2);
   sm.addEventListener('change', () => { const v = parseFloat(sm.value.replace(',', '.')); m.smooth = isNaN(v) ? 0 : Math.max(0, Math.min(10, v)); sm.value = +m.smooth.toFixed(2); MAP_RT.delete(m.id); save(); });
@@ -6204,7 +6218,8 @@ function convertSwings(){
     o = {...oscNew(), name, mode: 'loop', perLoop: pl, phase: ph, shape: 'sine', amt: 0, bip: bip ? 1 : 0, depth: 1};
     oscList().push(o); shared.set(key, o); return o;
   };
-  const map = (o, tgt, layer, amt, extra = {}) => { mapList().push({id: nextMapId(), src: o.id, tgt, layer, on: 1, amt: +amt.toFixed(5), lo: null, hi: null, smooth: 0, curve: 'lin', ...extra}); n++; };
+  const map = (o, tgt, layer, amt, extra = {}) => { amt *= o.bip && !extra.free ? 2 : 1;   // bipolar maps now move half per unit of amount: keep the old swing's reach
+    mapList().push({id: nextMapId(), src: o.id, tgt, layer, on: 1, amt: +amt.toFixed(5), lo: null, hi: null, smooth: 0, curve: 'lin', ...extra}); n++; };
   const over = (base, amp, lo, hi) => (base || 0) - amp < lo - 1e-9 || (base || 0) + amp > hi + 1e-9;
   const free = (base, amp, lo, hi) => over(base, amp, lo, hi) ? {free: 1} : {};
   const wrap360 = v => ((v % 360) + 360) % 360, wrap180 = v => ((v + 180) % 360 + 360) % 360 - 180;
@@ -7727,8 +7742,8 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
@@ -7803,6 +7818,7 @@ const testMode = (() => {
     S('os3', B, aOS, 'adv', 'Tap an oscillator node, then tap a slider in the Inspector.', 'The slider now moves with the wave.', '#pOsc .onode', {panel: 'O'}),
     S('os4', B, aOS, 'adv', 'Open the Mod tab, lower the mapping amount, then remove the mapping.', 'The mapping is listed with source, target and amount; movement shrinks, then stops.', '#modList', {cat: 'mod'}),
     S('os5', B, aOS, 'adv', 'In Mod use Filter and Sort, then click a target.', 'The list narrows and reorders; clicking a target jumps to its slider.', '.cat[data-cat="mod"] .mtool', {cat: 'mod'}),
+    S('os6', OM, aOS, 'adv', 'Map a Sine to Hue (Amount 100%), then try Triangle and Saw, and a 0 to 1 slider.', 'The slider sweeps its whole range smoothly back and forth with no flat stop at either end; Amount goes up to 200% (past 100% it reaches the ends and waits there).', '#pOsc .onode', {panel: 'O'}),
 
     S('au1', B, aAU, '', 'Sound tab › Load audio: pick a song you own, then press Play.', 'It plays only after you press Play; the picture reacts. Nothing is uploaded.', '#bAudio', {cat: 'audio'}),
     S('au2', B, aAU, '', 'Click Microphone and allow access if asked.', 'Meters move with room sound; clicking again stops it and the browser mic indicator goes away.', '.cat[data-cat="audio"] .lv', {cat: 'audio'}),
