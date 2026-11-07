@@ -883,6 +883,13 @@ body.pinDrag,body.pinDrag *{cursor:grabbing!important;-webkit-user-select:none;u
   backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);color:var(--ink)}
 .moreMenu[hidden]{display:none}
 .mHandle{display:none}
+.gbar{position:relative;height:28px;margin:12px 12px 6px;border-radius:8px;border:1px solid var(--line);cursor:copy;touch-action:none}
+.gstop{position:absolute;top:50%;width:22px;height:42px;margin-left:-11px;transform:translateY(-50%);border-radius:7px;border:2px solid var(--ink);background:var(--gc);padding:0;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+.gstop.on{outline:2px solid var(--accent);outline-offset:2px}
+.gstop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gcap{display:flex;justify-content:space-between;margin:0 12px;font:500 11px var(--f-ui);color:var(--dim)}
+#trGradBox[hidden]{display:none}
+body.lite #trGradBox{opacity:.45;pointer-events:none}
 @media (min-width:761px){
   .mHandle{display:grid;place-items:center;height:14px;margin:-2px 0 0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
   .mHandle i{width:34px;height:4px;border-radius:2px;background:var(--dim);opacity:.5}
@@ -1253,6 +1260,13 @@ body.easy .moreMenu .onlyCmp{display:flex}
             <label class="check"><input type="checkbox" id="trGrad"> Gradient: the tail shifts to the tail hue</label>
             <label class="check"><input type="checkbox" id="trOuter"> Outside edge only (skip holes and inner lines)</label>
             <div id="g-lol" class="stack"></div>
+            <div id="trGradBox" class="stack" hidden>
+              <div class="lbl">Light gradient <span class="meta">head to tail</span></div>
+              <div class="gbar" id="trBar" role="group" aria-label="Light gradient from head to tail. Click to add a colour stop, drag a stop to move it."></div>
+              <div class="gcap"><span>Head</span><span>Tail</span></div>
+              <div class="bgcol" id="trStopRow"><label for="trStopCol">Stop colour</label><input type="color" id="trStopCol" value="#00e5ff"><output id="trStopOut">#00E5FF</output><button class="btn" id="trStopDel" type="button">Remove stop</button></div>
+              <p class="note">Click the bar to add a stop (up to 4). Drag a stop to move it, tap one to choose its colour.</p>
+            </div>
           </div>
         </div>
         <span hidden><p class="note" id="layerCtlCal" hidden></p></span>
@@ -1694,7 +1708,7 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 
 /* ---------- parameters ---------- */
 const LD = {ltwist:0, ltwSpeed:0, ltwBounce:0, ltwBounceRate:1, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
-  seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trHue2:280, trOuter:0, rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0, vis:true, solo:false};
+  seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trOuter:0, trStops:[{p:0,c:'#00e5ff'},{p:1,c:'#9b5cff'}], rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
@@ -1850,7 +1864,6 @@ const LSPECS = {
     ['trInt','Trace brightness',0,3,.01,fx(2)],
     ['trHue','Trace hue',0,360,1,v=>v+'°'],
     ['trSat','Trace colour strength',0,1,.01,v=>Math.round(v*100)+'%'],
-    ['trHue2','Trace tail hue (gradient)',0,360,1,v=>v+'°'],
   ],
   'g-lfx':[
     ['wig','Wiggle',0,1,.01,fx(2)],
@@ -2495,6 +2508,7 @@ precision highp sampler2DArray;
 uniform sampler2D uImg, uDepth, uBg, uOther, uSel;
 uniform sampler2DArray uMasks, uLayerCol, uIcon, uObj, uPart, uTrI, uTrS;
 uniform vec4 uK[24], uM[24];
+uniform sampler2D uTrG;
 vec2 gTr;
 uniform vec2 uRes, uSteer, uRange;
 uniform float uPitch, uCross, uHSpeed, uHMin, uHRange, uExposure, uLite;
@@ -2732,9 +2746,9 @@ void main(){
             float v = f*f*(3. - 2.*f)*(1. - smoothstep(1. - ff, 1., d));
             if (v > acc){ acc = v; bu = u; }
           }
-          float hh = uM[i].x >= 0. ? mix(hueQ, uM[i].x, clamp(bu, 0., 1.)) : hueQ;
           lcov = ringRaw*acc*tx.a;
-          lcol = hsv2rgb(vec3(fract(hh/360.), satQ/100., 1.))*uK[i].z;
+          vec3 base = uM[i].x >= 0. ? texture(uTrG, vec2(.5/64. + clamp(bu, 0., 1.)*(63./64.), (float(i) + .5)/24.)).rgb : hsv2rgb(vec3(fract(hueQ/360.), satQ/100., 1.));
+          lcol = base*uK[i].z;
         }
       }
       if (mod(flg, 2.) > .5){ lc = vec3(0.); la = 0.; }    // outline only: the picture itself is not drawn
@@ -2866,7 +2880,7 @@ gl.useProgram(prog);
 /* ---------- Lite / Full: runtime caps only; saved values are never rewritten, so presets open in either mode ---------- */
 var LITE = {on:false, fps:30, entries:12, dpr:1, partRes:512, partMul:.35, objRes:512, lastDraw:0};
 const U = {};
-for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM']) U[n] = gl.getUniformLocation(prog, n);
+for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uTrG']) U[n] = gl.getUniformLocation(prog, n);
 const MU = {}; for (const n of ['uMVP','uR','uOff','uMode','uPh','uDim']) MU[n] = gl.getUniformLocation(mprog, n);
 const PU = {}; for (const n of ['uTw','uTwRot','uCountF','uPh','uPhi','uSize','uSizeVar','uSpeed','uAngle','uSpread','uTurb','uWobble','uTwinkle','uHue','uHueVar','uSat','uBright','uSymN','uSymMirror','uMode','uAspect','uSeed','uScale','uCenter','uShape']) PU[n] = gl.getUniformLocation(pprog, n);
 
@@ -3687,7 +3701,7 @@ function syncLayerEd(){
   } else $('#edInfo').textContent = isI ? 'Icon overlay' : isO ? '3D object overlay' : 'Particle layer';
   $('#bCalibrate').hidden = !img; $('#bLayerDelete').hidden = !P.L.layers.some(l => l.id === sel) && !isExtra(sel); resetLayerDelete();
   $('#olBox').hidden = !(isI || (img && sel !== 'bg')); $('#olOn').checked = !!L.olOn; $('#olCol').value = L.olCol || '#ffffff'; $('#olColOut').textContent = ($('#olCol').value).toUpperCase();
-  $('#olOnly').checked = !!L.olOnly; $('#trOn').checked = !!L.trOn; $('#trOnly').checked = !!L.trOnly; $('#trGrad').checked = !!L.trGrad; $('#trOuter').checked = !!L.trOuter;
+  $('#olOnly').checked = !!L.olOnly; $('#trOn').checked = !!L.trOn; $('#trOnly').checked = !!L.trOnly; $('#trGrad').checked = !!L.trGrad; $('#trOuter').checked = !!L.trOuter; syncTrUI();
   $('#rcBox').hidden = !(img || isI); $('#rcOn').checked = !!L.rcOn; $('#rcKeep').checked = !!L.rcKeep; $('#rcCol').value = L.rcCol || '#00e5ff'; $('#rcColOut').textContent = $('#rcCol').value.toUpperCase();
   $('#iconBox').hidden = !isI; $('#objBox').hidden = !isO; $('#partBox').hidden = !isPt; $('#g-sprite').hidden = img || isPt; syncPart();
   $('#g-icon').hidden = !isI; $('#g-objx').hidden = !isO;
@@ -3729,7 +3743,70 @@ function syncBgFill(){
   $('#bgCol').value = P.L.bg.solidCol || '#000000'; $('#bgColOut').textContent = $('#bgCol').value;
 }
 $('#olOn').addEventListener('change', e => { getL(sel).olOn = e.target.checked ? 1 : 0; changed(); });
-for (const k of ['olOnly','trOn','trOnly','trGrad','trOuter']) $('#'+k).addEventListener('change', e => { getL(sel)[k] = e.target.checked ? 1 : 0; changed(); });
+for (const k of ['olOnly','trOn','trOnly','trGrad','trOuter']) $('#'+k).addEventListener('change', e => { getL(sel)[k] = e.target.checked ? 1 : 0; changed(); syncTrUI(); });
+/* light gradient: up to four colour stops on a bar, head on the left, tail on the right */
+const TR_DEF = [{p:0, c:'#00e5ff'}, {p:1, c:'#9b5cff'}];
+let trSel = 0;
+const trStopsOf = L => Array.isArray(L.trStops) && L.trStops.length >= 2 ? L.trStops : TR_DEF;
+const trHex = h => /^#[0-9a-f]{6}$/i.test(h) ? h : '#ffffff';
+function trColAt(st, p){
+  const a = st.filter(x => x.p <= p).pop(), b = st.find(x => x.p >= p);
+  if (!a) return st[0].c; if (!b) return st[st.length - 1].c; if (a === b || b.p === a.p) return a.c;
+  const f = (p - a.p)/(b.p - a.p), pa = olRGB(a.c), pb = olRGB(b.c);
+  return '#' + [0,1,2].map(i => Math.round((pa[i] + (pb[i] - pa[i])*f)*255).toString(16).padStart(2, '0')).join('');
+}
+function trSetStops(arr){ const L = getL(sel); L.trStops = arr.map(x => ({p: Math.round(x.p*1000)/1000, c: trHex(x.c)})); changed(); trDrawBar(); }
+function trDrawBar(){
+  const L = getL(sel), st = trStopsOf(L), bar = $('#trBar'); if (!bar) return;
+  trSel = Math.max(0, Math.min(st.length - 1, trSel));
+  bar.style.background = 'linear-gradient(to right,' + st.map(x => `${x.c} ${x.p*100}%`).join(',') + ')';
+  bar.querySelectorAll('.gstop').forEach(e => e.remove());
+  st.forEach((x, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'gstop' + (i === trSel ? ' on' : ''); b.dataset.i = i;
+    b.style.left = x.p*100 + '%'; b.style.setProperty('--gc', x.c); b.setAttribute('aria-pressed', i === trSel);
+    b.setAttribute('aria-label', `Gradient stop ${i + 1} of ${st.length}, ${Math.round(x.p*100)} percent along the tail`); bar.appendChild(b);
+  });
+  const ci = $('#trStopCol'); if (document.activeElement !== ci){ ci.value = st[trSel].c; } $('#trStopOut').textContent = st[trSel].c.toUpperCase();
+  $('#trStopDel').disabled = st.length <= 2;
+}
+function syncTrUI(){
+  const L = getL(sel), g = !!L.trGrad;
+  $('#trGradBox').hidden = !g;
+  for (const k of ['trHue', 'trSat']){ const e = $('#g-lol-' + k); if (e) e.closest('.ctl').hidden = g; }
+  if (g) trDrawBar();
+}
+$('#trBar').addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  const bar = e.currentTarget, r = bar.getBoundingClientRect(), L = getL(sel), hit = e.target.closest('.gstop');
+  if (!r.width) return;
+  const pAt = ev => Math.max(0, Math.min(1, (ev.clientX - r.left)/r.width));
+  let st = trStopsOf(L).map(x => ({...x}));
+  if (hit) trSel = +hit.dataset.i;
+  else {
+    if (st.length >= 4){ toast('Up to 4 colours'); return; }
+    const p = pAt(e); st.push({p, c: trColAt(st.slice().sort((a, b) => a.p - b.p), p)}); st.sort((a, b) => a.p - b.p); trSel = st.findIndex(x => x.p === p);
+  }
+  e.preventDefault(); bar.setPointerCapture(e.pointerId);
+  if (hit) trDrawBar(); else trSetStops(st);
+  const mv = ev => {
+    const n = st.length, lo = trSel > 0 ? st[trSel - 1].p : 0, hi = trSel < n - 1 ? st[trSel + 1].p : 1;
+    st[trSel].p = Math.max(lo, Math.min(hi, pAt(ev))); trSetStops(st);
+  };
+  const up = () => { bar.removeEventListener('pointermove', mv); bar.removeEventListener('pointerup', up); bar.removeEventListener('pointercancel', up); };
+  bar.addEventListener('pointermove', mv); bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
+});
+$('#trBar').addEventListener('keydown', e => {
+  const hit = e.target.closest('.gstop'); if (!hit) return;
+  const st = trStopsOf(getL(sel)).map(x => ({...x})), i = +hit.dataset.i; trSel = i;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+    e.preventDefault(); const lo = i > 0 ? st[i - 1].p : 0, hi = i < st.length - 1 ? st[i + 1].p : 1;
+    st[i].p = Math.max(lo, Math.min(hi, st[i].p + (e.key === 'ArrowRight' ? .02 : -.02)));
+  } else if ((e.key === 'Delete' || e.key === 'Backspace') && st.length > 2){ e.preventDefault(); st.splice(i, 1); trSel = Math.max(0, i - 1); }
+  else return;
+  trSetStops(st); const b = $('#trBar').querySelector(`.gstop[data-i="${trSel}"]`); if (b) b.focus();
+});
+$('#trStopCol').addEventListener('input', e => { const st = trStopsOf(getL(sel)).map(x => ({...x})); st[trSel].c = e.target.value; trSetStops(st); });
+$('#trStopDel').onclick = () => { const st = trStopsOf(getL(sel)).map(x => ({...x})); if (st.length <= 2) return; st.splice(trSel, 1); trSel = Math.max(0, trSel - 1); trSetStops(st); };
 $('#olCol').addEventListener('input', e => { getL(sel).olCol = e.target.value; $('#olColOut').textContent = e.target.value.toUpperCase(); changed(); });
 $('#rcOn').addEventListener('change', e => { getL(sel).rcOn = e.target.checked ? 1 : 0; changed(); });
 $('#rcKeep').addEventListener('change', e => { getL(sel).rcKeep = e.target.checked ? 1 : 0; changed(); });
@@ -5356,6 +5433,35 @@ gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA16F, 1, 1, 8, 0, gl.RGBA, gl.FLOAT,
 const texTrS = mkTex(13, gl.TEXTURE_2D_ARRAY, CE, gl.LINEAR);
 gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA16F, 1, 1, SL, 0, gl.RGBA, gl.FLOAT, null);
 gl.useProgram(prog); gl.uniform1i(U.uTrI, 12); gl.uniform1i(U.uTrS, 13);
+const texTrG = mkTex(14, gl.TEXTURE_2D, CE, gl.LINEAR);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 64, 24, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+gl.uniform1i(U.uTrG, 14);
+const TR_LUT = new Uint8Array(64*24*4), TR_SIG = new Array(24).fill(''), TR_ROWS = new Map(); let trDirty = false;
+function trLutRow(i, stops){                  // one row of the gradient lookup per drawn layer
+  const key = JSON.stringify(stops); if (TR_SIG[i] === key) return; TR_SIG[i] = key;
+  let row = TR_ROWS.get(key);
+  if (!row){
+    if (TR_ROWS.size > 40) TR_ROWS.clear();
+    row = new Uint8Array(256); const st = stops.map(x => ({p: x.p, c: olRGB(x.c)})).sort((a, b) => a.p - b.p);
+    for (let j = 0; j < 64; j++){
+      const p = j/63; let a = st[0], b = st[st.length - 1];
+      for (let k = 0; k < st.length; k++){ if (st[k].p <= p) a = st[k]; if (st[k].p >= p){ b = st[k]; break; } }
+      const f = p <= st[0].p ? 0 : p >= st[st.length - 1].p ? 0 : (p - a.p)/Math.max(b.p - a.p, 1e-6);
+      const ca = p >= st[st.length - 1].p ? st[st.length - 1].c : a.c, cb = p >= st[st.length - 1].p ? ca : b.c;
+      for (let c = 0; c < 3; c++) row[j*4 + c] = Math.round((ca[c] + (cb[c] - ca[c])*f)*255);
+      row[j*4 + 3] = 255;
+    }
+    TR_ROWS.set(key, row);
+  }
+  TR_LUT.set(row, i*256); trDirty = true;
+}
+function trLutUpload(){
+  if (!trDirty) return; trDirty = false;
+  gl.activeTexture(gl.TEXTURE14); gl.bindTexture(gl.TEXTURE_2D, texTrG);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 64, 24, gl.RGBA, gl.UNSIGNED_BYTE, TR_LUT);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+}
 const cvIds = new WeakMap(); let cvSeq = 0;
 const cvId = c => { let n = cvIds.get(c); if (!n) cvIds.set(c, n = ++cvSeq); return n; };
 function boxDown(src, sw, sh, gw, gh, ch, off){
@@ -5369,6 +5475,24 @@ function boxDown(src, sw, sh, gw, gh, ch, off){
     }
   }
   return out;
+}
+function morph(g, w, h, r, grow){                    // square max (grow) or min (shrink) filter, two passes
+  const t = new Uint8Array(w*h), o = new Uint8Array(w*h), edge = grow ? 0 : 255;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    let v = edge; if (!grow) v = 255; else v = 0;
+    for (let k = -r; k <= r; k++){ const xx = x + k, q = xx < 0 || xx >= w ? edge : g[y*w + xx]; v = grow ? (q > v ? q : v) : (q < v ? q : v); }
+    t[y*w + x] = v;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    let v = grow ? 0 : 255;
+    for (let k = -r; k <= r; k++){ const yy = y + k, q = yy < 0 || yy >= h ? edge : t[yy*w + x]; v = grow ? (q > v ? q : v) : (q < v ? q : v); }
+    o[y*w + x] = v;
+  }
+  return o;
+}
+function silhouette(g, gw, gh){                       // the closed outer shape: small gaps in the art are closed, then everything inside is filled
+  const bin = new Uint8Array(g.length); for (let i = 0; i < bin.length; i++) bin[i] = g[i] >= 128 ? 255 : 0;
+  return morph(fillHoles(morph(bin, gw, gh, 7, true), gw, gh), gw, gh, 7, false);
 }
 function fillHoles(g, gw, gh){                    // the silhouette: everything the outside background cannot reach
   const bg = new Uint8Array(gw*gh), st = new Int32Array(gw*gh); let sp = 0;
@@ -5408,7 +5532,7 @@ function marchLoops(g, gw, gh, minLen){          // closed outlines of the shape
   }
   return out.sort((a, b) => b[0] - a[0]).slice(0, 3000);
 }
-function traceField(loops, TW, TH, bandFrac){
+function traceField(loops, TW, TH, bandFrac, core){
   const N = TW*TH; let Pmax = 0, cnt = 0;
   for (const [P, lp] of loops){ Pmax = Math.max(Pmax, P); for (let i = 0; i < lp.length; i++){ const a = lp[i], b = lp[(i + 1)%lp.length]; cnt += Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1])*2) + 1; } }
   const sx = new Float32Array(cnt), sy = new Float32Array(cnt), sa = new Float32Array(cnt), sk = new Uint8Array(cnt);
@@ -5441,7 +5565,7 @@ function traceField(loops, TW, TH, bandFrac){
   for (let y = 0; y < TH; y++){
     const row = (TH - 1 - y)*TW*4;
     for (let x = 0; x < TW; x++){
-      const i = y*TW + x, s = best[i]; if (s < 0) continue;
+      const i = y*TW + x, s = best[i]; if (s < 0 || (core && core[i])) continue;      // outside edge only: nothing is lit inside the silhouette
       const d = Math.sqrt(bd[i]); if (d >= band) continue;
       const u = (d - band*.55)/(band*.45), cv = u <= 0 ? 1 : 1 - u*u*(3 - 2*u), o = row + x*4;
       out[o] = Math.cos(sa[s])*cv; out[o + 1] = Math.sin(sa[s])*cv; out[o + 2] = sk[s]*cv; out[o + 3] = cv;
@@ -5457,8 +5581,12 @@ function traceUpload(unit, tex, slice, data, TW, TH){
 }
 function ensureTrace(x, l){
   const now = performance.now(), outer = l.trOuter ? 1 : 0;
-  const loopsFor = (key, make) => { let lp = TRC.loops.get(key); if (!lp){ if (TRC.loops.size > 10) TRC.loops.clear(); lp = make(); TRC.loops.set(key, lp); } return lp; };
-  const loopsOf = (grid, gw, gh) => marchLoops(outer ? fillHoles(grid, gw, gh) : grid, gw, gh, outer ? 24 : 12);
+  const cached = (key, make) => { let v = TRC.loops.get(key); if (!v){ if (TRC.loops.size > 10) TRC.loops.clear(); v = make(); TRC.loops.set(key, v); } return v; };
+  const shapeOf = (grid, gw, gh) => {
+    if (!outer) return {loops: marchLoops(grid, gw, gh, 12), core: null};
+    const sil = silhouette(grid, gw, gh);
+    return {loops: marchLoops(sil, gw, gh, 24), core: morph(sil, gw, gh, 2, false)};     // core: inside the shape, a little in from its edge
+  };
   if (x.type === 0){
     const id = x.orig.id, m = masks.get(id); if (!m || m.length !== MW*MH) return;
     const TH = Math.max(128, Math.min(1024, Math.round(512/(imgW/imgH)))), slice = x.idx, key = id + ':' + picVer + ':' + MW + 'x' + MH + ':' + outer;
@@ -5469,8 +5597,8 @@ function ensureTrace(x, l){
     }
     const have = TRC.got.img[slice];
     if (have === key || (have && now - TRC.at < 350)) return;     // while painting, keep the old one for a moment
-    const loops = loopsFor(key, () => loopsOf(boxDown(m, MW, MH, 512, TH, 1, 0), 512, TH));
-    traceUpload(12, texTrI, slice, traceField(loops, 512, TH, outer ? .03 : .07), 512, TH); TRC.got.img[slice] = key; TRC.at = now;
+    const sh = cached(key, () => shapeOf(boxDown(m, MW, MH, 512, TH, 1, 0), 512, TH));
+    traceUpload(12, texTrI, slice, traceField(sh.loops, 512, TH, outer ? .03 : .07, sh.core), 512, TH); TRC.got.img[slice] = key; TRC.at = now;
   } else if (x.type === 1){
     const which = iconCv[l.which] ? l.which : 'eye', src = iconCv[which], slice = x.idx, key = which + ':' + cvId(src) + ':' + outer;
     if (!TRC.icnReady){
@@ -5478,8 +5606,8 @@ function ensureTrace(x, l){
       gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA16F, 512, 512, SL, 0, gl.RGBA, gl.FLOAT, null); TRC.icnReady = true;
     }
     if (TRC.got.icn[slice] === key) return;
-    const loops = loopsFor(key, () => loopsOf(boxDown(src.getContext('2d').getImageData(0, 0, 512, 512).data, 512, 512, 512, 512, 4, 3), 512, 512));
-    traceUpload(13, texTrS, slice, traceField(loops, 512, 512, outer ? .03 : .07), 512, 512); TRC.got.icn[slice] = key;
+    const sh = cached(key, () => shapeOf(boxDown(src.getContext('2d').getImageData(0, 0, 512, 512).data, 512, 512, 512, 512, 4, 3), 512, 512));
+    traceUpload(13, texTrS, slice, traceField(sh.loops, 512, 512, outer ? .03 : .07, sh.core), 512, 512); TRC.got.icn[slice] = key;
   }
 }
 function draw(w, h){
@@ -5510,7 +5638,7 @@ function draw(w, h){
     { const tr = ol && l.trOn, hq = ((Math.round(l.trHue || 0) % 360) + 360) % 360, sq = Math.round(clamp01(l.trSat ?? .6)*100), nl = Math.max(1, Math.min(6, Math.round(l.trN || 1)));
       Kv[o] = tr ? (l.trSpeed ?? 1) : 0; Kv[o+1] = l.trLen ?? .35; Kv[o+2] = tr ? Math.max(0, l.trInt ?? 1.5) : 0;
       Kv[o+3] = hq + 360*sq + 36360*((nl - 1) + 6*((ol && l.olOnly ? 1 : 0) + (tr && l.trOnly ? 2 : 0)));
-      Mv[o] = tr && l.trGrad ? ((Math.round(l.trHue2 ?? 280) % 360) + 360) % 360 : -1;
+      const gr = tr && l.trGrad; Mv[o] = gr ? 1 : -1; if (gr) trLutRow(i, trStopsOf(l));
       if (tr) ensureTrace(x, l); }
     if (l.rcOn && x.type < 2){                                   // recolour: strength (negative = keep shading) and the colour packed as one 24-bit number
       const s = clamp01(l.rcStr ?? 1); if (s > 0){ const c = olRGB(l.rcCol); Iv[o+3] = l.rcKeep ? -s : s; Jv[o+3] = Math.round(c[0]*255)*65536 + Math.round(c[1]*255)*256 + Math.round(c[2]*255); }
@@ -5519,6 +5647,7 @@ function draw(w, h){
     const pk = phi + (x.off || 0);
     Gd[o+3]=(x.off ? instG(Q, 'twist', x.off) + Q.twBounce*Math.sin(Q.twBounceRate*pk) : twG) + (l.ltwist || 0) + (l.ltwBounce || 0)*Math.sin((l.ltwBounceRate || 1)*pk);
   });
+  trLutUpload();
   gl.viewport(0,0,w,h);
   gl.uniform4fv(U.uA, A); gl.uniform4fv(U.uB, B); gl.uniform4fv(U.uC, C); gl.uniform4fv(U.uD, Dv); gl.uniform4fv(U.uE, E); gl.uniform4fv(U.uF, F); gl.uniform4fv(U.uG, Gd); gl.uniform4fv(U.uH, H); gl.uniform4fv(U.uI, Iv); gl.uniform4fv(U.uJ, Jv); gl.uniform4fv(U.uK, Kv); gl.uniform4fv(U.uM, Mv); gl.uniform1f(U.uGInv, clamp01(Q.ginv || 0));
   { const c = P.L.bg.solidCol || '#000000'; gl.uniform3f(U.uBgCol, parseInt(c.slice(1,3),16)/255, parseInt(c.slice(3,5),16)/255, parseInt(c.slice(5,7),16)/255); }
@@ -8281,8 +8410,8 @@ const testMode = (() => {
     S('lt3', LT, aLY, 'full', 'Use Light trace on a picture layer with a hole or two separate parts, and on an Icon layer.', 'The light follows every curve and runs round each separate outline; moving the layer keeps the light on its edge.', '#olBox', {cat: 'layer', top: 1}),
     S('lt4', LT, aLY, 'lite', 'Switch to Lite.', 'The outline and light trace controls are dimmed and nothing extra is drawn.', '#olBox', {cat: 'layer', top: 1}),
     S('lt5', LT, aLY, 'full', 'Light trace on a detailed picture layer (lots of fine lines): watch it run for a full lap.', 'The light flows along the lines with soft edges and no blocky patches or straight cut lines, at the same speed on big and small pieces.', '#olBox', {cat: 'layer', top: 1}),
-    S('lt6', LT, aLY, 'full', 'Tick Gradient and move Trace tail hue.', 'The head keeps the Trace hue and the tail shifts toward the tail hue along its length.', '#olBox', {cat: 'layer', top: 1}),
-    S('lt7', LT, aLY, 'full', 'Tick Outside edge only.', 'Only the outer silhouette of each separate part lights; holes and inner lines do not.', '#olBox', {cat: 'layer', top: 1}),
+    S('lt6', LT, aLY, 'full', 'Tick Gradient, then click the gradient bar to add a stop (up to 4), drag stops and tap one to change its colour.', 'The Hue and Colour strength sliders give way to the gradient bar; the light runs from the head colour to the tail colour through your stops.', '#olBox', {cat: 'layer', top: 1}),
+    S('lt7', LT, aLY, 'full', 'Tick Outside edge only.', 'Only the outer silhouette of each separate part lights; nothing in the middle (holes, inner lines, small gaps in the art) does.', '#olBox', {cat: 'layer', top: 1}),
     S('mp1', MP, aHU, '', 'Look at the Settings button in the dock.', 'It shows a cog wheel (not a moon).', '#dTheme'),
     S('mp2', MP, aHU, 'desktop', 'Open the Layers and Inspector panels, then open Settings and the More (...) menu one at a time.', 'Each opens above its dock button and does not cover the Layers or Inspector panel.', '#dMore'),
     S('mp3', MP, aHU, 'desktop', 'Drag Settings by its title and More by its top strip, close each, then reopen.', 'Each reopens where you left it, even after a reload. Double-click the title or strip to send it back above its button.', '#dTheme'),
