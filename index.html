@@ -1314,8 +1314,8 @@ body.easy .moreMenu .onlyCmp{display:flex}
 
     <div class="cat off" data-cat="depth">
       <div class="cath"><span class="catn">Depth</span></div>
-<div class="stack" id="g-depth"></div>        <div class="lbl">Whole-image depth</div>
-        <div class="btns">
+<div class="stack" id="g-depth"></div>        <div class="lbl" data-adv>Whole-image depth</div>
+        <div class="btns" data-adv>
           <select id="depthMode" aria-label="Auto depth guess">
             <option value="mixed">Guess: mixed</option>
             <option value="bright">Bright is near</option>
@@ -1325,14 +1325,14 @@ body.easy .moreMenu .onlyCmp{display:flex}
           </select>
           <button class="btn" id="bAuto">Re-guess</button>
         </div>
-        <div class="btns">
+        <div class="btns" data-adv>
           <button class="btn" id="bSnap">Snap depth to edges</button>
           <button class="btn" id="bInvert">Invert</button>
           <button class="btn" id="bSmooth">Smooth</button>
           <button class="btn" id="bUndoDepth" disabled>Undo depth</button>
         </div>
-        <div id="g-snap" class="stack"></div>
-        <label class="check"><input type="checkbox" id="p-snapAuto"> Snap after each depth brush stroke</label>
+        <div id="g-snap" class="stack" data-adv></div>
+        <label class="check" data-adv><input type="checkbox" id="p-snapAuto"> Snap after each depth brush stroke</label>
     </div>
 
     <div class="cat off" data-cat="motion">
@@ -1561,7 +1561,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <button class="tool" id="cbRedo" title="Redo selection (Ctrl+Shift+Z or Ctrl+Y)" aria-keyshortcuts="Control+Shift+Z Control+Y" aria-label="Redo selection"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-redo"/></svg><span>Redo</span></button>
     <span class="vr"></span>
   </span>
-  <button class="tool" id="cbDepth" title="Show depth" aria-label="Show depth"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-depth"/></svg><span>Depth</span></button>
+  <button class="tool" id="cbInv" aria-pressed="false" title="Invert (what's left): preview what this layer leaves unclaimed" aria-label="Invert (what's left)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-invert"/></svg><span>Invert</span></button>
   <button class="tool" id="cbPrev" title="Preview selection (hold P)" aria-label="Preview selection"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-eye"/></svg><span>Preview</span></button>
   <span class="vr"></span>
   <button class="btn" id="cbNext"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-next"/></svg>Next layer</button>
@@ -1767,6 +1767,7 @@ const P0 = {
   loop:12, drift:0, spin:0, symAngle:0, breathe:0, hueCycle:0,
   hue:0, depthHue:0, sat:1, fog:0, edges:0, ginv:0,
   wet:1, wetSwing:0, wetRate:1,
+  rblend:0,                          // Blend: 0 = the scene as set, 1 = the Reset all look; only the drawn frame changes, never P
   bpm:0,
   xLowL:Math.log2(150), xHighL:Math.log2(3000), gateLow:0, gateMid:0, gateHigh:0, aSmooth:.35, hitSens:.6, hitDecay:.15,
   glide:0,
@@ -1795,10 +1796,11 @@ const pct = v => Math.round(v*100) + '% wet';
 const SPEC = {
   'g-layers':[
     ['wet','Global dry/wet',0,1,.01,pct],
+    ['rblend','Blend',0,1,.01,v=>+v===0?'off':Math.round(v*100)+'% reset'],
   ],
   'g-depth':[
-    ['gamma','Depth contrast',.3,3,.01,fx(2)],
     ['strength','Parallax strength',0,.3,.005,fx(3)],
+    ['gamma','Depth contrast',.3,3,.01,fx(2)],
     ['focus','Focus plane',0,1,.01,v=>v<.15?'far':v>.85?'near':(+v).toFixed(2)],
     ['steer','Pointer steer',0,1,.01,fx(2)],
     ['depthScale','Depth scaling',0,1,.01,fx(2)],
@@ -1954,7 +1956,7 @@ function randSummary(){
 }
 function saveRand(){ try { localStorage.setItem('depthscope.rand', JSON.stringify([...randSet])); } catch(e){} }
 /* Easy mode keeps only these slider rows on screen; every other row in these groups is tagged data-adv (groups not listed are hidden whole or fully shown) */
-const EASY_ROWS = {'g-sym':['seg','twist','zoom'], 'g-color':['hue','depthHue','sat'], 'g-motion':['loop','spin','hueCycle'], 'g-lpos':['z'], 'g-lmix':['wet'], 'g-lrc':['rcStr'], 'g-lfx':['wig','glow']};
+const EASY_ROWS = {'g-depth':['strength'], 'g-sym':['seg','twist','zoom'], 'g-color':['hue','depthHue','sat'], 'g-motion':['loop','spin','hueCycle'], 'g-lpos':['z'], 'g-lmix':['wet'], 'g-lrc':['rcStr'], 'g-lfx':['wig','glow']};
 function makeSlider(host, [k,label,min,max,step,fmt,typed], target, after, rk, def){
   const row = document.createElement('div'); row.className = 'ctl';
   if (EASY_ROWS[host.id] && !EASY_ROWS[host.id].includes(k)) row.setAttribute('data-adv', '');
@@ -1993,7 +1995,7 @@ const gAfter = k => {
 /* double-click puts a slider back to its default: the value it has on a fresh start */
 const layerDefault = k => { const d = defLayers(), kd = kindOf(sel); return (kd === 'part' ? d.part : kd === 'icon' ? d.icon : kd === 'obj' ? d.obj : LD)[k] ?? LD[k] ?? 0; };
 const NO_RAND = ['g-snap','g-brush'];
-for (const [gid, list] of Object.entries(SPEC)) { const host = document.getElementById(gid); for (const s of list) gCtl.push(makeSlider(host, s, () => P, gAfter, NO_RAND.includes(gid) ? null : 'g:' + s[0], () => P0[s[0]])); }
+for (const [gid, list] of Object.entries(SPEC)) { const host = document.getElementById(gid); for (const s of list) gCtl.push(makeSlider(host, s, () => P, gAfter, NO_RAND.includes(gid) || s[0] === 'rblend' ? null : 'g:' + s[0], () => P0[s[0]])); }
 for (const [gid, list] of Object.entries(LSPECS)) { const host = document.getElementById(gid); for (const s of list) lCtl.push(makeSlider(host, s, () => getL(sel), () => renderLayers(), 'l:' + s[0], () => layerDefault(s[0]))); }
 for (const s of SSPEC) lCtl.push(makeSlider($('#g-sprite'), s, () => getL(sel), null, 'l:' + s[0], () => layerDefault(s[0])));
 for (const s of ISPEC) lCtl.push(makeSlider($('#g-icon'), s, () => selOf('icon'), null, 'l:' + s[0], () => defLayers().icon[s[0]]));
@@ -3646,6 +3648,7 @@ $('#calShowRange').addEventListener('change', e => { T.showRange = e.target.chec
 function previewMode(){ return cal && (T.preview || T.peek) ? (T.invert ? 2 : 1) : 0; }
 function syncPreview(){
   $('#calPreview').checked = T.preview; $('#calInvert').checked = T.invert; $('#calInvert').disabled = false;
+  $('#cbPrev').setAttribute('aria-pressed', T.preview); $('#cbInv').setAttribute('aria-pressed', T.invert);   // the picture toolbar follows at once, not on its next tick
   updateBadge();
 }
 $('#calPreview').addEventListener('change', e => { T.preview = e.target.checked; syncPreview(); });
@@ -5769,16 +5772,46 @@ function smoothObj(prefix, o){
   }
   return out;
 }
+/* Blend: the drawn frame dissolves toward the look Reset all would give (a sample scene's own start wins over the blank defaults).
+   Settings are mixed per frame on the smoothed copies, so P, undo and saves never change; Blend 0 draws the scene exactly as set.
+   Continuous values glide; whole-number switches (segments, counts) step; on/off and named choices flip at the halfway point.
+   The clock, audio analysis and quality settings stay put. */
+const BLEND_SKIP = new Set(['rblend','loop','bpm','glide','xLowL','xHighL','gateLow','gateMid','gateHigh','aSmooth','hitSens','hitDecay','pRateL','pRateM','pRateH','pOffL','pOffM','pOffH','pRandL','pRandM','pRandH','exposure','q','aspect']);
+let blendKs = null;
+const blendKeys = () => blendKs || (blendKs = (() => { const g = [], l = [];
+  for (const key in RLABEL){ const [sc, k] = key.split(':'); if (BLEND_SKIP.has(k)) continue; if (k === 'hueRange') g.push('hueMin', 'hueMax'); else if (k === 'hdRange') l.push('hdMin', 'hdMax'); else (sc === 'g' ? g : l).push(k); }
+  return {g, l}; })());
+function blendV(k, v, t, b){
+  if (typeof v === 'number' && typeof t === 'number' && isFinite(v) && isFinite(t)){
+    if (!NO_GLIDE.has(k)) return v + (t - v)*b;
+    if (Number.isInteger(v) && Number.isInteger(t)) return Math.round(v + (t - v)*b);
+  }
+  return b >= .5 ? t : v;
+}
+function blendG(Q){
+  const b = clamp01(+Q.rblend || 0); if (!(b > 0)) return Q;
+  for (const k of blendKeys().g) if (k in P0 && k in Q) Q[k] = blendV(k, Q[k], P0[k], b);
+  return Q;
+}
+function blendL(L, L0, b){
+  if (!(b > 0)) return L;
+  const id = L0.id || (L0 === P.L.icon ? 'icon' : L0 === P.L.obj ? 'obj' : L0 === P.L.part ? 'part' : '');
+  const kd = id ? kindOf(id) : '', dl = defLayers(), base = kd === 'part' ? dl.part : kd === 'icon' ? dl.icon : kd === 'obj' ? dl.obj : LD;
+  const bs = id && sceneBase && sceneBase[id] ? sceneBase[id] : null, o = {...L};
+  for (const k of blendKeys().l){ if (!(k in o)) continue; const t = bs && k in bs ? bs[k] : (base[k] ?? LD[k]); if (t !== undefined) o[k] = blendV(k, o[k], t, b); }
+  return o;
+}
 const MAX_ENTRIES = 24;
 function activeLayers(phi, Q){
   const solo = anySolo(), list = [];
   const ok = L => L.vis && L.op > 0 && (!solo || L.solo);
   const add = (L0, type, idx, base, isBg, seed, key) => {
-    const L = smoothObj((key || L0.id) + ':', L0);
+    const rb = clamp01(+Q.rblend || 0), L = blendL(smoothObj((key || L0.id) + ':', L0), L0, rb);
     const n = isBg ? 1 : Math.max(1, Math.min(8, Math.round(L.inst || 1))), mode = L0.instMode || 'shrink';
     for (let k = 0; k < n; k++){
       const off = k*(L.instOff || 0)*TAU, ph = phi + off;                       // each copy runs its timed effects later
-      const Lk = instL(L0, L, off);                                              // ...including oscillator mappings
+      let Lk = instL(L0, L, off);                                                // ...including oscillator mappings
+      if (Lk !== L) Lk = blendL(Lk, L0, rb);                                     // copies with mapped values blend too
       const dz0 = Lk.z*.5 + Lk.osc*.5*Math.sin(Lk.oscRate*ph + Lk.oscPhase*TAU);
       const wave = n > 1 ? (Lk.instSw || 0)*.25*Math.sin((Lk.instSwRate || 1)*phi - off) : 0;   // travelling wave through the stack
       const dz = dz0 - k*(Lk.instSp || 0)*.25 + wave;
@@ -5994,7 +6027,7 @@ function ensureTrace(x, l){
   }
 }
 function draw(w, h){
-  const Q = smoothObj('g:', P);
+  const Q = blendG(smoothObj('g:', P));
   const L = Q.loop, ph = (t % L)/L, phi = ph*TAU;
   steer[0] += (steerT[0]-steer[0])*.08; steer[1] += (steerT[1]-steer[1])*.08;
   const vMode = cal ? 3 : view==='paint' ? 2 : view==='depth' ? 1 : view==='3d' ? 4 : 0;
@@ -6559,12 +6592,13 @@ renderOsc();   // the panel starts closed; Osc (O) opens it
 
 /* ---- Source and Depth: a drawer at the bottom of the Layers panel ---- */
 const drawer = document.createElement('div'); drawer.className = 'drawer'; drawer.id = 'srcDrawer';
-drawer.innerHTML = `<button type="button" class="dwbar" id="dwBar" aria-expanded="false" aria-controls="dwBody" title="Source and Depth"><span>Source &amp; Depth</span><svg class="gi-svg chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
-<div class="dwbody" id="dwBody" role="region" aria-label="Source and Depth"><div class="dwin"><div class="dwscroll"><div class="seg dwtabs" id="dwTabs"><button type="button" data-dw="view" aria-pressed="true">Source</button><button type="button" data-dw="depth" aria-pressed="false">Depth</button></div></div></div></div>`;
-drawer.setAttribute('data-adv', ''); pL.appendChild(drawer);
+drawer.innerHTML = `<button type="button" class="dwbar" id="dwBar" aria-expanded="false" aria-controls="dwBody" title="Source and Depth"><span><span data-adv>Source &amp; </span>Depth</span><svg class="gi-svg chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
+<div class="dwbody" id="dwBody" role="region" aria-label="Source and Depth"><div class="dwin"><div class="dwscroll"><div class="seg dwtabs" id="dwTabs"><button type="button" data-dw="view" aria-pressed="true" data-adv>Source</button><button type="button" data-dw="depth" aria-pressed="false">Depth</button></div></div></div></div>`;
+pL.appendChild(drawer);   // shown in Easy too, as "Depth" with only Parallax strength (Source is Full only)
 for (const id of ['view', 'depth']){ const c = document.querySelector(`.cat[data-cat="${id}"]`); c.classList.remove('off'); drawer.querySelector('.dwscroll').appendChild(c); }
 function setDrawer(open, tab){
   if (tab) UI.set('drawerTab', tab); tab = UI.get('drawerTab', 'view'); if (tab !== 'view' && tab !== 'depth') tab = 'view';
+  if (easyOn()) tab = 'depth';   // Easy has no Source tab; the saved Full choice is kept
   drawer.dataset.open = open; $('#dwBar').setAttribute('aria-expanded', open); UI.set('drawerOpen', !!open);
   for (const id of ['view', 'depth']) document.querySelector(`.cat[data-cat="${id}"]`).hidden = id !== tab;
   drawer.querySelectorAll('[data-dw]').forEach(b => b.setAttribute('aria-pressed', b.dataset.dw === tab));
@@ -7584,7 +7618,7 @@ let wasCal = false;
 document.querySelectorAll('#calbar [data-pt]').forEach(b => b.onclick = () => document.querySelector(`#calTool [data-tool="${b.dataset.pt}"]`)?.click());
 $('#cbUndo').onclick = () => $('#bSelUndo').click();
 $('#cbRedo').onclick = () => $('#bSelRedo').click();
-$('#cbDepth').onclick = () => { const d = $('#calOverlay [data-o="depth"]').getAttribute('aria-pressed') === 'true'; $(`#calOverlay [data-o="${d ? 'image' : 'depth'}"]`).click(); };
+$('#cbInv').onclick = () => $('#calInvert').click();   /* the checkbox handler also turns Preview on */
 $('#cbPrev').onclick = () => $('#calPreview').click();
 $('#cbNext').onclick = () => $('#bCalNext').click();
 $('#cbDone').onclick = () => $('#bCalDone').click();
@@ -7598,7 +7632,9 @@ function syncCalbar(){
   $('#calTools').hidden = $('#calSelBox').hidden;
   document.querySelectorAll('#calbar [data-pt]').forEach(b => b.setAttribute('aria-pressed', document.querySelector(`#calTool [data-tool="${b.dataset.pt}"]`)?.getAttribute('aria-pressed') === 'true'));
   $('#cbUndo').disabled = $('#bSelUndo').disabled; $('#cbRedo').disabled = $('#bSelRedo').disabled;
-  $('#cbDepth').setAttribute('aria-pressed', $('#calOverlay [data-o="depth"]').getAttribute('aria-pressed') === 'true');
+  const inv = $('#cbInv'), invL = cal && cal.id === 'bg' ? 'Invert (what other layers took)' : "Invert (what's left)";
+  inv.setAttribute('aria-pressed', $('#calInvert').checked);
+  if (inv.getAttribute('aria-label') !== invL){ inv.setAttribute('aria-label', invL); inv.title = invL + (cal && cal.id === 'bg' ? ': preview what the other layers took' : ': preview what this layer leaves unclaimed'); }
   $('#cbPrev').setAttribute('aria-pressed', $('#calPreview').checked);
   $('#cbNext').hidden = $('#bCalNext').hidden || $('#bCalNext').disabled;
 }
@@ -8134,7 +8170,7 @@ function setEasy(on, persist = true){
     if (TL && TL.run) tlStop();
     try { setAddMenu(false); closeSearch(); } catch(e){}
   } else hideEasyChip();
-  syncEasyUI(); drawInsp(); renderLayers(); try { setDockH(); applySheet(); } catch(e){}
+  syncEasyUI(); drawInsp(); renderLayers(); try { setDrawer(drawer.dataset.open === 'true'); setDockH(); applySheet(); } catch(e){}
 }
 lookPop.addEventListener('click', e => { const b = e.target.closest('#lkEasy [data-easy]'); if (!b) return; setEasy(b.dataset.easy === '1'); toast(easyOn() ? 'Easy mode' : 'Full mode'); });
 easyChip.querySelector('button').onclick = () => { setEasy(false); toast('Full mode'); };
