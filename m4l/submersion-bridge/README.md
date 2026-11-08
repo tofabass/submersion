@@ -1,6 +1,6 @@
-# Submersion Bridge (Max for Live)
+# Mandalux Bridge (Max for Live)
 
-Analyses audio in Ableton Live 12 and streams level and five frequency bands over a local WebSocket to Submersion. Audio passes through untouched.
+Analyses audio in Ableton Live 12 and streams level and five frequency bands over a local WebSocket to Mandalux. Audio passes through untouched.
 
 Status: Phase 1 (level and bands). BPM and beat sync come in Phase 3, latency offset in Phase 4.
 
@@ -15,7 +15,7 @@ Status: Phase 1 (level and bands). BPM and beat sync come in Phase 3, latency of
 | `selftest.js` | Automated server checks: `node selftest.js` |
 
 ## Install in Live (Windows)
-1. In Live, create a new **Max Audio Effect** and click the edit button. Save it as `Submersion Bridge.amxd` in a new folder, then copy `bridge.js` and `bridge-core.js` into the **same folder**.
+1. In Live, create a new **Max Audio Effect** and click the edit button. Save it as `Mandalux Bridge.amxd` in a new folder, then copy `bridge.js` and `bridge-core.js` into the **same folder**.
 2. In that folder run `npm init -y` then `npm install ws@8`. (Or send `script npm install ws@8` to the `node.script` object in the device.)
 3. Open `submersion-bridge.maxpat` in Max, select all, copy, and paste into the device editor (replace the default `plugin~`/`plugout~`). Save.
 4. Open **Presentation mode**. The status line should read "Bridge: listening on 8787".
@@ -39,13 +39,13 @@ In Live:
 3. Kick loop: bass moves most. Hi-hats: treble moves most. Stop playback: all values fall to about 0.
 4. Frames per second on `test.html` is about 60 and stays steady for 10 minutes. CPU shows no growth.
 5. A second instance shows "port 8787 in use" and the first keeps working.
-6. Chrome local network prompt: open `test.html` from an https page or Submersion (Phase 2) and note whether Chrome asks for local network access.
+6. Chrome local network prompt: open `test.html` from an https page or Mandalux (Phase 2) and note whether Chrome asks for local network access.
 
 ## Known limits (to tune in Phase 4)
 - Bands are not loudness-weighted: bass reads higher than treble for the same musical level. Per-band trim comes in Phase 4.
 - Peak is smoothed in the server (fast attack, short release); RMS is the 1024-sample window from `average~`.
-- Band envelopes in the device are fixed (about 1 ms attack, 40 ms release, so no hit falls between two 16 ms reports). How snappy or smooth the visuals feel is set in Submersion, not on the device.
+- Band envelopes in the device are fixed (about 1 ms attack, 40 ms release, so no hit falls between two 16 ms reports). How snappy or smooth the visuals feel is set in Mandalux, not on the device.
 
 ## Follow Live tempo
 
-The device also reports Live's tempo, song position and whether Live is playing. In Submersion, tick **Follow Live tempo** under the Ableton source and the tempo pulses and Sync oscillators lock to Live's beat. While following, Live is in charge: tap tempo and the tempo slider are locked. When Live stops, the beat freezes, and it picks up in step when you press play. The Tempo and Transport lines on the device show what it reads from Live. Older copies of the device don't send this, so Submersion asks you to update the device.
+The device also reports Live's tempo, song position and whether Live is playing. In Mandalux, tick **Follow Live tempo** under the Ableton source and the tempo pulses and Sync oscillators lock to Live's beat. While following, Live is in charge: tap tempo and the tempo slider are locked. When Live stops, the beat freezes, and it picks up in step when you press play. The Tempo and Transport lines on the device show what it reads from Live. Older copies of the device don't send this, so Mandalux asks you to update the device.

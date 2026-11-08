@@ -1,5 +1,5 @@
 'use strict';
-/* Submersion bridge: local WebSocket server shared by the Max device (bridge.js)
+/* Mandalux bridge: local WebSocket server shared by the Max device (bridge.js)
    and the fake device (fake-device.js). No Max dependency in this file. */
 const http = require('http');
 const fs = require('fs');
