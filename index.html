@@ -1504,18 +1504,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
         <button class="btn" id="bPresetImport">Import</button>
         <input type="file" id="fPresets" accept=".json,application/json" hidden>
       </div>
-      <p class="note" data-adv id="presetNote">Loading your Look presets…</p><div class="lbl">Output</div>        <div class="ctl"><label for="aspectSel">Aspect ratio</label>
-          <select id="aspectSel">
-            <option value="image">Match image</option>
-            <option value="free">Fill monitor</option>
-            <option value="16:9">16:9 landscape</option>
-            <option value="9:16">9:16 vertical (Reels, TikTok)</option>
-            <option value="1:1">1:1 square</option>
-            <option value="4:5">4:5 portrait</option>
-            <option value="4:3">4:3</option>
-            <option value="21:9">21:9 ultrawide</option>
-          </select>
-        </div>
+      <p class="note" data-adv id="presetNote">Loading your Look presets…</p><div class="lbl">Output</div>        
         <div class="seg" id="qSeg" role="group" aria-label="Render quality">
           <button data-q="0.5" aria-pressed="false">Draft</button>
           <button data-q="0.75" aria-pressed="true">Normal</button>
@@ -1634,6 +1623,18 @@ body.easy .moreMenu .onlyCmp{display:flex}
 <div class="lookpop" id="lookPop" role="dialog" aria-label="Settings" hidden>
   <h3>Settings <span class="meta">Submersion</span></h3>
   <div class="lkTop" id="lkTop"><button class="btn" id="lkTut" type="button" title="A quick or interactive tour of the controls"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg>Tutorial</button><button class="btn" id="lkKeys" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-keys"/></svg>Shortcuts</button></div>
+  <details class="lkg" data-lkg="frame" open><summary>Frame</summary><div class="lkgb">
+  <div class="lrowp"><span>Aspect ratio</span><select id="aspectSel" aria-label="Aspect ratio">
+            <option value="image">Match image</option>
+            <option value="free">Fill monitor</option>
+            <option value="16:9">16:9 landscape</option>
+            <option value="9:16">9:16 vertical (Reels, TikTok)</option>
+            <option value="1:1">1:1 square</option>
+            <option value="4:5">4:5 portrait</option>
+            <option value="4:3">4:3</option>
+            <option value="21:9">21:9 ultrawide</option>
+          </select></div>
+  </div></details>
   <details class="lkg" data-lkg="perf" open><summary>Performance</summary><div class="lkgb">
   <div class="lrowp"><span>Mode</span><div class="seg" id="lkMode" role="group" aria-label="Performance mode"><button data-mode="lite">Lite</button><button data-mode="full">Full</button></div><label class="check"><input type="checkbox" id="lkRemember"> Remember my device choice (skip the start-up question)</label><p class="note" id="lkModeNote">Lite caps resolution and frame rate for phones. Your saved settings are untouched.</p></div>
   </div></details>
@@ -8963,8 +8964,8 @@ const itut = (() => {
        x:'Name your project, then Export file saves everything to a file; Import file opens one. Saving is off during the tutorial.', tr:'Type a name; nothing is saved.'},
       {t:'Look presets', sel:[catSel('project') + ' .btns:has(#presetSel)', catSel('project') + ' .btns:has(#presetName)', catSel('project') + ' .btns:has(#bPresetUpdate)'], open:{cat:'project'},
        x:'Look presets store a look to reuse, update, export or import. Saving them is off during the tutorial.', tr:'Load a different Look preset.'},
-      {t:'Output', sel:['.ctl:has(#aspectSel)', '#qSeg', '#bPng', '#bRec'], open:{cat:'project'},
-       x:'Output sets the aspect and quality, then exports a PNG still or a seamless loop video. Lite renders at Normal at most.', tr:'Capture a PNG still.'},
+      {t:'Output', sel:['#qSeg', '#bPng', '#bRec'], open:{cat:'project'},
+       x:'Output sets the quality, then exports a PNG still or a seamless loop video. Lite renders at Normal at most.', tr:'Capture a PNG still.'},
       {t:'Hide UI', sel:['#dHide'], allow:['#showUI', '#mini'], key:['Hide / show the UI'],
        x:'Hide UI leaves only the picture. A small corner button keeps Roll, Record, Play and Capture handy; Show UI brings everything back.',
        tr:'Hide the UI, then bring it back.',
@@ -9605,7 +9606,7 @@ const testMode = (() => {
     S('pj11', B, aPJ, '', 'Export the presets, then Import that file back.', 'A file downloads; importing adds presets (names stay TEST-…) without errors.', '#bPresetExport', {cat: 'project'}),
     S('pj12', B, aPJ, '', 'Select one TEST-look and press Delete twice.', 'The first press arms "Confirm delete" and reverts after 3 seconds; the second deletes it.', '#bPresetDelete', {cat: 'project'}),
 
-    S('ou1', B, aOU, '', 'Change Aspect.', 'The frame changes shape and the picture refits.', '.ctl:has(#aspectSel)', {cat: 'project'}),
+    S('ou1', B, aOU, '', 'Settings › Frame: change Aspect ratio.', 'The frame changes shape and the picture refits.', '#aspectSel', {look: 1, lkg: ['frame']}),
     S('ou2', B, aOU, '', 'Switch Quality.', 'The picture re-renders sharper or lighter; Lite limits the top choice.', '#qSeg', {cat: 'project'}),
     S('ou3', B, aOU, '', 'Capture a PNG still.', 'A PNG downloads and matches what you see.', '#bPng', {cat: 'project'}),
     S('ou4', B, aOU, '', 'Record one loop (button; desktop: R).', 'It stops by itself after one loop; the video downloads and loops cleanly.', '#bRec', {cat: 'project'}),
