@@ -755,6 +755,9 @@ body.lite #olBox .check,body.lite #olColRow,body.lite #g-lol{opacity:.45;pointer
 .onav .oaddS:hover{border-color:var(--dim)}
 .och .onm{cursor:text}
 .onmEdit{flex:1;min-width:0;font:600 12px var(--f-ui);color:var(--ink);background:var(--raise);border:1px solid var(--oc);border-radius:6px;padding:3px 6px}
+.pkb{margin-top:6px}.pkb .btn{padding:4px 9px;font-size:12px}.pkb input[type=text]{flex:1;min-width:120px}
+.oscfoot{display:grid;gap:4px;padding:8px 12px 10px;border-top:1px solid var(--line,rgba(128,128,128,.25));flex:0 0 auto}
+@media (max-width:760px){ #pOsc .oscfoot{position:sticky;left:0} }
 .oscRow{display:flex;gap:10px;overflow:auto;overscroll-behavior:contain;padding:10px 12px 12px;align-items:stretch;scrollbar-width:thin}
 .oc{--oc:var(--accent);--cc:var(--oc);flex:0 0 232px;display:grid;gap:6px;align-content:start;padding:9px 10px 10px;border-radius:12px;background:var(--wash);box-shadow:inset 0 1px 0 var(--glass-rim-top),inset 0 0 0 1px var(--glass-rim-hairline)}
 .och{display:flex;align-items:center;gap:6px;min-height:24px}
@@ -1432,7 +1435,8 @@ body.easy .moreMenu .onlyCmp{display:flex}
       <p class="note">Every mapping in one place: what moves what, and how far. Sound reacts through mappings from the Low, Mid and High bands. Click a target to jump to its slider.</p>
       <div class="lbl" id="modMapHead">Mappings</div>
       <div class="bsync"><label for="mPreset">Preset</label><select id="mPreset" aria-label="Mapping preset"></select></div>
-      <p class="note" id="mPresetNote">A preset adds ready-made mappings, gates and smoothing. Mappings you add yourself are never changed.</p>
+      <div id="mpKit"></div>
+      <p class="note" id="mPresetNote">A preset adds ready-made mappings, gates and smoothing. Built-in presets never change mappings you add yourself. Save preset keeps every mapping you have now, and picking a different preset replaces them.</p>
       <div class="mtool">
         <select id="mFiltSrc" aria-label="Show mappings from"></select>
         <select id="mFiltLayer" aria-label="Show mappings on"></select>
@@ -1504,6 +1508,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <button class="ib" id="oscMode" aria-pressed="true"></button>
     <button class="ib" data-fold aria-label="Fold the Oscillators panel" title="Fold the Oscillators panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-fold"/></svg></button><button class="ib" data-close aria-label="Hide the Oscillators panel" title="Hide the Oscillators panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
   <div class="fpb oscRow" id="oscRow" role="list" aria-label="Oscillators"></div>
+  <div class="oscfoot" id="oscFoot"><div class="bsync"><label for="oscPreset">Preset</label><select id="oscPreset" aria-label="Oscillator preset"></select></div><div id="oscKit"></div></div>
 </section>
 
 <section class="fp" id="pMusic" aria-label="Streaming panel" hidden>
@@ -6270,6 +6275,120 @@ function oscRemove(id){
     const l = oscList(); if (l.length >= OSC_MAX || l.some(x => x.id === o.id)) return;
     l.splice(Math.min(i, l.length), 0, o); mapList().push(...gone); OSC_UI.idx = Math.min(i, l.length - 1); renderOsc(); changed(); });
 }
+/* ---- Custom presets (Mod mappings, oscillator banks): one small kit for storage, name row, rename, delete, export, import ----
+   o = {key, kind, noun, host, clean(p) -> p | null, capture(name) -> p | null, selected() -> name | '', onSaved(name, existed), onRename(old, name), onDelete(name), onChange()} */
+function presetKit(o){
+  let list = [], mode = 'save', delT = 0;
+  try { const a = JSON.parse(localStorage.getItem(o.key) || '[]'); if (Array.isArray(a)) list = a.map(o.clean).filter(Boolean).slice(0, 100); } catch(e){}
+  const find = n => list.find(p => p.name.toLowerCase() === String(n).toLowerCase());
+  const persist = () => { try { localStorage.setItem(o.key, JSON.stringify(list)); return true; } catch(e){ toast(`Couldn't keep your ${o.noun}s in this browser. Export them to keep a copy.`, 3800); return false; } };
+  const host = o.host;
+  host.innerHTML = `<div class="btns pkb"><button type="button" class="btn" data-a="save" title="Save the current ${o.noun} set">Save preset</button><button type="button" class="btn" data-a="rename" title="Rename the selected ${o.noun}">Rename</button><button type="button" class="btn" data-a="del" title="Delete the selected ${o.noun}">Delete</button><button type="button" class="btn" data-a="exp" title="Save your ${o.noun}s to a file">Export</button><button type="button" class="btn" data-a="imp" title="Load ${o.noun}s from a file">Import</button></div>
+    <div class="btns pkb" data-r="row" hidden><input type="text" data-typing maxlength="40" aria-label="${o.noun[0].toUpperCase() + o.noun.slice(1)} name" autocomplete="off"><button type="button" class="btn primary" data-a="ok">Save</button><button type="button" class="btn" data-a="no">Cancel</button></div>
+    <input type="file" accept=".json,application/json" hidden>`;
+  const q = a => host.querySelector(`[data-a="${a}"]`), row = host.querySelector('[data-r="row"]'), inp = row.querySelector('input'), file = host.querySelector('input[type=file]');
+  const sync = () => { const has = !!o.selected(); q('rename').disabled = !has; q('del').disabled = !has; q('exp').disabled = !list.length; if (q('del').textContent !== 'Delete'){ q('del').textContent = 'Delete'; clearTimeout(delT); } };
+  const open = m => { mode = m; row.hidden = false; inp.placeholder = m === 'save' ? `Name this ${o.noun}` : `New name`; q('ok').textContent = m === 'save' ? 'Save' : 'Rename'; inp.value = m === 'rename' ? o.selected() : ''; inp.focus(); if (m === 'rename') inp.select(); };
+  const close = () => { row.hidden = true; };
+  function commit(){
+    const typed = inp.value.trim().slice(0, 40);
+    if (mode === 'rename'){
+      const old = o.selected(), cur = find(old); if (!cur){ close(); return; }
+      const name = typed || old, other = find(name);
+      if (other && other !== cur){ toast(`Couldn't rename. A ${o.noun} named "${other.name}" already exists.`, 3200); return; }
+      cur.name = name; if (!persist()) return; o.onRename(old, name); close(); toast(`Renamed to "${name}"`); o.onChange(); sync(); return;
+    }
+    const name = typed || `My ${o.noun} ${list.length + 1}`, ex = find(name);
+    if (!ex && list.length >= 100){ toast(`Couldn't save. Delete a ${o.noun} first (up to 100).`, 3200); return; }
+    const pr = o.capture(name); if (!pr) return;
+    pr.name = ex ? ex.name : name;
+    if (ex) list[list.indexOf(ex)] = pr; else list.push(pr);
+    persist(); close(); o.onSaved(pr.name, !!ex); toast(ex ? `Updated "${pr.name}"` : `Saved "${pr.name}"`); o.onChange(); sync();
+  }
+  host.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a;
+    if (a === 'save') open('save'); else if (a === 'rename'){ if (o.selected()) open('rename'); }
+    else if (a === 'ok') commit(); else if (a === 'no') close();
+    else if (a === 'del'){
+      const n = o.selected(); if (!n) return;
+      if (b.textContent === 'Delete'){ b.textContent = 'Confirm delete'; clearTimeout(delT); delT = setTimeout(() => { b.textContent = 'Delete'; }, 3000); return; }
+      clearTimeout(delT); b.textContent = 'Delete';
+      list.splice(list.indexOf(find(n)), 1); persist(); o.onDelete(n); toast(`Deleted "${n}"`); o.onChange(); sync();
+    }
+    else if (a === 'exp'){
+      if (!list.length){ toast(`No ${o.noun}s of your own to export yet`); return; }
+      offer(`submersion-${o.kind}-presets.json`, new Blob([JSON.stringify({app:'Submersion', kind:o.kind, version:1, presets:list}, null, 1)], {type:'application/json'}));
+    }
+    else if (a === 'imp') file.click();
+  });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); commit(); } else if (e.key === 'Escape'){ e.preventDefault(); close(); } e.stopPropagation(); });
+  file.onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      if (!j || typeof j !== 'object' || (j.app && j.app !== 'Submersion')) throw new Error('shape');
+      if (j.kind && j.kind !== o.kind){ toast(`Couldn't import. That file holds ${j.kind} presets, not ${o.noun}s.`, 3600); return; }
+      const inc = (Array.isArray(j) ? j : j.presets); if (!Array.isArray(inc)) throw new Error('shape');
+      let n = 0, skipped = 0;
+      for (const raw of inc.slice(0, 100)){
+        const pr = o.clean(raw); if (!pr){ skipped++; continue; }
+        const ex = find(pr.name);
+        if (ex) list[list.indexOf(ex)] = pr; else if (list.length < 100) list.push(pr); else { skipped++; continue; }
+        n++;
+      }
+      if (!n){ toast(`Couldn't import. No ${o.noun}s found in that file.`, 3200); return; }
+      persist(); toast(`Imported ${n} ${o.noun}${n === 1 ? '' : 's'}` + (skipped ? `. ${skipped} could not be read.` : ''), 3200); o.onChange(); sync();
+    } catch(err){ toast(`Couldn't import. That isn't a Submersion ${o.noun} export.`, 3200); }
+  };
+  sync();
+  return {list: () => list, find, sync};
+}
+const numIn = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+const cleanName = n => typeof n === 'string' ? n.trim().slice(0, 40) : '';
+
+/* ---- Custom oscillator presets: the whole oscillator set, replaced on apply ---- */
+const OP_SHAPES = new Set(OSC_SHAPES.map(s => s[0]));
+function opClean(p){
+  const name = p && cleanName(p.name); if (!name || !Array.isArray(p.osc) || !p.osc.length) return null;
+  const seen = new Set(), osc = [];
+  for (const x of p.osc.slice(0, OSC_MAX)){
+    if (!x || typeof x.id !== 'string' || !/^o\d{1,4}$/.test(x.id) || seen.has(x.id)) continue; seen.add(x.id);
+    osc.push({id: x.id, name: (typeof x.name === 'string' && x.name.trim() ? x.name.trim() : 'Osc').slice(0, 24), c: Math.round(numIn(x.c, 0, OSC_COLS.length - 1, 0)),
+      shape: OP_SHAPES.has(x.shape) ? x.shape : 'sine', mode: ['sync', 'hz', 'loop'].includes(x.mode) ? x.mode : 'sync', rate: OSC_BEATS[x.rate] ? x.rate : '1bar',
+      hz: numIn(x.hz, OSC_HZ.min, OSC_HZ.max, .5), perLoop: Math.round(numIn(x.perLoop, 1, 16, 1)), phase: numIn(x.phase, -720, 720, 0), amt: numIn(x.amt, -1, 1, 0),
+      bip: x.bip ? 1 : 0, depth: numIn(x.depth, 0, 1, 1), seed: Math.round(numIn(x.seed, 1, 99999, 1))});
+  }
+  return osc.length ? {name, osc} : null;
+}
+let opPicked = '';
+const opKit = presetKit({key:'submersion.oscPresets', kind:'oscillator', noun:'oscillator preset', host:$('#oscKit'), clean: opClean,
+  capture: name => oscList().length ? {name, osc: clone(oscList())} : (toast("Couldn't save. Add an oscillator first."), null),
+  selected: () => opKit_sel(),
+  onSaved: name => { opPicked = name; }, onRename: (old, nn) => { if (opPicked === old) opPicked = nn; }, onDelete: () => { opPicked = ''; }, onChange: () => opRender()});
+function opKit_sel(){ return opPicked && opKit.find(opPicked) ? opPicked : ''; }
+function opRender(){
+  const el = $('#oscPreset'), l = opKit.list();
+  el.innerHTML = '<option value="">Oscillator presets…</option>' + l.map(p => `<option value="${escO(p.name)}">${escO(p.name)} (${p.osc.length})</option>`).join('');
+  el.value = opKit_sel(); opKit.sync();
+}
+function oscRestoreBank(o){
+  P.mod.osc = clone(o.osc); P.mod.maps = clone(o.maps); OSC_RT.clear(); OSC_VAL.clear(); MAP_RT.clear(); MOD.lastMark = 0;
+  OSC_UI.idx = 0; renderOsc(); renderMatrix(); markDirty();
+}
+function opApply(name){
+  const pr = opKit.find(name); if (!pr) return;
+  const before = {osc: clone(oscList()), maps: clone(mapList())}, ids = new Set(pr.osc.map(x => x.id));
+  // a mapping whose oscillator is not in the new set cannot work: it goes with the old bank (undo brings it back)
+  const lost = x => (!/^(band|hit):/.test(x.src) && !ids.has(x.src)) || (x.tgt.startsWith('osc:') && !ids.has(x.tgt.split(':')[1]));
+  const keep = before.maps.filter(m => !lost(m)), after = {osc: clone(pr.osc), maps: keep}, dropped = before.maps.length - keep.length;
+  if (mapArmed) disarmMap();
+  if (JSON.stringify(before) === JSON.stringify(after)){ toast(`"${name}" is already in place`); return; }
+  oscRestoreBank(after);
+  histPush('osc-preset', 'Oscillator preset: ' + name, () => oscRestoreBank(before), () => oscRestoreBank(after));
+  toast(`Oscillator preset: ${name}` + (dropped ? `. ${dropped} ${dropped === 1 ? 'mapping' : 'mappings'} removed because ${dropped === 1 ? 'its' : 'their'} oscillator is not in this set.` : ''), dropped ? 4200 : 2200);
+}
+$('#oscPreset').onchange = e => { opPicked = e.target.value; opKit.sync(); if (opPicked) opApply(opPicked); };
+opRender();
 oscReady = true;
 renderOsc();   // the panel starts closed; Osc (O) opens it
 
@@ -6770,15 +6889,20 @@ const MPRESETS = [
   ['bloom','Warm Bloom', [[[0,1],'hue',.1,'inout'], [[0],'pcount',.3,'out'], [[1,2],'spin',.18]], {}, .6],
 ];
 const mpOf = id => MPRESETS.find(p => p[0] === id);
+// a saved preset as the same array shape: [id, name, [], gates, smoothing, maps]; its id is 'u:' + name
+const mpGet = id => {
+  if (typeof id === 'string' && id.startsWith('u:')){ const u = typeof mpKit === 'object' && mpKit.find(id.slice(2)); return u ? [id, u.name, [], u.gates, u.smooth, u.maps] : null; }
+  return mpOf(id);
+};
 const BS_GATES = ['gateLow','gateMid','gateHigh'], BS_KEYS = [...BS_GATES, 'aSmooth'];
 const bsSnap = () => Object.fromEntries(BS_KEYS.map(k => [k, P[k]]));
 const MSIG = ['src','tgt','layer','on','amt','lo','hi','smooth','curve'];
 const mapSig = m => JSON.stringify(MSIG.map(k => m[k] ?? null));
 // the preset showing in the menu: Off with no preset mappings, Custom once one was edited, deleted or its gates and smoothing changed
 function bsCurrent(){
-  const pm = mapList().filter(m => m.preset && mpOf(m.preset));
+  const pm = mapList().filter(m => m.preset && mpGet(m.preset));
   if (!pm.length) return 'off';
-  const id = pm[0].preset, pr = mpOf(id), near = (a, b) => Math.abs((+a) - (+b)) < .005;
+  const id = pm[0].preset, pr = mpGet(id), near = (a, b) => Math.abs((+a) - (+b)) < .005;
   if (pm.some(m => m.preset !== id || m.sig !== mapSig(m) || m.pn !== pm.length)) return 'custom';
   if (pr[3] && !(BS_GATES.every(g => near(P[g], pr[3][g] || 0)) && near(P.aSmooth, pr[4]))) return 'custom';
   return id;
@@ -6788,10 +6912,17 @@ function mpRestore(o){
   MAP_RT.clear(); MOD.lastMark = 0; syncUI(); renderMatrix(); markDirty();
 }
 function applyBeat(id){
-  const pr = mpOf(id); if (!pr || !mapReady) return;
+  const pr = mpGet(id); if (!pr || !mapReady) return;
   const before = {maps: clone(mapList()), gates: bsSnap()}, ml = mapList();
   for (let i = ml.length - 1; i >= 0; i--) if (ml[i].preset) ml.splice(i, 1);      // the previous preset's mappings go; yours stay
-  const made = []; let noLayer = false;
+  const made = []; let noLayer = false, skipped = 0;
+  for (const sm of (pr[5] || [])){                                    // a saved preset: its mappings, re-targeted to this project
+    const isO = sm.tgt.startsWith('osc:'), info = isO ? null : MAPT.get(sm.tgt);
+    if (!srcInfo(sm.src) || (isO ? !oscById(sm.tgt.split(':')[1]) : !info)){ skipped++; continue; }
+    const layers = isO || info.scope === 'g' ? [null] : layerDefs().filter(d => !getL(d.id).gone && layerFits(info, d.id)).map(d => d.id);
+    if (!layers.length) noLayer = true;
+    for (const layer of layers){ const m = {...clone(sm), id: nextMapId(ml), layer, preset: pr[0]}; ml.push(m); made.push(m); }
+  }
   for (const [bands, key, amt, curve] of pr[2]){
     const tgt = PRESET_TGT[key], info = MAPT.get(tgt); if (!info) continue;
     // layer targets (particles): every layer the slider fits, now; a layer added later needs the preset applied again
@@ -6806,17 +6937,60 @@ function applyBeat(id){
   MAP_RT.clear(); MOD.lastMark = 0; syncUI(); renderMatrix(); markDirty();
   const nm = pr[0] === 'off' ? 'Mod preset off' : 'Mod preset: ' + pr[1];
   histPush('preset', nm, () => mpRestore(before), () => mpRestore(after));
-  toast(nm + (noLayer ? '. Add a particle layer to use its particle mappings.' : ''));
+  toast(nm + (noLayer ? '. Add a particle layer to use its particle mappings.' : '') + (skipped ? `. ${skipped} ${skipped === 1 ? 'mapping' : 'mappings'} skipped because the oscillator or slider is missing.` : ''), skipped || noLayer ? 4200 : 2200);
+}
+const MP_OWN_FIELDS = ['src','tgt','on','amt','lo','hi','smooth','curve'];
+function mpClean(p){
+  const name = p && cleanName(p.name); if (!name || !Array.isArray(p.maps) || !p.maps.length) return null;
+  const maps = [];
+  for (const m of p.maps.slice(0, 60)){
+    if (!m || typeof m.src !== 'string' || typeof m.tgt !== 'string' || m.src.length > 40 || m.tgt.length > 60) continue;
+    const c = {src: m.src, tgt: m.tgt, layer: m.layer === '*' ? '*' : null, on: m.on ? 1 : 0, amt: numIn(m.amt, -2, 2, 0),
+      lo: m.lo == null ? null : numIn(m.lo, -1e6, 1e6, null), hi: m.hi == null ? null : numIn(m.hi, -1e6, 1e6, null), smooth: numIn(m.smooth, 0, 1, 0),
+      curve: ['lin','in','out','inout'].includes(m.curve) ? m.curve : 'lin'};
+    if (m.free) c.free = true; if (Number.isFinite(+m.stag) && m.stag != null) c.stag = +m.stag;
+    maps.push(c);
+  }
+  if (!maps.length) return null;
+  const g = p.gates && typeof p.gates === 'object' ? p.gates : {}, gates = {};
+  for (const k of BS_GATES) gates[k] = numIn(g[k], 0, 1, 0);
+  return {name, maps, gates, smooth: numIn(p.smooth, 0, 1, 0)};
+}
+const mpKit = presetKit({key:'submersion.modPresets', kind:'mod', noun:'mod preset', host:$('#mpKit'), clean: mpClean,
+  capture: name => {
+    const ml = mapList(); if (!ml.length){ toast("Couldn't save. Add a mapping first."); return null; }
+    const seen = new Set(), maps = [];
+    for (const m of ml){                                  // a particle mapping on several layers is stored once and re-targeted on apply
+      const c = {}; for (const k of [...MSIG, 'free', 'stag']) if (m[k] !== undefined) c[k] = m[k];
+      delete c.layer; c.layer = m.layer == null ? null : '*';
+      const key = JSON.stringify(c); if (seen.has(key)) continue; seen.add(key); maps.push(c);
+    }
+    return {name, maps: clone(maps), gates: Object.fromEntries(BS_GATES.map(g => [g, P[g] || 0])), smooth: P.aSmooth || 0};
+  },
+  selected: () => { const v = $('#mPreset').value; return v.startsWith('u:') ? v.slice(2) : ''; },
+  onSaved: name => {                                      // every mapping now belongs to this preset: picking another preset replaces them
+    const ml = mapList(), id = 'u:' + name; for (const m of ml){ m.preset = id; m.pn = ml.length; m.sig = mapSig(m); }
+    markDirty();
+  },
+  onRename: (old, nn) => { for (const m of mapList()) if (m.preset === 'u:' + old) m.preset = 'u:' + nn; markDirty(); },
+  onDelete: n => { for (const m of mapList()) if (m.preset === 'u:' + n){ delete m.preset; delete m.pn; delete m.sig; } markDirty(); },
+  onChange: () => { mpRender(); syncSoundUI(); }});
+function mpRender(){
+  const sel = $('#mPreset'), own = mpKit.list();
+  sel.innerHTML = MPRESETS.map(b => `<option value="${b[0]}">${b[1]}</option>`).join('')
+    + (own.length ? '<optgroup label="Your presets">' + own.map(u => `<option value="u:${escO(u.name)}">${escO(u.name)}</option>`).join('') + '</optgroup>' : '') + '<option value="custom">Custom</option>';
+  mpKit.sync();
 }
 {
   const sel = $('#mPreset');
-  sel.innerHTML = MPRESETS.map(b => `<option value="${b[0]}">${b[1]}</option>`).join('') + '<option value="custom">Custom</option>';
-  sel.onchange = () => { if (sel.value === 'custom'){ syncSoundUI(); return; } applyBeat(sel.value); };
+  mpRender();
+  sel.onchange = () => { if (sel.value === 'custom'){ syncSoundUI(); return; } applyBeat(sel.value); mpKit.sync(); };
 }
 function syncSoundUI(){
   if (!BS_READY) return;
   const sel = $('#mPreset'), cur = mapReady ? bsCurrent() : 'off';
   if (sel && sel.value !== cur) sel.value = cur;
+  if (typeof mpKit === 'object') mpKit.sync();
   let n = 0;
   if (mapReady){ try { n += mapList().filter(m => { const si = srcInfo(m.src); return si && (si.bands || si.hits); }).length; } catch(e){} }
   const fc = $('#fxCount'); if (fc) fc.textContent = n === 1 ? '1 mapping reacts to sound' : n + ' mappings react to sound';
@@ -8208,13 +8382,13 @@ const itut = (() => {
   const NAV = new Set(['Tab', 'Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown']);
 
   /* saving is off: Save, project files, Look presets and Roll presets */
-  const SAVE_SEL = '#mSave, #bProjExport, #bProjImport, #bPresetSave, #bPresetUpdate, #bPresetDelete, #bPresetImport, #bPresetExport, #bRandSave, #bRandSaveOk, #bRandDel';
+  const SAVE_SEL = '#mSave, #bProjExport, #bProjImport, #bPresetSave, #bPresetUpdate, #bPresetDelete, #bPresetImport, #bPresetExport, #bRandSave, #bRandSaveOk, #bRandDel, #mpKit [data-a=save], #mpKit [data-a=ok], #oscKit [data-a=save], #oscKit [data-a=ok]';
   const saveOff = () => toast('Saving is off during the tutorial');
   document.addEventListener('click', e => { if (SB && !SB.free && !internal && e.target.closest && e.target.closest(SAVE_SEL)){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); } }, true);
   window.addEventListener('keydown', e => {
     if (!SB) return;
     if (!SB.free && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's'){ e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) saveOff(); return; }
-    if (!SB.free && e.key === 'Enter' && e.target && e.target.matches && e.target.matches('#presetName, #randPresetName, #projName')){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); return; }
+    if (!SB.free && e.key === 'Enter' && e.target && e.target.matches && e.target.matches('#presetName, #randPresetName, #projName, #mpKit input[type=text], #oscKit input[type=text]')){ e.preventDefault(); e.stopImmediatePropagation(); saveOff(); return; }
     if (!active || busy) return;
     const t = e.target, typing = isTyping(t);
     if (e.key === 'Escape' && !typing){ e.preventDefault(); e.stopImmediatePropagation(); exit(); return; }
