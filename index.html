@@ -114,6 +114,8 @@ select{font:400 12px var(--f-ui);background:var(--raise);color:var(--ink);border
 .icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px}
 .icn{aspect-ratio:1/1;max-width:100%;border:1px solid var(--line);background:var(--raise);border-radius:4px;cursor:pointer;padding:4px;display:grid;place-items:center}
 .icn canvas{width:100%;height:100%}
+.icnLbl{grid-column:1/-1;font:600 11px var(--f-ui);color:var(--dim);margin-top:4px}
+#iconBox.dropOn{outline:2px dashed var(--accent);outline-offset:3px;border-radius:8px}
 .icn[aria-pressed="true"]{border-color:var(--accent);background:var(--panel)}
 .badge{position:absolute;left:16px;bottom:var(--badge-b,96px);z-index:5;font:500 11px var(--f-num);padding:4px 8px;border-radius:3px;background:var(--scrim);color:var(--scrim-ink);pointer-events:none;max-width:calc(100% - 20px)}
 .badge.rec{background:var(--rec);color:var(--scrim-ink)}
@@ -1204,9 +1206,10 @@ body.easy .moreMenu .onlyCmp{display:flex}
             </div>
           </div>
           <div class="info" id="edInfo"></div>
-          <div id="iconBox" data-adv class="stack" hidden>
+          <div id="iconBox" class="stack" hidden>
             <div class="icons" id="iconGrid" role="group" aria-label="Icon"></div>
-            <div class="btns"><button class="btn" id="bIconLoad">Load icon image</button><input type="file" id="fIcon" accept="image/*" hidden></div>
+            <div class="btns"><button class="btn" id="bIconLoad">Load icons…</button><input type="file" id="fIcon" accept="image/*,.svg" multiple hidden></div>
+            <p class="note">Pick or drop several PNG or SVG files at once: each one gets its own icon layer, up to 8 icon layers. White-on-transparent icons take any colour with Recolour.</p>
           </div>
           <div id="shapeBox" class="stack" hidden>
             <div class="ctl"><label for="shShape">Shape</label><output></output>
@@ -1757,7 +1760,7 @@ const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsr
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
-const SHAPE_MAX = 8, SHAPE_BASE = 8, ICON_SLICES = 16;   // shape layers draw like icons from slices 8-15 of the icon texture
+const SHAPE_MAX = 8, SHAPE_BASE = 8, ICON_SLICES = 16, ICON_MAX = 8, USER_ICON_MAX = 32;   // icons use slices 0-7   // shape layers draw like icons from slices 8-15 of the icon texture
 const SHAPE_NAMES = {circle:'Circle', square:'Square', triangle:'Triangle', polygon:'Polygon', star:'Star', ring:'Ring', line:'Line', heart:'Heart'};
 function shapeDef(){ return {...LD, z:.4, x:.5, y:.5, size:.35, sspin:0, vis:true, shp:'circle', fill:'solid', shStroke:14, shSides:6, shPoints:5, shInner:.45, shRing:.3, rcOn:1, rcCol:'#ffffff', rcStr:1}; }
 const TYPE_NAMES = {fg:'Foreground object', bgobj:'Background object', text:'Text', accent:'Accent', bg:'Background'};
@@ -3910,7 +3913,7 @@ function duplicateLayer(id){
     selectLayer(nid); changed(); toast(copy.name); return;
   }
   { const room = layerRoomMsg(); if (room){ toast(room, 5000); return; } }
-  const used = new Set(P.L.xs.filter(l => l.kind === kd).map(l => l.slot)), cap = kd === 'shape' ? SHAPE_MAX : SL;
+  const used = new Set(P.L.xs.filter(l => l.kind === kd).map(l => l.slot)), cap = kd === 'shape' ? SHAPE_MAX : kd === 'icon' ? ICON_MAX : SL;
   let slot = kd === 'shape' ? 0 : 1; while (used.has(slot)) slot++;
   if (slot >= cap){ toast(kd === 'shape' ? `Couldn't duplicate ${nm}. You can have up to ${SHAPE_MAX} shape layers; delete one, then try again.` : `You can have up to ${SL} ${KIND_NAMES[kd].toLowerCase()} layers`, 5000); return; }
   copy.id = 'x' + (++layerSeq); copy.kind = kd; copy.slot = slot; copy.anchor = id; delete copy.autoName;
@@ -4250,7 +4253,7 @@ function builtinState(name){
 function presetOf(s){
   return {...globalsOf(s), mod: modForSave(s), L:{ layersFx: s.L.layers.map(l => ({...fxPick(l), name: l.name})), bgFx: {...fxPick(s.L.bg), name: s.L.bg.name, solid: s.L.bg.solid || 0, solidCol: s.L.bg.solidCol}, icon: clone(s.L.icon), obj: clone(s.L.obj), part: clone(s.L.part), xs: clone(s.L.xs || []) }, pins: pinsOf()};
 }
-function xsOk(l){ return !!l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : ['icon','obj','part'].includes(l.kind) && l.slot > 0 && l.slot < SL); }
+function xsOk(l){ return !!l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : l.kind === 'icon' ? l.slot > 0 && l.slot < ICON_MAX : ['obj','part'].includes(l.kind) && l.slot > 0 && l.slot < SL); }
 function applyState(s){
   s = migrateTw(clone(s));
   const tools = {}; for (const k of TOOL_KEYS) tools[k] = P[k];
@@ -4474,7 +4477,7 @@ const toBlob = (c, type = 'image/png') => new Promise((res, rej) => c.toBlob(b =
 const blobToURL = b => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); });
 function projectState(){
   return {v:5, P: clone(P), layerSeq, srcName, own:[...ownCols.keys()].filter(id => P.L.layers.some(l => l.id === id)),
-    plate: !!plateC, iconCustom: !!iconCv.custom, obj: objText ? objName : null, pins: pinsOf()};
+    plate: !!plateC, iconCustom: !!iconCv.custom, iconUser: userIcons.map(u => ({k: u.k, name: u.name})), obj: objText ? objName : null, pins: pinsOf()};
 }
 async function projectFiles(st){
   const f = {image: await toBlob(colorC), depth: await toBlob(depthC)};
@@ -4482,6 +4485,7 @@ async function projectFiles(st){
   for (const id of st.own) f['col:' + id] = await toBlob(ownCols.get(id));
   if (plateC) f.plate = await toBlob(plateC);
   if (iconCv.custom) f.icon = await toBlob(iconCv.custom);
+  for (const u of userIcons) f['icon:' + u.k] = await toBlob(iconCv[u.k]);
   return f;
 }
 async function restoreProject(st, urlOf, objTextIn){
@@ -4496,7 +4500,7 @@ async function restoreProject(st, urlOf, objTextIn){
   P = {...clone(P0), ...clone(sP), ...tools};
   for (const k of REMOVED_FX) delete P[k];   // old projects carry the removed Audio effects settings; they are unused
   const di = defLayers();
-  P.L = {layers: (sP.L?.layers || []).map(l => ({...LD, ...l})), bg: {...di.bg, ...(sP.L?.bg || {})}, icon: {...di.icon, ...(sP.L?.icon || {})}, obj: {...di.obj, ...(sP.L?.obj || {})}, part: {...di.part, ...(sP.L?.part || {})}, xs: (sP.L?.xs || []).filter(l => l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : ['icon','obj','part'].includes(l.kind))).map(l => ({...(l.kind === 'shape' ? shapeDef() : di[l.kind]), ...l}))};
+  P.L = {layers: (sP.L?.layers || []).map(l => ({...LD, ...l})), bg: {...di.bg, ...(sP.L?.bg || {})}, icon: {...di.icon, ...(sP.L?.icon || {})}, obj: {...di.obj, ...(sP.L?.obj || {})}, part: {...di.part, ...(sP.L?.part || {})}, xs: (sP.L?.xs || []).filter(xsOk).map(l => ({...(l.kind === 'shape' ? shapeDef() : di[l.kind]), ...l}))};
   layerSeq = Math.max(st.layerSeq || 0, ...P.L.layers.map(l => +String(l.id).slice(1) || 0), ...P.L.xs.map(l => +String(l.id).slice(1) || 0));
   [MW, MH] = maskDims();
   masks.clear(); medians.clear(); ownCols.clear(); plateC = null;
@@ -4508,6 +4512,15 @@ async function restoreProject(st, urlOf, objTextIn){
   for (const id of st.own || []){ const u = urlOf('col:' + id); if (!u) continue; const ci = await loadImgURL(u), x = scratch(imgW, imgH); x.drawImage(ci, 0, 0, imgW, imgH); ownCols.set(id, x.canvas); }
   if (st.plate && urlOf('plate')){ const pi = await loadImgURL(urlOf('plate')), x = scratch(imgW, imgH); x.drawImage(pi, 0, 0, imgW, imgH); plateC = x.canvas; }
   if (st.iconCustom && urlOf('icon')){ const ii = await loadImgURL(urlOf('icon')), x = scratch(512, 512); x.drawImage(ii, 0, 0, 512, 512); iconCv.custom = x.canvas; buildIconGrid(); }
+  if (Array.isArray(st.iconUser)){             // older projects have none and leave the grid as it is
+    for (const u of userIcons) delete iconCv[u.k]; userIcons.length = 0;
+    for (const u of st.iconUser){
+      const url = u && /^u\d+$/.test(u.k) ? urlOf('icon:' + u.k) : null; if (!url) continue;
+      try { const ii = await loadImgURL(url), c = document.createElement('canvas'); c.width = c.height = 512; c.getContext('2d').drawImage(ii, 0, 0, 512, 512); iconCv[u.k] = c; userIcons.push({k: u.k, name: String(u.name || 'Icon').slice(0, 40)}); } catch(e){}
+      userIconSeq = Math.max(userIconSeq, +u.k.slice(1) || 0);
+    }
+    iconVer++; buildIconGrid();
+  }
   if (objTextIn){
     try { meshCache.custom = glMesh(parseOBJ(objTextIn)); objText = objTextIn; objName = st.obj || 'model.obj';
       let opt = $('#objShape option[value="custom"]'); if (!opt){ opt = document.createElement('option'); opt.value = 'custom'; $('#objShape').appendChild(opt); }
@@ -4527,6 +4540,7 @@ function capProject(withTl){
     for (const id of st.own){ const c = ownCols.get(id); if (c) urls['col:' + id] = c.toDataURL(); }
     if (plateC) urls.plate = plateC.toDataURL();
     if (iconCv.custom) urls.icon = iconCv.custom.toDataURL();
+    for (const u of userIcons) urls['icon:' + u.k] = iconCv[u.k].toDataURL();
     return {st, urls, obj: objText || null, proj: curProj, name: $('#projName').value, tl: withTl && TL ? tlSnap() : null};
   } catch(e){ return null; }
 }
@@ -4967,15 +4981,29 @@ const ICONS = {
 const iconCv = {}; for (const k in ICONS) iconCv[k] = iconCanvas(ICONS[k]);
 function uploadIcon(){      // every icon layer (the built-in one and its copies) gets its own slice
   gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texIcon); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  for (const [L, slice] of [[P.L.icon, 0], ...(P.L.xs || []).filter(l => l.kind === 'icon').map(l => [l, l.slot])]){
-    if (L.which === 'custom' && !iconCv.custom) L.which = 'eye';
-    gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, slice, 512, 512, 1, gl.RGBA, gl.UNSIGNED_BYTE, iconCv[L.which] || iconCv.eye);
+  for (const [L, slice] of [[P.L.icon, 0], ...(P.L.xs || []).filter(l => l.kind === 'icon' && l.slot > 0 && l.slot < ICON_MAX).map(l => [l, l.slot])]){
+    if (!iconCv[L.which]) L.which = 'eye';
+    gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, slice, 512, 512, 1, gl.RGBA, gl.UNSIGNED_BYTE, iconCv[L.which]);
   }
 }
-const iconName = k => ({dmt:'DMT', thc:'THC', lsd:'LSD', mdma:'MDMA', custom:'Your icon', jester:'Jester', net:'Net of Being', elf:'Machine Elf', mantis:'Mantis', goddess:'Mother Goddess', ophanim:'Ophanim', serpent:'Feathered Serpent'})[k] || k[0].toUpperCase() + k.slice(1);
+/* your icons: every uploaded file joins the grid (kept with the project); oldest unused ones make room past USER_ICON_MAX */
+const userIcons = [];          // {k, name}, oldest first; the pictures live in iconCv[k]
+let userIconSeq = 0, iconVer = 0;
+const isUserIcon = k => k === 'custom' || /^u\d+$/.test(k);
+const iconName = k => { const u = userIcons.find(x => x.k === k); if (u) return u.name;
+  return ({dmt:'DMT', thc:'THC', lsd:'LSD', mdma:'MDMA', custom:'Your icon', jester:'Jester', net:'Net of Being', elf:'Machine Elf', mantis:'Mantis', goddess:'Mother Goddess', ophanim:'Ophanim', serpent:'Feathered Serpent'})[k] || k[0].toUpperCase() + k.slice(1); };
+function iconInUse(k){ return P.L.icon.which === k || (P.L.xs || []).some(l => l.kind === 'icon' && l.which === k); }
+function addUserIcon(c, name){
+  while (userIcons.length >= USER_ICON_MAX){
+    const i = userIcons.findIndex(u => !iconInUse(u.k)); if (i < 0) return null;
+    delete iconCv[userIcons[i].k]; userIcons.splice(i, 1);
+  }
+  const k = 'u' + (++userIconSeq); iconCv[k] = c; userIcons.push({k, name}); iconVer++; return k;
+}
 function buildIconGrid(){
-  const g = $('#iconGrid'); g.innerHTML = '';
+  const g = $('#iconGrid'); g.innerHTML = ''; let labelled = false;
   for (const k in iconCv){
+    if (isUserIcon(k) && !labelled){ const h = document.createElement('div'); h.className = 'icnLbl'; h.textContent = 'Your icons'; g.appendChild(h); labelled = true; }
     const b = document.createElement('button'); b.className = 'icn'; b.dataset.icon = k; b.setAttribute('aria-label', iconName(k)); b.title = iconName(k);
     b.setAttribute('aria-pressed', k === selOf('icon').which);
     const t = document.createElement('canvas'); t.width = t.height = 64; t.getContext('2d').drawImage(iconCv[k], 0, 0, 64, 64); b.appendChild(t);
@@ -4983,19 +5011,77 @@ function buildIconGrid(){
     g.appendChild(b);
   }
 }
+function readIconFile(f){
+  return new Promise((res, rej) => {
+    if (f.type && !f.type.startsWith('image/') && !/\.svg$/i.test(f.name)){ rej(new Error('type')); return; }
+    const url = URL.createObjectURL(f), img = new Image();
+    img.onload = () => {
+      try {
+        let w = img.naturalWidth, h = img.naturalHeight; if (!w || !h) w = h = 480;      // an SVG without its own size
+        const c = document.createElement('canvas'); c.width = c.height = 512;
+        const s = 480/Math.max(w, h); c.getContext('2d').drawImage(img, (512 - w*s)/2, (512 - h*s)/2, w*s, h*s);
+        res(c);
+      } catch(e){ rej(e); } finally { URL.revokeObjectURL(url); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('read')); };
+    img.src = url;
+  });
+}
+/* intoSel: the first file goes on the selected icon layer; otherwise the built-in Icon takes it while it is switched off.
+   Every other file gets a new icon layer while slots and the renderer's limit allow; the rest wait in the grid. */
+async function loadIconFiles(list, intoSel){
+  const files = [...(list || [])]; if (!files.length) return;
+  if (cal){ toast('Finish calibrating first'); return; }
+  const bad = [], got = [];
+  for (const f of files){
+    try { const c = await readIconFile(f), k = addUserIcon(c, (f.name || 'Icon').replace(/\.[^.]+$/, '').trim().slice(0, 40) || 'Icon'); if (k) got.push(k); else bad.push(f.name || 'a file'); }
+    catch(e){ bad.push(f.name || 'a file'); }
+  }
+  buildIconGrid();
+  let first = null, prev = null; const made = [];
+  if (got.length){
+    first = intoSel && kindOf(sel) === 'icon' ? getL(sel) : !P.L.icon.vis ? P.L.icon : null;
+    let rest = got;
+    if (first){ prev = {which: first.which, vis: first.vis}; first.which = got[0]; first.vis = true; rest = got.slice(1); }
+    const anchor = first ? (first === P.L.icon ? 'icon' : first.id) : (kindOf(sel) === 'icon' ? sel : 'icon');
+    for (const k of rest){
+      if (layerRoomMsg()) break;
+      const used = new Set(P.L.xs.filter(l => l.kind === 'icon').map(l => l.slot));
+      let slot = 1; while (used.has(slot)) slot++;
+      if (slot >= ICON_MAX) break;
+      const L = {...defLayers().icon, id: 'x' + (++layerSeq), kind: 'icon', slot, anchor, which: k, vis: true, name: iconName(k)};
+      P.L.xs.push(L); made.push(L);
+    }
+    made.forEach((L, i) => { const a = i/made.length*TAU - Math.PI/2; L.x = r2(.5 + .22*Math.cos(a)); L.y = r2(.5 + .22*Math.sin(a)); L.size = .2; });   // ring them round the middle so they don't stack
+    uploadIcon(); if (made.length) selectLayer(made[made.length - 1].id); else if (first) selectLayer(first === P.L.icon ? 'icon' : first.id);
+    syncLayerEd(); renderLayers(); changed(); markDirty();
+  }
+  const over = got.length - (first ? 1 : 0) - made.length, msgs = [];
+  if (got.length) msgs.push(got.length === 1 ? `${iconName(got[0])} added` : `Added ${got.length} icons`);
+  if (over > 0) msgs.push(`Couldn't add ${over} ${over === 1 ? 'icon' : 'icons'} as layers. Remove an icon layer, then pick ${over === 1 ? 'it' : 'them'} from the grid.`);
+  if (bad.length) msgs.push(`Couldn't read ${bad.length === 1 ? bad[0] : bad.length + ' files (' + bad.slice(0, 3).join(', ') + (bad.length > 3 ? '…' : '') + ')'}. Check ${bad.length === 1 ? "it's" : "they're"} a PNG or SVG, then try again.`);
+  const msg = msgs.join('. ').replace(/\.\./g, '.'), ms = over > 0 || bad.length ? 7000 : 2500;
+  if (first || made.length){
+    const firstId = first ? (first === P.L.icon ? 'icon' : first.id) : null, now = first ? {which: first.which, vis: first.vis} : null;
+    const e = histPush('icons', 'Add icons', () => {
+      for (const L of made) deleteLayerById(L.id, true);
+      if (firstId && layerExists(firstId)) Object.assign(getL(firstId), prev);
+      uploadIcon(); buildIconGrid(); syncLayerEd(); renderLayers(); changed();
+    }, () => {
+      if (firstId && layerExists(firstId)) Object.assign(getL(firstId), now);
+      for (const L of made) if (!P.L.xs.some(l => l.id === L.id)) P.L.xs.push(L);
+      uploadIcon(); buildIconGrid(); syncLayerEd(); renderLayers(); changed();
+    });
+    actionToast(msg, 'Undo', () => histUndoEntry(e));
+  } else if (msg) toast(msg, ms);
+}
 $('#bIconLoad').onclick = () => $('#fIcon').click();
-$('#fIcon').onchange = e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  const url = URL.createObjectURL(f), img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
-    const s = 480/Math.max(img.naturalWidth, img.naturalHeight), w = img.naturalWidth*s, h = img.naturalHeight*s;
-    x.drawImage(img, (512-w)/2, (512-h)/2, w, h); iconCv.custom = c;
-    { const I = selOf('icon'); I.which = 'custom'; I.vis = true; } buildIconGrid(); uploadIcon(); syncLayerEd(); renderLayers(); changed(); URL.revokeObjectURL(url);
-  };
-  img.onerror = () => toast('That file could not be read as an image');
-  img.src = url;
-};
+$('#fIcon').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; loadIconFiles(fs, true); };
+{ const box = $('#iconBox');
+  box.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')){ e.preventDefault(); box.classList.add('dropOn'); } });
+  box.addEventListener('dragleave', e => { if (!box.contains(e.relatedTarget)) box.classList.remove('dropOn'); });
+  box.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); box.classList.remove('dropOn'); loadIconFiles(e.dataTransfer.files, true); });
+}
 
 /* ---------- shape layers: drawn white on a 512 canvas (Recolour gives the colour), placed and rendered like icons ---------- */
 const shapeKey = L => [L.shp, L.fill, L.shStroke, L.shSides, L.shPoints, L.shInner, L.shRing].join('|');
@@ -10178,7 +10264,7 @@ function tlHash(s){
 /* the pictures on screen now, as hash keys; re-encoded only after a picture, depth map, selection, icon or model changed */
 function tlLive(){
   const c = TL.cache;
-  if (c && c.ver === picVer && c.icon === (iconCv.custom || null) && c.obj === (objText || null)) return c;
+  if (c && c.ver === picVer && c.icon === (iconCv.custom || null) && c.iconVer === iconVer && c.obj === (objText || null)) return c;
   const files = {}, data = {};
   const put = (k, s) => { if (s == null) return; const h = tlHash(s); data[h] = s; files[k] = h; };
   put('image', colorC.toDataURL()); put('depth', depthC.toDataURL());
@@ -10186,9 +10272,10 @@ function tlLive(){
   for (const l of P.L.layers){ const oc = ownCols.get(l.id); if (oc) put('col:' + l.id, oc.toDataURL()); }
   if (plateC) put('plate', plateC.toDataURL());
   if (iconCv.custom) put('icon', iconCv.custom.toDataURL());
+  for (const u of userIcons) put('icon:' + u.k, iconCv[u.k].toDataURL());
   if (objText) put('obj', objText);
   const sig = P.L.layers.map(l => l.id).join(',') + '#' + Object.keys(files).sort().map(k => k + '=' + files[k]).join(';');
-  return TL.cache = {ver: picVer, icon: iconCv.custom || null, obj: objText || null, files, data, sig};
+  return TL.cache = {ver: picVer, icon: iconCv.custom || null, iconVer, obj: objText || null, files, data, sig};
 }
 function tlCapture(sc){
   let cap = tlLive();
@@ -10346,7 +10433,7 @@ async function tlRestore(sc, ready){   // ready() runs before the picture moves 
     const url = k => { const h = sc.files[k]; return (h && TL.pics[h]) || null; };
     if (!url('image') || !url('depth')) throw new Error('missing');
     await restoreProject(st, url, url('obj'));
-    TL.cache = {ver: picVer, icon: iconCv.custom || null, obj: objText || null, files: {...sc.files}, data: {}, sig: sc.sig};
+    TL.cache = {ver: picVer, icon: iconCv.custom || null, iconVer, obj: objText || null, files: {...sc.files}, data: {}, sig: sc.sig};
     if (ready) ready();
   } finally { TL.busy = false; lastNow = performance.now(); }
 }
