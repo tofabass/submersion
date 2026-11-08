@@ -352,6 +352,13 @@ body{background:var(--stage)}
 .lrow .ibtn.dup .gi-svg{width:14px;height:14px}
 .lrow .ibtn.dup:hover{color:var(--accent);border-color:var(--accent)}
 .lrow .ibtn.dup:disabled{visibility:hidden}
+.lrow .ibtn.lock{border-color:transparent;color:var(--dim);opacity:.5}
+.lrow .ibtn.lock .gi-svg{width:14px;height:14px}
+.lrow:hover .ibtn.lock,.lrow .ibtn.lock:focus-visible{opacity:1}
+.lrow .ibtn.lock:hover{color:var(--accent);border-color:var(--accent)}
+.lrow .ibtn.lock[aria-pressed="true"]{opacity:1;color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+@media (hover:none){ .lrow .ibtn.lock{opacity:.7} }
+#diceTargets .chip.locked,#lcList .chip.locked{opacity:.55}
 .lrow .rnin{width:100%;min-width:0;font:600 12px var(--f-ui);color:var(--ink);background:var(--raise);border:1px solid var(--accent);border-radius:4px;padding:3px 6px}
 .drawer{flex:0 0 auto;border-top:1px solid var(--line-soft);display:grid}
 .fp.folded .drawer{display:none}
@@ -1952,7 +1959,7 @@ function syncRk(){ rkBtns.forEach(b => b.setAttribute('aria-pressed', randSet.ha
 function randSummary(){
   const el = document.getElementById('randSummary'); if (!el) return;
   const keys = [...randSet].filter(k => RLABEL[k]);
-  const targets = typeof layerDefs === 'function' ? [{id:'global'}, ...layerDefs()].filter(d => !diceOff.has(d.id)).length : 0;
+  const targets = typeof layerDefs === 'function' ? [{id:'global'}, ...layerDefs()].filter(d => !rollOff(d.id)).length : 0;
   if (!keys.length){ el.textContent = 'Nothing ticked yet. Tick the die next to any slider, or use Select basic.'; return; }
   const names = keys.slice(0, 6).map(k => RLABEL[k].toLowerCase());
   el.textContent = `Roll changes ${keys.length} ${keys.length === 1 ? 'control' : 'controls'} on ${targets} ${targets === 1 ? 'target' : 'targets'}: ${names.join(', ')}${keys.length > 6 ? ` and ${keys.length - 6} more` : ''}.`;
@@ -3931,6 +3938,11 @@ function endRename(commit){
   renderLayers(); syncLayerEd();
 }
 const SOLO_SVG = '<svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg>';
+const LOCK_ON = '<svg class="gi-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.6"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.6 0v2"/></svg>';
+const LOCK_OFF = '<svg class="gi-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.6"/><path d="M5.2 7V5a2.8 2.8 0 0 1 5.4-1"/></svg>';
+/* a locked layer is skipped by every roll (Roll, oscillator roll, Roll colours); the lock is saved with the layer */
+function rollLocked(id){ return id !== 'global' && !!getL(id).rlock; }
+function rollOff(id){ return diceOff.has(id) || rollLocked(id); }
 const ROLE = {fg:['r-fg','Foreground object'], bgobj:['r-bgobj','Background object'], text:['r-text','Text'], accent:['r-accent','Accent'], bg:['r-bg','Background'], icon:['r-icon','Icon'], obj:['r-obj','3D object'], part:['r-part','Particles']};
 function roleOf(id, L){ const kd = kindOf(id); return ROLE[kd === 'img' ? (id === 'bg' ? 'bg' : L.type) : kd] || ROLE.fg; }
 const DUP_SVG = '<svg class="gi-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 3.5V3.2A1.7 1.7 0 0 0 8.8 1.5H3.2A1.7 1.7 0 0 0 1.5 3.2v5.6a1.7 1.7 0 0 0 1.7 1.7h.3"/></svg>';
@@ -3963,6 +3975,7 @@ function renderLayers(){
     for (const [k,n] of [['melt','melt'],['trail','trails'],['glow','glow'],['wig','wiggle']]) if (L[k] > 0) fxs.push(n);
     if (L.op < 1) fxs.push(Math.round(L.op*100) + '%');
     if (L.inv) fxs.push('inverted');
+    if (L.rlock) fxs.push('locked from Roll');
     if (d.id === 'bg' && L.solid) fxs.push('solid ' + L.solidCol);
     const med = d.id === 'bg' ? bgMed : medians.get(d.id) ?? .5;
     const sw = img ? `<span class="sw" style="background:${heatJS(med)}"></span>` : `<span class="sw ring"></span>`;
@@ -3970,6 +3983,7 @@ function renderLayers(){
     row.title = `${d.name} · ${rName}${fxs.length ? ' · ' + fxs.join(' · ') : ''}${img ? ' · double-click to calibrate' : ''}`;
     row.innerHTML = `<button class="ibtn eye" id="eye-${d.id}" title="${L.vis?'Hide':'Show'} (E, selected layer)" aria-pressed="${L.vis}" aria-label="${L.vis?'Hide':'Show'} ${nmE}">${L.vis?EYE_ON:EYE_OFF}</button>
       <div class="lmain">${sw}<span class="role" title="${rName}"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#${rIcon}"/></svg></span><span class="nm" title="${nmE} · double-click to rename">${renaming === d.id ? `<input class="rnin" id="rn-${d.id}" type="text" data-typing maxlength="40" autocomplete="off" spellcheck="false" aria-label="Rename ${nmE}" value="${escH(renameDraft || d.name)}">` : nmE}</span><span class="vh">${rName}${fxs.length ? ', ' + escH(fxs.join(', ')) : ''}</span></div>
+      <button class="ibtn lock" id="lock-${d.id}" title="${L.rlock ? 'Unlock' : 'Lock'} ${nmE} ${L.rlock ? '(Roll can change it again)' : '(Roll leaves it alone)'}" aria-pressed="${!!L.rlock}" aria-label="Lock ${nmE} from Roll">${L.rlock ? LOCK_ON : LOCK_OFF}</button>
       <button class="ibtn solo" data-adv id="solo-${d.id}" title="Solo ${nmE} (S solos the selected layer)" aria-pressed="${L.solo}" aria-label="Solo ${nmE}" aria-keyshortcuts="S">${SOLO_SVG}</button>
       <button class="ibtn dup" data-adv id="dup-${d.id}" title="Duplicate ${nmE}" aria-label="Duplicate ${nmE}" ${d.id === 'bg' ? 'disabled' : ''}>${DUP_SVG}</button>
       <button class="ibtn del${delArm.id === d.id ? ' armed' : ''}" id="del-${d.id}" aria-label="${delArm.id === d.id ? 'Confirm: delete ' : 'Delete '}${nmE}" title="${!canDel ? '' : delArm.id === d.id ? 'Click again to delete' : 'Delete ' + nmE}" ${canDel ? '' : 'disabled'}><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-trash"/></svg></button>`;
@@ -3989,6 +4003,7 @@ function renderLayers(){
         clearTimeout(delArm.t); delArm.t = setTimeout(() => { delArm.id = null; renderLayers(); }, 2650);
         return;
       }
+      if (e.target.closest('.lock')){ L.rlock = L.rlock ? 0 : 1; changed(); markDirty(); renderLayers(); toast(L.rlock ? `${d.name} locked. Roll leaves it alone.` : `${d.name} unlocked`, 1600); return; }
       if (e.target.closest('.solo')){ L.solo = !L.solo; if (L.solo) L.vis = true; changed(); renderLayers(); return; }
       selectLayer(d.id);
     });
@@ -4557,8 +4572,9 @@ function fxRestore(snap){
 function renderDiceTargets(){
   const host = $('#diceTargets'); host.innerHTML = '';
   for (const d of [{id:'global', name:'Global'}, ...layerDefs()]){
-    const lab = document.createElement('label'); lab.className = 'chip';
-    lab.innerHTML = `<input type="checkbox" ${diceOff.has(d.id) ? '' : 'checked'}> ${escH(d.name)}`;
+    const lab = document.createElement('label'), lk = rollLocked(d.id); lab.className = 'chip' + (lk ? ' locked' : '');
+    lab.innerHTML = `<input type="checkbox" ${rollOff(d.id) ? '' : 'checked'} ${lk ? 'disabled' : ''}> ${escH(d.name)}`;
+    if (lk) lab.title = 'Locked on its layer row, so Roll leaves it alone';
     lab.querySelector('input').onchange = e => { if (e.target.checked) diceOff.delete(d.id); else diceOff.add(d.id); randSummary(); syncRandFilters(); };
     host.appendChild(lab);
   }
@@ -4607,8 +4623,9 @@ const lcCandidates = () => layerDefs().filter(d => { const k = kindOf(d.id); ret
 function renderLcList(){
   const host = $('#lcList'); host.innerHTML = '';
   for (const d of lcCandidates()){
-    const lab = document.createElement('label'); lab.className = 'chip';
-    lab.innerHTML = `<input type="checkbox" ${lcTicked(d.id) ? 'checked' : ''}> ${escH(d.name)}`;
+    const lab = document.createElement('label'), lk = rollLocked(d.id); lab.className = 'chip' + (lk ? ' locked' : '');
+    lab.innerHTML = `<input type="checkbox" ${lcTicked(d.id) && !lk ? 'checked' : ''} ${lk ? 'disabled' : ''}> ${escH(d.name)}`;
+    if (lk) lab.title = 'Locked on its layer row, so Roll colours leaves it alone';
     lab.querySelector('input').onchange = e => { P.lcTicks = {...(P.lcTicks || {}), [d.id]: e.target.checked ? 1 : 0}; changed(); markDirty(); };
     host.appendChild(lab);
   }
@@ -4637,7 +4654,7 @@ function lcTone(role, mono, hue){
   return [Math.max(40, Math.min(86, S)), Math.max(28, Math.min(74, Lt))];
 }
 function applyLayerColours(){            // sets Recolour on every ticked layer; returns the scheme name ('' when nothing is ticked)
-  const ids = lcCandidates().map(d => d.id).filter(lcTicked).reverse();   // layerDefs lists nearest first, so reversed = back to front
+  const ids = lcCandidates().map(d => d.id).filter(id => lcTicked(id) && !rollLocked(id)).reverse();   // layerDefs lists nearest first, so reversed = back to front
   const n = ids.length; if (!n) return '';
   const name = pickR(Object.keys(LC_SCHEMES)), mono = name === 'Monochrome', hues = LC_SCHEMES[name](Math.round(rnd(0, 360)));
   let nA = Math.round(n*.1), nS = Math.round(n*.3);
@@ -4661,7 +4678,7 @@ function applyLayerColours(){            // sets Recolour on every ticked layer;
 }
 $('#bRollCols').onclick = () => {
   if (cal){ toast('Finish calibrating first'); return; }
-  if (!lcCandidates().some(d => lcTicked(d.id))){ toast('Tick at least one layer first (Layers ▾)'); return; }
+  if (!lcCandidates().some(d => lcTicked(d.id) && !rollLocked(d.id))){ toast("Couldn't roll colours. Tick an unlocked layer under Layers ▾ first."); return; }
   const before = fxSnap(), name = applyLayerColours();
   const after = fxSnap(), he = histPush('colours', 'Layer colours', () => fxRestore(before), () => fxRestore(after));
   changed(); markDirty();
@@ -4682,7 +4699,7 @@ $('#bDice').onclick = () => {
       const v = limitRoll(key, P[k], genVal(key)); if (v !== undefined && k in P) P[k] = v;
     } else {
       for (const d of layerDefs()){
-        if (diceOff.has(d.id)) continue;
+        if (rollOff(d.id)) continue;
         const L = getL(d.id);
         if (k === 'hdRange'){ const a = Math.round(rnd(0, 300)), b = Math.min(360, Math.round(rnd(a + 30, 360))), m = RA.amt; L.hdMin = Math.round(L.hdMin + (a - L.hdMin)*m); L.hdMax = Math.max(L.hdMin, Math.round(L.hdMax + (b - L.hdMax)*m)); continue; }
         if (!(k in L)) continue;
@@ -4696,7 +4713,7 @@ $('#bDice').onclick = () => {
   syncUI(); syncPart(); markDirty(); flashApplied(rb);
   actionToast((RA.amt >= .999 ? 'Rolled' : `Rolled, up to ${Math.round(RA.amt*100)}% of each range`) + (lcName ? ` · ${lcName} colours` : ''), 'Undo', () => histUndoEntry(he));
 };
-function fxPickAll(L){ const o = {}; for (const k in L) if (typeof L[k] !== 'object') o[k] = L[k]; return o; }
+function fxPickAll(L){ const o = {}; for (const k in L) if (typeof L[k] !== 'object' && k !== 'rlock') o[k] = L[k]; return o; }   // the lock is not an effect, so undoing a roll never flips it
 $('#bDiceUndo').onclick = () => histStep(-1);
 /* Reset all: every control Roll can touch goes back to its starting value (a sample scene returns to its own starting look); layers, selections, names and exposure stay. Ctrl+Z brings it back. */
 $('#bResetAll').onclick = () => {
@@ -5804,7 +5821,7 @@ function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el
 const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96), Ov = new Float32Array(96), Pv = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
-const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
+const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo','rlock']);
 let frameDt = 1/60;
 function smooth(key, target){
   if (!(P.glide > 0)){ GLIDE.set(key, target); return target; }
@@ -7360,7 +7377,7 @@ function rollOsc(){
   const cands = [...MAPT.values()].filter(i => randSet.has((i.scope === 'g' ? 'g:' : 'l:') + i.k) && !(i.scope === 'g' ? diceOff.has('global') : false));
   for (let tries = 0; tries < 24 && cands.length; tries++){
     const info = pick(cands), o = pick(list); let layer = null;
-    if (info.scope === 'l'){ const ok = layerDefs().filter(d => !diceOff.has(d.id) && !getL(d.id).gone && getL(d.id).vis !== false && layerFits(info, d.id)); if (!ok.length) continue; layer = pick(ok).id; }
+    if (info.scope === 'l'){ const ok = layerDefs().filter(d => !rollOff(d.id) && !getL(d.id).gone && getL(d.id).vis !== false && layerFits(info, d.id)); if (!ok.length) continue; layer = pick(ok).id; }
     if (mapList().some(m => m.src === o.id && m.tgt === info.id && (m.layer || null) === layer)) continue;
     const a = (.25 + Math.random()*.75)*RA.amt*(Math.random() < .5 ? -1 : 1);
     mapList().push({id: nextMapId(), src: o.id, tgt: info.id, layer, on: 1, amt: +a.toFixed(2), lo: null, hi: null, smooth: 0, curve: 'lin'});
@@ -7833,7 +7850,7 @@ function syncRandFilters(){
   document.querySelectorAll('#fltFxBody .fgroup').forEach(d => { const n = d._keys.filter(k => randSet.has(k)).length; d._all.checked = n === d._keys.length; d._all.indeterminate = n > 0 && n < d._keys.length; });
   const total = Object.keys(RLABEL).length, on = [...randSet].filter(k => RLABEL[k]).length;
   $('#fltFxCount').textContent = `${on} of ${total} ticked`;
-  const tg = [{id:'global'}, ...layerDefs()]; $('#fltTgCount').textContent = `${tg.filter(d => !diceOff.has(d.id)).length} of ${tg.length}`;
+  const tg = [{id:'global'}, ...layerDefs()]; $('#fltTgCount').textContent = `${tg.filter(d => !rollOff(d.id)).length} of ${tg.length}`;
 }
 buildRandFilters();
 
