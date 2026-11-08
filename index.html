@@ -3667,13 +3667,46 @@ $('#bCalSnap').onclick = () => {
   const s = snapMask(m, r, snapEps(), calAvail); for (let i=0;i<m.length;i++) m[i] = Math.min(s[i], calAvail[i]);
   selDirty = true; updateCalInfo(); toast('Selection snapped to edges');
 };
+/* Fill holes: walls are this layer's selection (soft edges from 32/255 count, so they cannot leak); other layers are
+   ignored when finding the outline. Each empty 4-connected region is inside when at most half of its edge is picture
+   border (the rest being selection), so a gap the outline closes against the border fills, while space that is mostly
+   border stays outside. The largest empty region never fills. Only unclaimed pixels are filled. */
+function enclosedRegions(m){
+  const W = MW, H = MH, n = W*H, lab = new Int32Array(n).fill(-1), q = new Int32Array(n), size = [], bord = [], selE = [];
+  for (let s=0; s<n; s++){
+    if (lab[s] >= 0 || m[s] >= 32) continue;
+    const id = size.length; let h = 0, t = 0, cnt = 0, be = 0, se = 0;
+    lab[s] = id; q[t++] = s;
+    while (h < t){
+      const i = q[h++], x = i % W, y = (i / W) | 0; cnt++;
+      if (x === 0) be++; if (x === W-1) be++; if (y === 0) be++; if (y === H-1) be++;
+      for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, y>0?i-W:-1, y<H-1?i+W:-1]){
+        if (j < 0) continue;
+        if (m[j] >= 32){ se++; continue; }
+        if (lab[j] < 0){ lab[j] = id; q[t++] = j; }
+      }
+    }
+    size.push(cnt); bord.push(be); selE.push(se);
+  }
+  let big = -1; for (let r=0; r<size.length; r++) if (big < 0 || size[r] > size[big]) big = r;
+  const inside = size.map((_, r) => r !== big && bord[r] <= selE[r]);   // a tie counts as inside: a pocket cut off at a corner ties exactly
+  return {lab, inside};
+}
 $('#bCalHoles').onclick = () => {
   if (!cal || cal.id === 'bg') return;
   pushSel();
-  const m = masks.get(cal.id), bin = new Uint8Array(m.length); for (let i=0;i<m.length;i++) bin[i] = m[i] > 127 ? 1 : 0;
-  const before = bin.slice(); fillHoles(bin);
-  for (let i=0;i<m.length;i++) if (bin[i] && !before[i]) m[i] = calAvail[i];
-  selDirty = true; updateCalInfo();
+  const m = masks.get(cal.id), {lab, inside} = enclosedRegions(m), W = MW, H = MH, out = m.slice();
+  const filled = i => lab[i] >= 0 && inside[lab[i]];
+  for (let i=0;i<m.length;i++) if (filled(i)) out[i] = Math.max(m[i], calAvail[i]);
+  for (let i=0;i<m.length;i++){   // soft rim pixels that face only filled space go solid, so no faint ring is left inside
+    if (lab[i] >= 0 || m[i] >= 255) continue;
+    const x = i % W, y = (i / W) | 0; let toFill = false, toOut = false;
+    for (const j of [x>0?i-1:-1, x<W-1?i+1:-1, y>0?i-W:-1, y<H-1?i+W:-1]){ if (j < 0 || lab[j] < 0) continue; if (filled(j)) toFill = true; else toOut = true; }
+    if (toFill && !toOut) out[i] = Math.max(m[i], calAvail[i]);
+  }
+  let changed = false; for (let i=0;i<m.length;i++) if (out[i] !== m[i]){ changed = true; break; }
+  if (!changed){ const h = hist(); h.u.pop(); syncSelBtns(); toast('No holes to fill'); return; }
+  m.set(out); selDirty = true; updateCalInfo(); toast('Holes filled');
 };
 $('#bCalClear').onclick = () => { if (!cal || cal.id === 'bg') return; pushSel(); masks.get(cal.id).fill(0); selDirty = true; updateCalInfo(); };
 $('#bCalNext').onclick = () => {
