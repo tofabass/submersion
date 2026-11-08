@@ -1831,6 +1831,7 @@ const SPEC = {
     ['gamma','Depth contrast',.3,3,.01,fx(2)],
     ['focus','Focus plane',0,1,.01,v=>v<.15?'far':v>.85?'near':(+v).toFixed(2)],
     ['steer','Pointer steer',0,1,.01,fx(2)],
+    ['drift','Camera drift',0,1,.01,fx(2)],
     ['depthScale','Depth scaling',0,1,.01,fx(2)],
     ['cross','Crossing softness',0,.3,.005,fx(3)],
   ],
@@ -1850,14 +1851,13 @@ const SPEC = {
   ],
   'g-motion':[
     ['loop','Loop length',4,32,1,v=>v+' s'],
-    ['drift','Camera drift',0,1,.01,fx(2)],
     ['spin','Spin',-4,4,1,turns],
     ['symAngle','Angle',0,360,1,v=>v+'°'],
-    ['hueCycle','Hue cycle',-3,3,1,v=>v+' /loop'],
     ['glide','Global smoothing',0,3,.05,v=>v==0?'off':(+v).toFixed(2)+' s'],
   ],
   'g-color':[
     ['hue','Hue shift',0,360,1,v=>v+'°'],
+    ['hueCycle','Hue cycle',-3,3,1,v=>v+' /loop'],
     ['depthHue','Depth rainbow',0,1,.01,fx(2)],
     ['sat','Saturation',0,2,.01,fx(2)],
     ['fog','Depth fog',0,1,.01,fx(2)],
@@ -1995,7 +1995,7 @@ function randSummary(){
 }
 function saveRand(){ try { localStorage.setItem('depthscope.rand', JSON.stringify([...randSet])); } catch(e){} }
 /* Easy mode keeps only these slider rows on screen; every other row in these groups is tagged data-adv (groups not listed are hidden whole or fully shown) */
-const EASY_ROWS = {'g-shape':['shStroke'], 'g-depth':['strength'], 'g-sym':['seg','twist','zoom'], 'g-color':['hue','depthHue','sat'], 'g-motion':['loop','spin','hueCycle'], 'g-lpos':['z'], 'g-lmix':['wet'], 'g-lrc':['rcStr'], 'g-lfx':['wig','glow']};
+const EASY_ROWS = {'g-shape':['shStroke'], 'g-depth':['strength'], 'g-sym':['seg','twist','zoom'], 'g-color':['hue','hueCycle','depthHue','sat'], 'g-motion':['loop','spin'], 'g-lpos':['z'], 'g-lmix':['wet'], 'g-lrc':['rcStr'], 'g-lfx':['wig','glow']};
 function makeSlider(host, [k,label,min,max,step,fmt,typed], target, after, rk, def){
   const row = document.createElement('div'); row.className = 'ctl';
   if (EASY_ROWS[host.id] && !EASY_ROWS[host.id].includes(k)) row.setAttribute('data-adv', '');
@@ -4329,7 +4329,7 @@ const REMOVED_FX = ['bassDepth','bassZoom','highSpin','midHue','rDepth','rZoom',
 function globalsOf(s){ const o = clone(s); delete o.L; for (const k of TOOL_KEYS) delete o[k]; for (const k of REMOVED_FX) delete o[k]; return o; }
 /* Twist speed (twSpeed, ltwSpeed) was removed: it only ever added to Spin. Old files fold it into spin (spin += twSpeed) so they look the same,
    and oscillator mappings and pins that pointed at it are re-pointed to Spin. Works on a preset, a project's P or a timeline scene's P. */
-const TW_ID = {'g-sym-twSpeed': 'g-motion-spin', 'g-lsym-ltwSpeed': 'g-lsym-spin'};
+const TW_ID = {'g-sym-twSpeed': 'g-motion-spin', 'g-lsym-ltwSpeed': 'g-lsym-spin', 'g-motion-hueCycle': 'g-color-hueCycle', 'g-motion-drift': 'g-depth-drift'};   // renamed or moved sliders: old pins and mappings follow them
 function twFold(o){
   if (!o || typeof o !== 'object') return;
   if ('twSpeed' in o){ o.spin = (+o.spin || 0) + (+o.twSpeed || 0); delete o.twSpeed; }
@@ -8869,8 +8869,8 @@ const itut = (() => {
        x:'Zoom moves into or out of the pattern; Source orbit slides the picture underneath the slices.', tr:'Zoom in, then back out.'},
     ]},
     {id:'color', t:'Colour tab', steps:[
-      {t:'Hue', sel:[chip('color'), row('g-color', 'hue'), row('g-color', 'depthHue')], open:{cat:'color'}, list:1,
-       x:'Hue shift turns every colour around the wheel; Depth rainbow colours the picture by depth.', tr:'Drag Hue shift slowly.'},
+      {t:'Hue', sel:[chip('color'), row('g-color', 'hue'), row('g-color', 'hueCycle'), row('g-color', 'depthHue')], open:{cat:'color'}, list:1,
+       x:'Hue shift turns every colour around the wheel; Hue cycle sweeps the colours during each loop; Depth rainbow colours the picture by depth.', tr:'Drag Hue shift slowly, then raise Hue cycle.'},
       {t:'Saturation and invert', sel:[row('g-color', 'sat'), 'label:has(#gInv)'], open:{cat:'color'}, list:1, key:['Invert all image layers'],
        x:'Saturation makes colours richer or greyer. Invert flips every image layer, black to white.', tr:'Turn Saturation down, then back up.'},
       {t:'Depth fog and edges', sel:[row('g-color', 'fog'), row('g-color', 'edges')], open:{cat:'color'}, list:1,
@@ -8879,10 +8879,10 @@ const itut = (() => {
     {id:'motion', t:'Motion tab', steps:[
       {t:'Loop length', sel:[chip('motion'), row('g-motion', 'loop')], open:{cat:'motion'},
        x:'Loop length is how long one seamless loop lasts. Everything animated repeats a whole number of times per loop.', tr:'Change the loop length and watch the speed.'},
-      {t:'Drift and spin', sel:[row('g-motion', 'drift'), row('g-motion', 'spin')], open:{cat:'motion'}, list:1,
+      {t:'Drift and spin', sel:[row('g-depth', 'drift'), row('g-motion', 'spin')], open:{cat:'motion'}, list:1,
        x:'Camera drift sways the view through the layers; Spin turns the whole kaleidoscope.', tr:'Raise Spin.'},
-      {t:'Hue cycle and smoothing', sel:[row('g-motion', 'hueCycle'), row('g-motion', 'glide')], open:{cat:'motion'}, list:1,
-       x:'Hue cycle sweeps the colours during each loop; Global smoothing softens sudden jumps.', tr:'Raise Hue cycle.'},
+      {t:'Smoothing', sel:[row('g-motion', 'glide')], open:{cat:'motion'}, list:1,
+       x:'Global smoothing softens sudden jumps.', tr:'Raise Global smoothing.'},
     ]},
     {id:'osc', t:'Oscillators and Mod', steps:[
       {t:'Oscillators', sel:['#pOsc'], open:{panel:'O'}, key:['Oscillators'], easyHidden:1,
@@ -9446,7 +9446,7 @@ const testMode = (() => {
     S('sy4', B, aSY, '', 'Drag Zoom in and out, then Source orbit.', 'Zoom moves into and out of the pattern; Source orbit slides the picture under the slices.', '#g-sym', {cat: 'sym'}),
     S('sy5', B, aSY, '', 'Layer tab › Symmetry: raise it for one layer.', 'Only that layer gets its own kaleidoscope on top of the global one.', '#g-lsym', {cat: 'layer', top: 1}),
 
-    S('co1', B, aCO, '', 'Colour tab › Hue shift: drag slowly, then raise Depth rainbow.', 'Colours turn around the wheel; Depth rainbow colours the picture by depth.', '#g-color', {cat: 'color'}),
+    S('co1', B, aCO, '', 'Colour tab › Hue shift: drag slowly, then raise Hue cycle and Depth rainbow.', 'Colours turn around the wheel; Hue cycle sweeps them through each loop; Depth rainbow colours the picture by depth.', '#g-color', {cat: 'color'}),
     S('co2', B, aCO, '', 'Lower Saturation, then raise it.', 'Colours grey out, then get rich.', '#g-color', {cat: 'color'}),
     S('co3', B, aCO, '', 'Tap Invert (desktop: Shift+I), then tap it again.', 'Every image layer flips black to white, then back.', 'label:has(#gInv)', {cat: 'color'}),
     S('co4', B, aCO, '', 'Raise Depth fog, then Depth edges.', 'Far layers fade into haze; edges outline where depths meet.', '#g-color', {cat: 'color'}),
@@ -9459,7 +9459,7 @@ const testMode = (() => {
     S('fx3', B, aFX, '', 'Select Particles in Layers and raise Count and Size.', 'Particles multiply and grow.', '#layerList', {panel: 'L'}),
 
     S('mo1', B, aMO, '', 'Motion tab › Loop length: change it.', 'The speed of all motion changes and it still loops cleanly.', '#g-motion', {cat: 'motion'}),
-    S('mo2', B, aMO, '', 'Raise Spin, then Hue cycle, then Global smoothing.', 'The kaleidoscope turns; colours sweep through each loop; sudden jumps are softened.', '#g-motion', {cat: 'motion'}),
+    S('mo2', B, aMO, '', 'Raise Spin, then Global smoothing.', 'The kaleidoscope turns; sudden jumps are softened.', '#g-motion', {cat: 'motion'}),
     S('mo3', B, aMO, '', 'Press Play / pause (desktop: Space), then again.', 'Motion freezes, then resumes from the same point.', '#dPlay'),
     S('mo4', B, aMO, '', 'Watch one full loop end and begin again.', 'No jump or flash at the seam.'),
 
