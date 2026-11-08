@@ -1889,7 +1889,7 @@ const SPEC = {
 };
 const LSPECS = {
   'g-lpos':[
-    ['z','Z position',-1,1,.01,sgn],
+    ['z','Z position',-2,2,.01,sgn],
     ['relief','Inner depth',0,2,.01,fx(2)],
   ],
   'g-linst':[
@@ -1953,7 +1953,7 @@ const LSPECS = {
     ['trail','Trails',0,1,.01,fx(2)],
   ],
 };
-const SSPEC = [['size','Size',.05,1,.01,fx(2)],['x','X position',0,1,.01,fx(2)],['y','Y position',0,1,.01,fx(2)]];
+const SSPEC = [['size','Size',.05,1,.01,fx(2)],['x','X position',-.5,1.5,.01,fx(2)],['y','Y position',-.5,1.5,.01,fx(2)]];
 const ISPEC = [['sspin','Rotate',-4,4,1,turns]];
 const PSPEC = [
   ['count','Particle count',10,2000,10,v=>v], ['psize','Particle size',1,48,1,v=>v+' px'], ['psizeVar','Size variation',0,1,.01,fx(2)],
