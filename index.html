@@ -1759,6 +1759,7 @@ const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsr
   frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, frCx:.5, frCy:.5, frTint:0, thInfl:0, thRound:.5, thick:0, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
+const OBJ_MAX = 8;   // 3D object layers: the built-in one plus seven copies, one slice of the object texture each
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
 const SHAPE_MAX = 8, SHAPE_BASE = 8, ICON_SLICES = 16, ICON_MAX = 8, USER_ICON_MAX = 32;   // icons use slices 0-7   // shape layers draw like icons from slices 8-15 of the icon texture
 const SHAPE_NAMES = {circle:'Circle', square:'Square', triangle:'Triangle', polygon:'Polygon', star:'Star', ring:'Ring', line:'Line', heart:'Heart'};
@@ -3235,7 +3236,7 @@ const objFB = gl.createFramebuffer(), objRB = gl.createRenderbuffer();
 function allocObj(size){                       // rebuilt in place on a Lite / Full switch (same texture, same framebuffer)
   if (size === OBJ) return; OBJ = size;
   gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texObj);
-  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA8, OBJ, OBJ, SL, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA8, OBJ, OBJ, OBJ_MAX, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.bindRenderbuffer(gl.RENDERBUFFER, objRB); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, OBJ, OBJ);
   gl.bindFramebuffer(gl.FRAMEBUFFER, objFB);
   gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, texObj, 0, 0);
@@ -3947,12 +3948,12 @@ function deleteLayerById(id, fromHist){
   }, () => deleteLayerById(u.L.id, true));
   actionToast(`${L.name} deleted; its area went back to Background`, 'Undo', () => histUndoEntry(e));
 }
-function noDup(id){ return id === 'bg' || ['part','obj'].includes(kindOf(id)); }
+function noDup(id){ return id === 'bg' || kindOf(id) === 'part'; }
 function duplicateLayer(id){
   if (cal){ toast('Finish calibrating first'); return; }
   if (id === 'bg'){ toast('Background cannot be duplicated'); return; }
   const src = getL(id), kd = kindOf(id), nm = (layerDefs().find(x => x.id === id) || {}).name || src.name;
-  if (noDup(id)){ toast(`Couldn't duplicate ${nm}. Particles and 3D object layers can't be copied; adjust this one instead.`); return; }
+  if (noDup(id)){ toast(`Couldn't duplicate ${nm}. Particles can't be copied; adjust this one instead.`); return; }
   const copy = clone(src); copy.name = nm + ' copy'; copy.solo = false; delete copy.gone;
   if (kd === 'img'){
     if (P.L.layers.length >= MAX_OBJ){ toast(`You can have up to ${MAX_OBJ} layers plus Background`); return; }
@@ -3966,9 +3967,9 @@ function duplicateLayer(id){
     selectLayer(nid); changed(); toast(copy.name); return;
   }
   { const room = layerRoomMsg(); if (room){ toast(room, 5000); return; } }
-  const used = new Set(P.L.xs.filter(l => l.kind === kd).map(l => l.slot)), cap = kd === 'shape' ? SHAPE_MAX : kd === 'icon' ? ICON_MAX : SL;
+  const used = new Set(P.L.xs.filter(l => l.kind === kd).map(l => l.slot)), cap = kd === 'shape' ? SHAPE_MAX : kd === 'icon' ? ICON_MAX : kd === 'obj' ? OBJ_MAX : SL;
   let slot = kd === 'shape' ? 0 : 1; while (used.has(slot)) slot++;
-  if (slot >= cap){ toast(kd === 'shape' ? `Couldn't duplicate ${nm}. You can have up to ${SHAPE_MAX} shape layers; delete one, then try again.` : `You can have up to ${SL} ${KIND_NAMES[kd].toLowerCase()} layers`, 5000); return; }
+  if (slot >= cap){ toast(`Couldn't duplicate ${nm}. You can have up to ${cap} ${KIND_NAMES[kd].toLowerCase()} layers; delete one, then try again.`, 5000); return; }
   copy.id = 'x' + (++layerSeq); copy.kind = kd; copy.slot = slot; copy.anchor = id; delete copy.autoName;
   if (mapReady) dupLayerMaps(id, copy.id);
   P.L.xs.push(copy); uploadIcon(); selectLayer(copy.id); changed(); toast(copy.name);
@@ -4337,7 +4338,7 @@ function builtinState(name){
 function presetOf(s){
   return {...globalsOf(s), mod: modForSave(s), L:{ layersFx: s.L.layers.map(l => ({...fxPick(l), name: l.name})), bgFx: {...fxPick(s.L.bg), name: s.L.bg.name, solid: s.L.bg.solid || 0, solidCol: s.L.bg.solidCol}, icon: clone(s.L.icon), obj: clone(s.L.obj), part: clone(s.L.part), xs: clone(s.L.xs || []) }, pins: pinsOf()};
 }
-function xsOk(l){ return !!l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : l.kind === 'icon' ? l.slot > 0 && l.slot < ICON_MAX : ['obj','part'].includes(l.kind) && l.slot > 0 && l.slot < SL); }
+function xsOk(l){ return !!l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : l.kind === 'icon' ? l.slot > 0 && l.slot < ICON_MAX : l.kind === 'obj' ? l.slot > 0 && l.slot < OBJ_MAX : l.kind === 'part' && l.slot > 0 && l.slot < SL); }
 function applyState(s){
   s = migrateTw(clone(s));
   const tools = {}; for (const k of TOOL_KEYS) tools[k] = P[k];
@@ -5175,6 +5176,18 @@ function addBuiltinIcon(){
   const e = histPush('add', L.name + ' add', () => deleteLayerById(L.id, true), () => { if (!P.L.xs.some(l => l.id === L.id)){ P.L.xs.push(L); uploadIcon(); selectLayer(L.id); changed(); } });
   actionToast(L.name + ' added. Pick an icon from the grid.', 'Undo', () => histUndoEntry(e));
 }
+/* Add › 3D object: switches the built-in 3D object on when it is off, otherwise adds another one (up to OBJ_MAX) */
+function addObject3D(){
+  if (cal){ toast('Finish calibrating first'); return; }
+  if (!P.L.obj.vis){ P.L.obj.vis = true; selectLayer('obj'); changed(); markDirty(); return; }
+  const room = layerRoomMsg(); if (room){ toast(room, 5000); return; }
+  const used = new Set(P.L.xs.filter(l => l.kind === 'obj').map(l => l.slot)); let slot = 1; while (used.has(slot)) slot++;
+  if (slot >= OBJ_MAX){ toast(`Couldn't add a 3D object. You can have up to ${OBJ_MAX} 3D object layers; delete one, then try again.`, 5000); return; }
+  const L = {...defLayers().obj, id: 'x' + (++layerSeq), kind: 'obj', slot, anchor: 'obj', vis: true, name: '3D object ' + (slot + 1)};
+  P.L.xs.push(L); selectLayer(L.id); changed(); markDirty();
+  const e = histPush('add', L.name + ' add', () => deleteLayerById(L.id, true), () => { if (!P.L.xs.some(l => l.id === L.id)){ P.L.xs.push(L); selectLayer(L.id); changed(); } });
+  actionToast(L.name + ' added', 'Undo', () => histUndoEntry(e));
+}
 { const box = $('#iconBox');
   box.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')){ e.preventDefault(); box.classList.add('dropOn'); } });
   box.addEventListener('dragleave', e => { if (!box.contains(e.relatedTarget)) box.classList.remove('dropOn'); });
@@ -5354,14 +5367,13 @@ function glMesh(m){
   return {vaoT, nT: m.pos.length/3, vaoE, nE: m.edges.length/3, bufs: [b1, b2, b3]};
 }
 const TUBE_SHAPES = ['torus', 'knot'];   // the shapes the Thickness slider changes
-const tubeCache = {};                    // one mesh per tube shape, rebuilt when Thickness moves (in .02 steps, so an oscillator on it rebuilds at most that often)
+const tubeCache = new Map();             // meshes for Thickness values in use, keyed shape|value (in .02 steps, so an oscillator on it rebuilds at most that often); two torus layers with different Thickness no longer fight over one mesh
 function getMesh(shape, tk = 1){
   if (TUBE_SHAPES.includes(shape)){
-    const q = Math.round(Math.max(.1, Math.min(2.2, +tk || 1))*50)/50, c = tubeCache[shape];
-    if (c && c.q === q) return c.m;
-    if (c){ gl.deleteVertexArray(c.m.vaoT); gl.deleteVertexArray(c.m.vaoE); c.m.bufs.forEach(b => gl.deleteBuffer(b)); }   // free the old one so a moving slider cannot pile up GPU buffers
-    tubeCache[shape] = {q, m: glMesh(SHAPES[shape](q))};
-    return tubeCache[shape].m;
+    const q = Math.round(Math.max(.1, Math.min(2.2, +tk || 1))*50)/50, key = shape + '|' + q, c = tubeCache.get(key);
+    if (c){ tubeCache.delete(key); tubeCache.set(key, c); return c; }   // most recently used goes last
+    for (const [k, o] of tubeCache) if (tubeCache.size >= OBJ_MAX + 4){ gl.deleteVertexArray(o.vaoT); gl.deleteVertexArray(o.vaoE); o.bufs.forEach(b => gl.deleteBuffer(b)); tubeCache.delete(k); } else break;   // free the oldest so a moving slider cannot pile up GPU buffers
+    const m = glMesh(SHAPES[shape](q)); tubeCache.set(key, m); return m;
   }
   if (!meshCache[shape] && SHAPES[shape]) meshCache[shape] = glMesh(SHAPES[shape]()); return meshCache[shape];
 }
@@ -7859,7 +7871,7 @@ function openRowMenu(id, x, y){
   const item = (ico, text, fn, off) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = (ico.charAt(0) === '<' ? ico : use(ico)) + '<span>' + escH(text) + '</span>'; if (off){ b.disabled = true; b.title = off; } b.onclick = () => fn(b); m.append(b); return b; };
   const act = fn => () => { closePinMenu(); fn(); };
   item('i-brush', 'Rename', act(() => beginRename(id)));
-  item(DUP_SVG, 'Duplicate', act(() => duplicateLayer(id)), id === 'bg' ? 'Background cannot be duplicated' : noDup(id) ? 'Particles and 3D object layers cannot be duplicated' : '');
+  item(DUP_SVG, 'Duplicate', act(() => duplicateLayer(id)), id === 'bg' ? 'Background cannot be duplicated' : noDup(id) ? 'Particles cannot be duplicated' : '');
   item(OL_SVG, L.olOn ? 'Outline off' : 'Outline on', act(() => { L.olOn = L.olOn ? 0 : 1; changed(); renderLayers(); if (id === sel) syncLayerEd(); toast(`${d.name} outline ${L.olOn ? 'on' : 'off'}`); }), canOl ? '' : 'Outlines are for image layers and Icon');
   item(L.vis ? EYE_OFF : EYE_ON, L.vis ? 'Hide' : 'Show', act(() => { L.vis = !L.vis; changed(); renderLayers(); if (id === sel) syncLayerEd(); toast(`${d.name} ${L.vis ? 'shown' : 'hidden'}`); }));
   item(SOLO_SVG, L.solo ? 'Solo off' : 'Solo', act(() => { L.solo = !L.solo; if (L.solo) L.vis = true; changed(); renderLayers(); if (id === sel) syncLayerEd(); toast(`${d.name} ${L.solo ? 'solo on' : 'solo off'}`); }));
@@ -7968,6 +7980,7 @@ function drawAddMenu(){
   add('r-shape', 'Shape', () => addShape());
   add('r-icon', 'Icon: upload\u2026', () => { iconPickInto = false; $('#fIcon').click(); });
   add('r-icon', 'Icon: built-in', addBuiltinIcon);
+  add('r-shape', '3D object', addObject3D, P.L.xs.filter(l => l.kind === 'obj').length >= OBJ_MAX - 1 && P.L.obj.vis ? `You can have up to ${OBJ_MAX} 3D object layers` : '', true);   // Full only, as before
   add('i-wand', 'Auto layers\u2026', () => toggleAutoLayers(true));
   const lf = document.createElement('form'); lf.className = 'impLink'; lf.autocomplete = 'off';
   lf.innerHTML = '<input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button>';
