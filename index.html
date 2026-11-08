@@ -1872,7 +1872,7 @@ const LSPECS = {
   ],
   /* Fractal: the sample point runs through a fractal formula before the picture is looked up, so the picture itself becomes fractal. Full interface only (the host div carries data-adv). */
   'g-lfr':[
-    ['frType','Fractal type',0,3,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold'][+v] || 'off'],
+    ['frType','Fractal type',0,4,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral'][+v] || 'off'],
     ['frAmt','Fractal amount',0,1,.01,fx(2)],
     ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
@@ -2577,6 +2577,18 @@ vec2 fractalWarp(int i, vec2 p, float phi){
   float ty = mod(pk, 8.) + 1., sp = floor(pk/8.) - 4.;
   float n = min(it, gFrCap);
   if (n < .5) return p;
+  if (ty > 3.5){                       // Droste spiral: no rounds, so Iterations is ignored. Log-polar, sheared so one turn of the angle steps one whole period outward
+    const float LNS = 1.0986;          // ln 3: each copy is 3x smaller than the one around it
+    const float PER = 2.*LNS;          // mirrored rings, so a full period is two copies (inside-out, then the right way round)
+    float r = max(length(p), 1.5/uRes.y);   // clamp the radius about a pixel from the centre: no log(0), no atan(0,0), no ring shimmer
+    vec2 d = length(p) > 1e-6 ? p : vec2(1., 0.);
+    float L = log(r/max(N.y, .05)), th = atan(d.y, d.x);
+    float cc = PER/TAU;                // shear: th + 2pi moves X by exactly PER, a whole period, so the atan jump on the negative x axis cannot show
+    float X = L + cc*th + sp*PER*phi/TAU;   // spin flows through whole periods per loop, so the loop closes seamlessly
+    float Y = th - cc*L + N.z;         // the angle stays continuous: only cos/sin of it are used, never a mod
+    float t = mod(X, PER); t = LNS - abs(t - LNS);   // triangle wave into one copy's band, continuous at every ring
+    return .5*exp(t - LNS)*vec2(cos(Y), sin(Y));    // band runs from radius .5 (the picture's half height) in to .5/3
+  }
   float a = N.z + sp*phi;              // whole turns per loop, so the loop closes seamlessly
   float k = 3./max(N.y, .05);          // zoom 1 = the classic fractal window fills the height
   vec2 q = p*k, z, c;
@@ -8131,7 +8143,7 @@ function syncModeUI(){
   const sb = $('#qSeg [data-q="1"]');
   if (sb){ sb.disabled = LITE.on; sb.title = LITE.on ? 'Full mode only (Lite renders at Normal at most)' : ''; }
   const fi = $('#g-lfr-frIt');
-  if (fi) fi.title = LITE.on ? 'Lite runs at most 4 fractal rounds (3 for the kaleidoscope fold)' : '';
+  if (fi) fi.title = (LITE.on ? 'Lite runs at most 4 fractal rounds (3 for the kaleidoscope fold)\n' : '') + 'The Droste spiral has no rounds, so iterations do nothing for it';
   for (const id of ['#g-lth-thInfl', '#g-lth-thRound', '#g-lth-thick']){ const t = $(id); if (t) t.title = LITE.on ? 'Full mode only (Lite ignores thickness)' : ''; }
 }
 function setMode(m, persist = true){
@@ -9092,6 +9104,7 @@ const testMode = (() => {
     S('fc4', FC, aFC, 'adv', 'Set Fractal spin to 1 and watch a full loop, then try -1 and 2. Put spin back to 0 and move Fractal angle through 0-360°.', 'The pattern turns in whole turns per loop and the end of the loop matches the start with no jump. Angle turns the pattern and then holds still.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc5', FC, aFC, 'adv', 'Set Fractal type to Mandelbrot and sweep amount, iterations, zoom and angle again.', 'The familiar Mandelbrot outline shows in the warp, centred in the frame, and every slider behaves as it does for Julia.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc12', FC, aFC, 'adv', 'Set Fractal type to Kaleidoscope fold. Sweep amount, iterations, zoom and angle, then set spin to 1 and -1.', 'The picture folds into a crystalline, self-similar pattern with sharp mirror lines. Iterations 1 to 12 add finer folds without popping or black frames, and spin turns the pattern once per loop with no jump at the loop point. Lite stops at 3 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc13', FC, aFC, 'adv', 'Set Fractal type to Droste spiral on a plain photo. Sweep amount, zoom and angle, move iterations, then set spin to 1, 2 and -1 and watch a full loop each time. Look closely at the centre and to the left of it.', 'The picture repeats inside itself along a spiral, each copy 3 times smaller, with every other ring turned inside out. Iterations changes nothing and its hover note says so. There is no seam line to the left of the centre, the centre does not flicker or go black, and spin flows the copies inward or outward and ends each loop exactly where it started.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc7', FC, aPJ, 'adv', 'Save a project with a fractal set, reload the page and import it. Then open a project, Look preset or timeline scene saved before this update.', 'The fractal comes back exactly as saved. Older files open with Fractal off and look and move exactly as they did before.', '#bProjImport', {cat: 'project'}),
     S('fc8', FC, aTL, 'adv', 'Give two timeline scenes different Fractal angle values, then different type, iterations and spin values, and play with Glide.', 'Angle, amount and zoom glide smoothly between scenes. Type, iterations and spin switch instead of gliding, like Source spin, because gliding them would make the picture jump.', '#tlPlay', {panel: 'T'}),
