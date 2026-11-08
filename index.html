@@ -1237,6 +1237,8 @@ body.easy .moreMenu .onlyCmp{display:flex}
           <div id="g-lsym" data-adv class="stack"></div>
           <div class="lbl" data-adv>Fractal</div>
           <div id="g-lfr" data-adv class="stack"></div>
+          <div class="lbl" data-adv>Thickness</div>
+          <div id="g-lth" data-adv class="stack"></div>
           <div id="bgBox" data-adv class="stack" hidden>
             <div class="lbl">Background fill</div>
             <div class="seg" id="bgFill" role="group" aria-label="Background fill">
@@ -1715,7 +1717,7 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 /* ---------- parameters ---------- */
 const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsrcAngle:0, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
   seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trOuter:0, trStops:[{p:0,c:'#00e5ff'},{p:1,c:'#9b5cff'}], rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0,
-  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, vis:true, solo:false};
+  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, thInfl:0, thRound:.5, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
@@ -1852,6 +1854,11 @@ const LSPECS = {
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
     ['frAng','Fractal angle',0,360,1,v=>v+'°'],
     ['frSpin','Fractal spin',-4,4,1,turns],
+  ],
+  /* Thickness (Phase A): Inflate swells the layer toward the camera inside its mask; Edge rounding shapes the rim from a sharp edge to a full pillow. Full interface only; picture and mask layers only. */
+  'g-lth':[
+    ['thInfl','Inflate',0,1,.01,fx(2)],
+    ['thRound','Edge rounding',0,1,.01,fx(2)],
   ],
   'g-lcol':[
     ['hue','Hue',-180,180,1,v=>v+'°'],
@@ -2501,7 +2508,7 @@ precision highp float;
 precision highp sampler2DArray;
 uniform sampler2D uImg, uDepth, uBg, uOther, uSel;
 uniform sampler2DArray uMasks, uLayerCol, uIcon, uObj, uPart, uTrI, uTrS;
-uniform vec4 uK[24], uM[24], uN[24];
+uniform vec4 uK[24], uM[24], uN[24], uO[24];   // uO: x = Inflate, y = Edge rounding (z, w spare for Thickness walls)
 uniform sampler2D uTrG;
 vec2 gTr;
 /* Fractal rounds allowed in the current evalL call. The outline and glow taps call evalL dozens of
@@ -2600,6 +2607,11 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   vec2 uv = toUV(pr, phi);
   vec2 cam = uDrift*vec2(sin(phi), .6*sin(2.*phi)) + uSteer;
   float dz = A.x < .5 ? Q.z*(D(uv) - F.w) : 0.;   // inner depth: per-pixel parallax inside the layer
+  if (uO[i].x > 0.){   // Inflate: the layer swells toward the camera inside its mask. The mask's G channel is the distance to the edge (0 at the rim, 1 at 48 px in); Edge rounding sets how wide and how round the rim is.
+    float r = uO[i].y, t = clamp(texture(uMasks, vec3(uv, A.y)).g/max(mix(.12, 1., r), .05), 0., 1.);
+    float bv = mix(t, sqrt(max(1. - (1. - t)*(1. - t), 0.)), r);
+    dz += .25*uO[i].x*bv;
+  }
   float zz = A.z - uFocus + dz;
   zo = A.z + dz;
   if (Q.y > .5 && uH[i].y > .5) return vec4(uBgCol, 1.);   // custom background stays static: no colour effects
@@ -2927,7 +2939,7 @@ var LITE = {on:false, fps:30, entries:12, dpr:1, partRes:512, partMul:.35, objRe
    most of them, so the test report shows it: a low number here is what would block more of them. */
 const maxFragVecs = () => { try { return gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS); } catch(e){ return '?'; } };
 const U = {};
-for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uN','uTrG']) U[n] = gl.getUniformLocation(prog, n);
+for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uN','uO','uTrG']) U[n] = gl.getUniformLocation(prog, n);
 const MU = {}; for (const n of ['uMVP','uR','uOff','uMode','uPh','uDim']) MU[n] = gl.getUniformLocation(mprog, n);
 const PU = {}; for (const n of ['uTw','uTwRot','uCountF','uPh','uPhi','uSize','uSizeVar','uSpeed','uAngle','uSpread','uTurb','uWobble','uTwinkle','uHue','uHueVar','uSat','uBright','uSymN','uSymMirror','uMode','uAspect','uSeed','uScale','uCenter','uShape']) PU[n] = gl.getUniformLocation(pprog, n);
 
@@ -2995,14 +3007,47 @@ function uploadR8(tex, unit, arr, w, h){
 function allocMasks(){
   gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texMasks);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.R8, MW, MH, 8, 0, gl.RED, gl.UNSIGNED_BYTE, null);
+  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RG8, MW, MH, 8, 0, gl.RG, gl.UNSIGNED_BYTE, null);   // R = the mask, G = distance to its edge (for Inflate)
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+}
+/* distance to the mask's edge, inside the mask only: 3-4 chamfer, two passes, capped at EDGE_R pixels, then one 3x3 blur to round off the chamfer's corners. 0 at the rim, 255 at EDGE_R pixels in. */
+const EDGE_R = 48;
+function edgeDist(m, w, h){
+  const BIG = 60000, d = new Uint16Array(w*h);
+  for (let i = 0; i < d.length; i++) d[i] = m[i] > 127 ? BIG : 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    const i = y*w + x; if (!d[i]) continue; let v = d[i];
+    if (x === 0 || y === 0) v = Math.min(v, 3);   // the picture's border counts as an edge
+    if (x > 0) v = Math.min(v, d[i-1] + 3);
+    if (y > 0){ v = Math.min(v, d[i-w] + 3); if (x > 0) v = Math.min(v, d[i-w-1] + 4); if (x < w-1) v = Math.min(v, d[i-w+1] + 4); }
+    d[i] = v;
+  }
+  for (let y = h-1; y >= 0; y--) for (let x = w-1; x >= 0; x--){
+    const i = y*w + x; if (!d[i]) continue; let v = d[i];
+    if (x === w-1 || y === h-1) v = Math.min(v, 3);
+    if (x < w-1) v = Math.min(v, d[i+1] + 3);
+    if (y < h-1){ v = Math.min(v, d[i+w] + 3); if (x < w-1) v = Math.min(v, d[i+w+1] + 4); if (x > 0) v = Math.min(v, d[i+w-1] + 4); }
+    d[i] = v;
+  }
+  const o = new Uint8Array(w*h), k = 255/(EDGE_R*3);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+    const i = y*w + x; if (!d[i]){ continue; }
+    const xl = x > 0 ? i-1 : i, xr = x < w-1 ? i+1 : i, yu = y > 0 ? i-w : i, yd = y < h-1 ? i+w : i;
+    const s = (d[i]*4 + d[xl] + d[xr] + d[yu] + d[yd])/8;
+    o[i] = Math.min(255, Math.round(s*k));
+  }
+  return o;
+}
+function maskRG(m, w, h){   // interleaved R = mask, G = edge distance, rows flipped to match the texture
+  const e = edgeDist(m, w, h), o = new Uint8Array(w*h*2);
+  for (let y = 0; y < h; y++){ const s = y*w, t = (h-1-y)*w*2; for (let x = 0; x < w; x++){ o[t + x*2] = m[s + x]; o[t + x*2 + 1] = e[s + x]; } }
+  return o;
 }
 function uploadMasks(){
   picVer++;
   gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texMasks);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-  P.L.layers.forEach((l, i) => { const m = masks.get(l.id); if (m) gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, i, MW, MH, 1, gl.RED, gl.UNSIGNED_BYTE, flipRows(m, MW, MH)); });
+  P.L.layers.forEach((l, i) => { const m = masks.get(l.id); if (m) gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, i, MW, MH, 1, gl.RG, gl.UNSIGNED_BYTE, maskRG(m, MW, MH)); });
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   if (!cal) uploadR8(texOther, 7, coverageExcept(null), MW, MH);
   uploadLayerCols();
@@ -3753,6 +3798,7 @@ function syncLayerEd(){
   $('#iconBox').hidden = !isI; $('#objBox').hidden = !isO; $('#partBox').hidden = !isPt; $('#g-sprite').hidden = img || isPt; syncPart();
   $('#g-icon').hidden = !isI; $('#g-objx').hidden = !isO;
   document.getElementById('g-lpos-relief').closest('.ctl').hidden = !img;
+  { const th = $('#g-lth'); th.hidden = !(img && sel !== 'bg'); th.previousElementSibling.hidden = th.hidden; }   // Thickness: picture and mask layers only
   lCtl.forEach(c => c.sync());
   $('#layerBlend').value = String(L.blend || 0); syncLayerHue();
   $('#instBox').hidden = sel === 'bg'; setSeg($('#instMode'), 'im', L.instMode || 'shrink');
@@ -4449,7 +4495,7 @@ $('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(
 /* randomizer presets: built-in themes plus the user's own saved tick sets */
 const RP_BUILTIN = [
   {id:'b:colour', name:'Colour only', amt:.8, keys:['g:hue','g:depthHue','g:sat','g:hueCycle','l:hue','l:sat','l:con','l:phue','l:phueVar','l:psat','l:pbright']},
-  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:frAmt','l:frZoom','l:frAng','l:psymN','l:psymMirror','l:ptwist']},
+  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:frAmt','l:frZoom','l:frAng','l:thInfl','l:thRound','l:psymN','l:psymMirror','l:ptwist']},
   {id:'b:motion', name:'Motion + depth', amt:.6, keys:['g:strength','g:focus','g:depthScale','g:drift','g:srcOrbit','g:spin','l:lsrcSpin','l:frSpin','g:fog','l:z','l:relief','l:inst','l:instSp','l:instOff','l:spinX','l:spinY','l:pspeed','l:pangle','l:pturb','l:pmode']},
   {id:'b:fx', name:'FX', amt:.7, keys:['l:wig','l:glow','l:melt','l:trail','l:blend','g:edges','g:fog','l:ptwinkle','l:pshape']},
   {id:'b:chaos', name:'Chaos (everything, 100%)', amt:1, keys:'*'},
@@ -5456,7 +5502,7 @@ let toastT;
 function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove('on'), ms); }
 
 /* ---------- render ---------- */
-const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96);
+const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96), Ov = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
 const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
@@ -5739,13 +5785,15 @@ function draw(w, h){
       Nv[o] = amt; Nv[o+1] = Math.max(.05, +l.frZoom || 1); Nv[o+2] = (l.frAng || 0)*Math.PI/180;
       const it = Math.max(1, Math.min(LITE.on ? 4 : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds
       Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0; }
+    { const inf = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thInfl || 0) : 0;   // Inflate + Edge rounding: Full only, picture and mask layers only
+      Ov[o] = inf; Ov[o+1] = clamp01(l.thRound ?? .5); Ov[o+2] = 0; Ov[o+3] = 0; }
     Gd[o]=l.hdSpeed || 0; Gd[o+1]=(l.hdMin ?? 0)/360; Gd[o+2]=((l.hdMax ?? 360) - (l.hdMin ?? 0))/360;
     const pk = phi + (x.off || 0);
     Gd[o+3]=(x.off ? instG(Q, 'twist', x.off) + Q.twBounce*Math.sin(Q.twBounceRate*pk) : twG) + (l.ltwist || 0) + (l.ltwBounce || 0)*Math.sin((l.ltwBounceRate || 1)*pk);
   });
   trLutUpload();
   gl.viewport(0,0,w,h);
-  gl.uniform4fv(U.uA, A); gl.uniform4fv(U.uB, B); gl.uniform4fv(U.uC, C); gl.uniform4fv(U.uD, Dv); gl.uniform4fv(U.uE, E); gl.uniform4fv(U.uF, F); gl.uniform4fv(U.uG, Gd); gl.uniform4fv(U.uH, H); gl.uniform4fv(U.uI, Iv); gl.uniform4fv(U.uJ, Jv); gl.uniform4fv(U.uK, Kv); gl.uniform4fv(U.uM, Mv); gl.uniform4fv(U.uN, Nv); gl.uniform1f(U.uGInv, clamp01(Q.ginv || 0));
+  gl.uniform4fv(U.uA, A); gl.uniform4fv(U.uB, B); gl.uniform4fv(U.uC, C); gl.uniform4fv(U.uD, Dv); gl.uniform4fv(U.uE, E); gl.uniform4fv(U.uF, F); gl.uniform4fv(U.uG, Gd); gl.uniform4fv(U.uH, H); gl.uniform4fv(U.uI, Iv); gl.uniform4fv(U.uJ, Jv); gl.uniform4fv(U.uK, Kv); gl.uniform4fv(U.uM, Mv); gl.uniform4fv(U.uN, Nv); gl.uniform4fv(U.uO, Ov); gl.uniform1f(U.uGInv, clamp01(Q.ginv || 0));
   { const c = P.L.bg.solidCol || '#000000'; gl.uniform3f(U.uBgCol, parseInt(c.slice(1,3),16)/255, parseInt(c.slice(3,5),16)/255, parseInt(c.slice(5,7),16)/255); }
   gl.uniform1i(U.uCount, list.length);
   gl.uniform2f(U.uRes, w, h);
@@ -7233,7 +7281,7 @@ var fltBuilt = false;
 const FGROUPS = [
   ['Symmetry','g',['g-sym']], ['Colour','g',['g-color']], ['Depth & parallax','g',['g-depth']], ['Motion','g',['g-motion']],
   ['All-layer dry/wet','g',['g-layers']], ['Sound','g',['g-aband','g-audio','g-apulse']],
-  ['Layer depth','l',['g-lpos']], ['Layer dry/wet & blend','l',['g-lmix']], ['Layer symmetry & twist','l',['g-lsym']], ['Layer fractal','l',['g-lfr']],
+  ['Layer depth','l',['g-lpos']], ['Layer dry/wet & blend','l',['g-lmix']], ['Layer symmetry & twist','l',['g-lsym']], ['Layer fractal','l',['g-lfr']], ['Layer thickness','l',['g-lth']],
   ['Layer colour','l',['g-lcol','g-lrc']], ['Layer effects','l',['g-lfx']], ['Layer outline','l',['g-lol']], ['Layer instances','l',['g-linst']], ['Icon & 3D object placement','l',['g-sprite','g-icon','g-objx']],
   ['Particles','l',['g-part']],
 ];
@@ -7603,6 +7651,7 @@ function syncModeUI(){
   if (sb){ sb.disabled = LITE.on; sb.title = LITE.on ? 'Full mode only (Lite renders at Normal at most)' : ''; }
   const fi = $('#g-lfr-frIt');
   if (fi) fi.title = LITE.on ? 'Lite runs at most 4 fractal rounds' : '';
+  for (const id of ['#g-lth-thInfl', '#g-lth-thRound']){ const t = $(id); if (t) t.title = LITE.on ? 'Full mode only (Lite ignores thickness)' : ''; }
 }
 function setMode(m, persist = true){
   const on = m === 'lite';
