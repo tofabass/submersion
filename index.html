@@ -1775,7 +1775,7 @@ function defLayers(){
     layers: [], xs: [],
     bg:   {...LD, id:'bg', name:'Background', type:'bg', solid:0, solidCol:'#153126'},
     icon: {...LD, z:.4, x:.5, y:.5, size:.35, sspin:0, which:'eye', vis:false},
-    obj:  {...LD, z:.7, x:.5, y:.5, size:.45, spinX:1, spinY:1, shape:'merkaba', style:'both', vis:false},
+    obj:  {...LD, z:.7, x:.5, y:.5, size:.45, spinX:1, spinY:1, tube:1, shape:'merkaba', style:'both', vis:false},
     part: {...LD, z:.6, vis:false, count:400, psize:7, psizeVar:.6, pspeed:1, pangle:90, pspread:.3, pturb:.25, pwobble:2, ptwinkle:.35,
            phue:95, phueVar:.25, psat:.55, pbright:1.3, psymN:1, psymMirror:0, ptwist:0, ptwSpeed:0, ptwBounce:0, ptwBounceRate:1, pcx:.5, pcy:.5, pseed:7, pmode:'drift', pshape:'soft'},
   };
@@ -1947,7 +1947,7 @@ const PSPEC = [
   ['ptwist','Emitter twist',-3,3,.01,fx(2)], ['ptwSpeed','Emitter twist speed',-4,4,1,v=>(v>0?'→ ':v<0?'← ':'')+Math.abs(v)+' /loop'],
   ['pcx','Emitter center X',0,1,.01,fx(2)], ['pcy','Emitter center Y',0,1,.01,fx(2)], ['pseed','Seed',1,99,1,v=>v],
 ];
-const OSPEC = [['spinX','Tumble',-4,4,1,turns],['spinY','Turn',-4,4,1,turns]];
+const OSPEC = [['spinX','Tumble',-4,4,1,turns],['spinY','Turn',-4,4,1,turns],['tube','Thickness',.1,2.2,.01,v=>(+v).toFixed(2)+'×']];   // Thickness: tube width of the torus and torus knot (1 = the original look); the row is hidden for the other shapes
 const CALSPEC = [['tol','Tolerance',0,1,.01,fx(2)],['brush','Brush size',4,200,1,v=>v+' px']];
 const RANGESPEC = [['near','Near limit',0,1,.01,fx(2)],['far','Far limit',0,1,.01,fx(2)]];
 const VSPEC = [['spread','Layer spacing',0,2,.01,v=>(+v).toFixed(2)+'×']];
@@ -4120,7 +4120,7 @@ function syncLayerEd(){
   $('#instBox').hidden = sel === 'bg'; setSeg($('#instMode'), 'im', L.instMode || 'shrink');
   syncBgFill();
   document.querySelectorAll('#iconGrid .icn').forEach(b => b.setAttribute('aria-pressed', b.dataset.icon === selOf('icon').which));
-  $('#objShape').value = selOf('obj').shape;
+  $('#objShape').value = selOf('obj').shape; syncObjTube();
   document.querySelectorAll('#objStyle button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === selOf('obj').style));
 }
 $('#bLayerReset').onclick = () => {
@@ -5299,15 +5299,15 @@ const SHAPES = {
       idx.sort((i,j) => Math.atan2(V[i][w],V[i][u]) - Math.atan2(V[j][w],V[j][u])); F.push(idx);
     }
     return polyMesh(V, F, {fix:true}); },
-  torus(){ const {V,F} = grid(48, 20, (s,t) => { const u = s*TAU, v = t*TAU, r = 1 + .42*Math.cos(v); return [Math.cos(u)*r, Math.sin(u)*r, .42*Math.sin(v)]; }, true); return polyMesh(V, F, {smooth:true}); },
+  torus(tk = 1){ const a = .42*tk, {V,F} = grid(48, 20, (s,t) => { const u = s*TAU, v = t*TAU, r = 1 + a*Math.cos(v); return [Math.cos(u)*r, Math.sin(u)*r, a*Math.sin(v)]; }, true); return polyMesh(V, F, {smooth:true}); },
   sphere(){ const {V,F} = grid(24, 13, (s,t) => { const u = s*TAU, v = t*Math.PI; return [Math.sin(v)*Math.cos(u), Math.cos(v), Math.sin(v)*Math.sin(u)]; }, false); return polyMesh(V, F, {smooth:true}); },
-  knot(){
+  knot(tk = 1){
     const C = t => { const r = 2 + Math.cos(3*t); return [r*Math.cos(2*t), r*Math.sin(2*t), Math.sin(3*t)]; };
     const {V,F} = grid(12, 200, (s,t) => {
       const Tt = t*TAU, e = 1e-3, c = C(Tt), a = C(Tt-e), b = C(Tt+e);
       const tan = norm(sub(b,a)); let nn = norm([a[0]+b[0]-2*c[0], a[1]+b[1]-2*c[1], a[2]+b[2]-2*c[2]]);
       const bn = norm(cross(tan, nn)); nn = cross(bn, tan);
-      const v = s*TAU, r = .45;
+      const v = s*TAU, r = .45*tk;
       return [c[0] + r*(Math.cos(v)*nn[0] + Math.sin(v)*bn[0]), c[1] + r*(Math.cos(v)*nn[1] + Math.sin(v)*bn[1]), c[2] + r*(Math.cos(v)*nn[2] + Math.sin(v)*bn[2])];
     }, true);
     return polyMesh(V, F, {smooth:true});
@@ -5316,13 +5316,24 @@ const SHAPES = {
 const meshCache = {};
 let objText = null, objName = '';
 function glMesh(m){
-  const mk = (data, loc) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0); };
-  const vaoT = gl.createVertexArray(); gl.bindVertexArray(vaoT); mk(m.pos, 0); mk(m.nor, 1);
-  const vaoE = gl.createVertexArray(); gl.bindVertexArray(vaoE); mk(m.edges, 0); gl.disableVertexAttribArray(1);
+  const mk = (data, loc) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0); return b; };
+  const vaoT = gl.createVertexArray(); gl.bindVertexArray(vaoT); const b1 = mk(m.pos, 0), b2 = mk(m.nor, 1);
+  const vaoE = gl.createVertexArray(); gl.bindVertexArray(vaoE); const b3 = mk(m.edges, 0); gl.disableVertexAttribArray(1);
   gl.bindVertexArray(mainVAO);
-  return {vaoT, nT: m.pos.length/3, vaoE, nE: m.edges.length/3};
+  return {vaoT, nT: m.pos.length/3, vaoE, nE: m.edges.length/3, bufs: [b1, b2, b3]};
 }
-function getMesh(shape){ if (!meshCache[shape] && SHAPES[shape]) meshCache[shape] = glMesh(SHAPES[shape]()); return meshCache[shape]; }
+const TUBE_SHAPES = ['torus', 'knot'];   // the shapes the Thickness slider changes
+const tubeCache = {};                    // one mesh per tube shape, rebuilt when Thickness moves (in .02 steps, so an oscillator on it rebuilds at most that often)
+function getMesh(shape, tk = 1){
+  if (TUBE_SHAPES.includes(shape)){
+    const q = Math.round(Math.max(.1, Math.min(2.2, +tk || 1))*50)/50, c = tubeCache[shape];
+    if (c && c.q === q) return c.m;
+    if (c){ gl.deleteVertexArray(c.m.vaoT); gl.deleteVertexArray(c.m.vaoE); c.m.bufs.forEach(b => gl.deleteBuffer(b)); }   // free the old one so a moving slider cannot pile up GPU buffers
+    tubeCache[shape] = {q, m: glMesh(SHAPES[shape](q))};
+    return tubeCache[shape].m;
+  }
+  if (!meshCache[shape] && SHAPES[shape]) meshCache[shape] = glMesh(SHAPES[shape]()); return meshCache[shape];
+}
 function parseOBJ(text){
   const V = [], F = [];
   for (const line of text.split('\n')){
@@ -5350,13 +5361,14 @@ function loadOBJFile(f){
     } catch(err){ toast('That .obj file has no faces I can read'); }
   });
 }
-$('#objShape').onchange = e => { const O = selOf('obj'); O.shape = e.target.value; O.vis = true; renderLayers(); changed(); };
+$('#objShape').onchange = e => { const O = selOf('obj'); O.shape = e.target.value; O.vis = true; syncObjTube(); renderLayers(); changed(); };
+function syncObjTube(){ const r = $('#g-objx-tube'); if (r) r.closest('.ctl').hidden = !['torus', 'knot'].includes(selOf('obj').shape); }   // Thickness only means something for the tube shapes
 $('#objStyle').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; selOf('obj').style = b.dataset.s; syncLayerEd(); changed(); });
 
 function mul4(a, b){ const o = new Float32Array(16); for (let c=0;c<4;c++) for (let r=0;r<4;r++){ let s=0; for (let k=0;k<4;k++) s += a[k*4+r]*b[c*4+k]; o[c*4+r] = s; } return o; }
 const PERSP = (() => { const t = 1/Math.tan(20*Math.PI/180), n = .1, f = 20; return new Float32Array([t,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0]); })();
 function renderObj(phi, o = P.L.obj, slice = 0){
-  const m = getMesh(o.shape); if (!m) return;
+  const m = getMesh(o.shape, o.tube ?? 1); if (!m) return;
   const ax = o.spinX*phi + .35, by = o.spinY*phi, cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(by), sy = Math.sin(by);
   const R = [[cy, sy*sx, sy*cx],[0, cx, -sx],[-sy, cy*sx, cy*cx]];
   const r3 = new Float32Array([R[0][0],R[1][0],R[2][0], R[0][1],R[1][1],R[2][1], R[0][2],R[1][2],R[2][2]]);
