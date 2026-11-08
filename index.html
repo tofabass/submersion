@@ -1893,7 +1893,7 @@ const LSPECS = {
   ],
   /* Fractal: the sample point runs through a fractal formula before the picture is looked up, so the picture itself becomes fractal. Full interface only (the host div carries data-adv). */
   'g-lfr':[
-    ['frType','Fractal type',0,5,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral','Burning Ship'][+v] || 'off'],
+    ['frType','Fractal type',0,6,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral','Burning Ship','Newton'][+v] || 'off'],
     ['frAmt','Fractal amount',0,1,.01,fx(2)],
     ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
@@ -2599,7 +2599,7 @@ vec2 toUV(vec2 p, float phi){
    picture up at the result, so the picture itself becomes fractal. No extra texture reads.
    uN.x = amount (0 = off), uN.y = zoom, uN.z = angle in radians,
    uN.w = ((spin + 4)*8 + (type - 1))*32 + iterations, all small whole numbers.
-   uP.xy - .5 = Centre X/Y (0 = the old centred look): the view centre for Julia, Mandelbrot and Burning Ship (plane units, x4), the fold shift
+   uP.xy - .5 = Centre X/Y (0 = the old centred look): the view centre for Julia, Mandelbrot, Burning Ship and Newton (plane units, x4), the fold shift
    for the kaleidoscope fold (x2), the spiral's centre on screen for the Droste spiral (x1). Sets gFrIt (0-1) for the tint. */
 vec2 fractalWarp(int i, vec2 p, float phi){
   vec4 N = uN[i];
@@ -2643,6 +2643,33 @@ vec2 fractalWarp(int i, vec2 p, float phi){
     gFrIt = min(fl/n, 1.);
     if (wr > 4.) w *= 4./wr;
     return w/k;
+  }
+  if (ty > 5.5 && ty < 6.5){           // Newton on z^3 - 1: z <- z - (z^3 - 1)/(3 z^2). It converges onto the three cube roots of 1 instead of escaping, so the detail is in the first few rounds and on the basin borders; at high counts big areas sit on the same three points
+    float cs = cos(a), sn = sin(a);
+    ctr = cen*4.;                      // Centre X/Y is the view centre, like Julia: 0 at the defaults
+    z = vec2(cs*q.x - sn*q.y, sn*q.x + cs*q.y) + ctr;   // z starts at the pixel (Julia's structure); Angle and Spin turn the input point, as they turn c for Mandelbrot
+    float nr = 0., sr = -1.;           // rounds run, and the round at which the point first came near a root (-1 = not yet), for the tint
+    for (int r = 0; r < 12; r++){
+      if (float(r) >= n) break;
+      vec2 z2 = vec2(z.x*z.x - z.y*z.y, 2.*z.x*z.y);
+      vec2 d = 3.*z2;                  // the denominator, 3 z^2
+      float dd = dot(d, d);
+      if (dd < 1e-4) break;            // |3 z^2| under .01: leave the point where it is (a divide here would fling it off or give NaN near z = 0)
+      vec2 z3 = vec2(z2.x*z.x - z2.y*z.y, z2.x*z.y + z2.y*z.x) - vec2(1., 0.);   // z^3 - 1
+      vec2 st = vec2(z3.x*d.x + z3.y*d.y, z3.y*d.x - z3.x*d.y)/dd;               // z3/d = z3*conj(d)/|d|^2
+      z -= st;
+      nr += 1.;
+      float ss = dot(st, st);
+      if (sr < 0. && ss < 1e-2) sr = nr;   // first step under .1: it has come near a root. The tint measures this round (a step under .001 takes about 5 to 7 rounds, which would put nearly every point at the top of the ramp at the default count)
+      if (ss < 1e-6) break;            // step under .001: it has landed, further rounds change nothing visible
+    }
+    z -= ctr;                          // back to the picture's own centre
+    float r2 = dot(z, z);
+    if (!(r2 < 1e8)) return p;         // not a number, or a runaway: leave the point alone
+    gFrIt = sr >= 0. ? clamp(sr/n, 0., 1.) : 1.;   // tint: the share of the rounds allowed that it took to settle; a point that never settles in them (or hit the guard) counts as 1
+    float rr = sqrt(r2);
+    if (rr > 4.) z *= 4./rr;
+    return z/k;
   }
   if (ty > .5 && ty < 1.5){            // Julia: c travels the circle where the set stays connected
     ctr = cen*4.;                      // Centre X/Y moves the view centre across the plane (up to 2 units either way); 0 at the defaults
@@ -6337,7 +6364,7 @@ function draw(w, h){
     { const ty = Math.round(l.frType || 0), solid = x.isBg && x.orig.solid;   // Fractal: amount, zoom and angle, then type + iterations + spin packed as one small whole number
       const amt = ty > 0 && !solid ? clamp01(l.frAmt ?? 1) : 0;
       Nv[o] = amt; Nv[o+1] = Math.max(.05, +l.frZoom || 1); Nv[o+2] = (l.frAng || 0)*Math.PI/180;
-      const it = Math.max(1, Math.min(LITE.on ? (ty === 3 ? 3 : 4) : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds (3 for the kaleidoscope fold)
+      const it = Math.max(1, Math.min(LITE.on ? (ty === 3 || ty === 6 ? 3 : 4) : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds (3 for the kaleidoscope fold and Newton, whose complex division costs about three Julia rounds)
       Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0;
       Pv[o] = clamp01(l.frCx ?? .5); Pv[o+1] = clamp01(l.frCy ?? .5); Pv[o+2] = amt > 0 ? clamp01(l.frTint ?? 0) : 0; Pv[o+3] = 0; }   // Centre X/Y (.5 = centred) and tint: an old project without these keys gets the defaults, which render as before
     { const inf = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thInfl || 0) : 0;   // Inflate, Edge rounding, Wall thickness: Full only, picture and mask layers only
@@ -8396,7 +8423,7 @@ function syncModeUI(){
   const sb = $('#qSeg [data-q="1"]');
   if (sb){ sb.disabled = LITE.on; sb.title = LITE.on ? 'Full mode only (Lite renders at Normal at most)' : ''; }
   const fi = $('#g-lfr-frIt');
-  if (fi) fi.title = (LITE.on ? 'Lite runs at most 4 fractal rounds (3 for the kaleidoscope fold)\n' : '') + 'The Droste spiral has no rounds, so iterations do nothing for it';
+  if (fi) fi.title = (LITE.on ? 'Lite runs at most 4 fractal rounds (3 for the fold and Newton)\n' : '') + 'The Droste spiral has no rounds, so iterations do nothing for it';
   for (const id of ['#g-lth-thInfl', '#g-lth-thRound', '#g-lth-thick']){ const t = $(id); if (t) t.title = LITE.on ? 'Full mode only (Lite ignores thickness)' : ''; }
 }
 function setMode(m, persist = true){
@@ -9365,6 +9392,7 @@ const testMode = (() => {
     S('fc16', FC, aFC, 'adv', 'Turn a fractal type on, raise Fractal tint from 0 to 1 and back, for each type in turn. Try it on a picture layer, an Icon layer, and a layer with Recolour on.', 'At 0 the layer is untinted and looks exactly as before. Raising it paints a colour ramp along the fractal, from red where the pattern is shallow up to purple where it is deep, while the picture\'s own light and dark still show through. There is no hard colour seam where the ramp ends, and no extra slowdown. With Fractal amount at 0 or the type off there is no tint at all.', '#g-lfr', {cat: 'layer', top: 1}),
 
     S('fc17', FC, aPJ, 'adv', 'Open a project, Look preset or timeline scene saved before centre X, centre Y and tint existed, with a fractal type set. Then switch two timeline scenes between different centre and tint values and play with Glide.', 'The old file opens with centre X and Y at 0.5 and tint at 0, and the fractal looks exactly as it did before. Centre X, centre Y and tint glide smoothly between scenes, unlike type, iterations and spin which switch.', '#bProjImport', {cat: 'project'}),
+    S('fc18', FC, aFC, 'adv', 'Set Fractal type to Newton. Start with iterations at 1, then raise them one at a time to 12. Then sweep amount, zoom and angle, move centre X and centre Y, raise tint, and set spin to 1 and -1.', 'At low iterations (about 1 to 4) the picture is bent into three lobes with curved borders between them. At high iterations large areas collapse onto three points and smear, which is how Newton behaves and not a fault, so judge the look at low counts. No black frames or speckled pixels near the three centres. Tint shows quick-settling areas at one end of the colour ramp and the borders at the other. Spin 1 and -1 close the loop. Lite stops at 3 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle, centre X, centre Y, tint and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc7', FC, aPJ, 'adv', 'Save a project with a fractal set, reload the page and import it. Then open a project, Look preset or timeline scene saved before this update.', 'The fractal comes back exactly as saved. Older files open with Fractal off and look and move exactly as they did before.', '#bProjImport', {cat: 'project'}),
     S('fc8', FC, aTL, 'adv', 'Give two timeline scenes different Fractal angle values, then different type, iterations and spin values, and play with Glide.', 'Angle, amount and zoom glide smoothly between scenes. Type, iterations and spin switch instead of gliding, like Source spin, because gliding them would make the picture jump.', '#tlPlay', {panel: 'T'}),
