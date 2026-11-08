@@ -1872,7 +1872,7 @@ const LSPECS = {
   ],
   /* Fractal: the sample point runs through a fractal formula before the picture is looked up, so the picture itself becomes fractal. Full interface only (the host div carries data-adv). */
   'g-lfr':[
-    ['frType','Fractal type',0,2,1,v=>['off','Julia','Mandelbrot'][+v] || 'off'],
+    ['frType','Fractal type',0,3,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold'][+v] || 'off'],
     ['frAmt','Fractal amount',0,1,.01,fx(2)],
     ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
@@ -2581,6 +2581,20 @@ vec2 fractalWarp(int i, vec2 p, float phi){
   float k = 3./max(N.y, .05);          // zoom 1 = the classic fractal window fills the height
   vec2 q = p*k, z, c;
   vec2 ctr = vec2(0.);
+  if (ty > 2.5){                       // Kaleidoscopic fold: mirror into a quadrant, turn by the angle, shift by a step that shrinks 1.8x each round
+    float cs = cos(a), sn = sin(a), f = .4444;   // f = (S-1)/S for S = 1.8, so the point never grows and needs no scaling back
+    vec2 w = q;
+    for (int r = 0; r < 12; r++){
+      if (float(r) >= n) break;
+      w = abs(w);
+      w = vec2(cs*w.x - sn*w.y, sn*w.x + cs*w.y) - vec2(1., .7)*f;
+      f /= 1.8;
+    }
+    float wr = length(w);
+    if (!(wr < 1e4)) return p;         // not a number: leave the point alone
+    if (wr > 4.) w *= 4./wr;
+    return w/k;
+  }
   if (ty < 1.5){                       // Julia: c travels the circle where the set stays connected
     z = q; c = .7885*vec2(cos(a), sin(a));
   } else {                             // Mandelbrot: c is the point itself; the angle turns the view
@@ -6062,7 +6076,7 @@ function draw(w, h){
     { const ty = Math.round(l.frType || 0), solid = x.isBg && x.orig.solid;   // Fractal: amount, zoom and angle, then type + iterations + spin packed as one small whole number
       const amt = ty > 0 && !solid ? clamp01(l.frAmt ?? 1) : 0;
       Nv[o] = amt; Nv[o+1] = Math.max(.05, +l.frZoom || 1); Nv[o+2] = (l.frAng || 0)*Math.PI/180;
-      const it = Math.max(1, Math.min(LITE.on ? 4 : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds
+      const it = Math.max(1, Math.min(LITE.on ? (ty === 3 ? 3 : 4) : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds (3 for the kaleidoscope fold)
       Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0; }
     { const inf = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thInfl || 0) : 0;   // Inflate, Edge rounding, Wall thickness: Full only, picture and mask layers only
       Ov[o] = inf; Ov[o+1] = clamp01(l.thRound ?? .5); Ov[o+2] = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thick || 0) : 0; Ov[o+3] = 0; }
@@ -8117,7 +8131,7 @@ function syncModeUI(){
   const sb = $('#qSeg [data-q="1"]');
   if (sb){ sb.disabled = LITE.on; sb.title = LITE.on ? 'Full mode only (Lite renders at Normal at most)' : ''; }
   const fi = $('#g-lfr-frIt');
-  if (fi) fi.title = LITE.on ? 'Lite runs at most 4 fractal rounds' : '';
+  if (fi) fi.title = LITE.on ? 'Lite runs at most 4 fractal rounds (3 for the kaleidoscope fold)' : '';
   for (const id of ['#g-lth-thInfl', '#g-lth-thRound', '#g-lth-thick']){ const t = $(id); if (t) t.title = LITE.on ? 'Full mode only (Lite ignores thickness)' : ''; }
 }
 function setMode(m, persist = true){
@@ -9077,6 +9091,7 @@ const testMode = (() => {
     S('fc3', FC, aFC, 'adv', 'With Julia on, move Fractal iterations from 1 to 12, then Fractal zoom from 0.25 to 4.', 'More iterations give finer detail and zoom magnifies the fractal window. No speckled or flickering pixels at any setting.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc4', FC, aFC, 'adv', 'Set Fractal spin to 1 and watch a full loop, then try -1 and 2. Put spin back to 0 and move Fractal angle through 0-360°.', 'The pattern turns in whole turns per loop and the end of the loop matches the start with no jump. Angle turns the pattern and then holds still.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc5', FC, aFC, 'adv', 'Set Fractal type to Mandelbrot and sweep amount, iterations, zoom and angle again.', 'The familiar Mandelbrot outline shows in the warp, centred in the frame, and every slider behaves as it does for Julia.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc12', FC, aFC, 'adv', 'Set Fractal type to Kaleidoscope fold. Sweep amount, iterations, zoom and angle, then set spin to 1 and -1.', 'The picture folds into a crystalline, self-similar pattern with sharp mirror lines. Iterations 1 to 12 add finer folds without popping or black frames, and spin turns the pattern once per loop with no jump at the loop point. Lite stops at 3 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc7', FC, aPJ, 'adv', 'Save a project with a fractal set, reload the page and import it. Then open a project, Look preset or timeline scene saved before this update.', 'The fractal comes back exactly as saved. Older files open with Fractal off and look and move exactly as they did before.', '#bProjImport', {cat: 'project'}),
     S('fc8', FC, aTL, 'adv', 'Give two timeline scenes different Fractal angle values, then different type, iterations and spin values, and play with Glide.', 'Angle, amount and zoom glide smoothly between scenes. Type, iterations and spin switch instead of gliding, like Source spin, because gliding them would make the picture jump.', '#tlPlay', {panel: 'T'}),
