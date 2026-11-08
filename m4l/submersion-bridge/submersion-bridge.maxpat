@@ -652,7 +652,7 @@
         "box": {
           "id": "obj-35",
           "maxclass": "comment",
-          "text": "Submersion Bridge",
+          "text": "Mandalux Bridge",
           "numinlets": 1,
           "numoutlets": 0,
           "patching_rect": [

@@ -85,7 +85,7 @@ wire("pack", 0, "pre", 0); wire("pre", 0, "node", 0)
 # ---- status display from node ----
 obj("route", "route status clients", 340, 590, 1, 3, w=140, outlettype=["", "", ""])
 obj("p1", "prepend set Bridge:", 340, 625, 1, 1, w=120); obj("p2", "prepend set Clients:", 480, 625, 1, 1, w=120)
-comment("title", "Submersion Bridge", 700, 20, 150, pres=[10, 4, 200, 20])
+comment("title", "Mandalux Bridge", 700, 20, 150, pres=[10, 4, 200, 20])
 comment("status", "Bridge: starting", 700, 60, 200, pres=[10, 30, 210, 20])
 comment("clients", "Clients: 0", 700, 100, 200, pres=[10, 54, 210, 20])
 wire("node", 0, "route", 0); wire("route", 0, "p1", 0); wire("route", 1, "p2", 0)

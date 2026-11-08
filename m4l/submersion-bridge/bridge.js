@@ -1,5 +1,5 @@
 'use strict';
-/* node.script entry point for the Submersion Bridge Max for Live device.
+/* node.script entry point for the Mandalux Bridge Max for Live device.
    Max sends:   frame <rms> <peak> <b1> <b2> <b3> <b4> <b5> <bpm> <beat> <playing>   (linear amplitudes, ~60/s;
                                                                   bpm, beat in quarter notes and playing 0/1 come from Live)
                 floor <dB>                                    (optional, default -60)

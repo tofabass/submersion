@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Submersion</title>
+<title>Mandalux</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0E0B1F">
 <style>img{max-width:100%}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -313,6 +317,12 @@ body{background:var(--stage)}
 .mark{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .mark b{font:700 18px var(--f-ui);letter-spacing:-.01em}
 .mark span{font:400 11px var(--f-num);color:var(--dim)}
+.mark{align-items:center}
+.mxBrand{display:flex;align-items:center;gap:10px;min-width:0}
+.mxMark{width:36px;height:36px;flex:none;border-radius:9px;display:block}
+.mark b.mxWord{font:700 17px var(--f-ui);letter-spacing:.24em;color:var(--ink);text-indent:.02em}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .mark b.mxWord{color:#F5E9C8} }
+:root[data-theme="dark"] .mark b.mxWord{color:#F5E9C8}
 /* control rows: icon · label · track · value · die · pin on one line */
 .ctl{grid-template-columns:16px minmax(64px,104px) minmax(0,1fr) 66px auto auto;gap:0 6px;min-height:28px}
 .ctl>*{grid-row:1}
@@ -506,7 +516,7 @@ body.easy .drawer{display:none}   /* nothing left in it for Easy: the parallax s
   .ctl>.pin{opacity:.6}
 }
 
-/* ================= Liquid glass layer (Submersion) =================
+/* ================= Liquid glass layer (Mandalux) =================
    Glass surfaces adapted from LiquidGlassSkill (MIT, Aref Azizian). Glass is colourless; colour arrives from behind.
    Children of a glass panel paint no surface of their own: rows, buttons and inputs use a faint wash at most. */
 :root{
@@ -1478,7 +1488,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
 
     <div class="cat off" data-cat="project">
       <div class="cath"><span class="catn">Project &amp; export</span></div>
-<div class="mark"><b>Submersion</b><span>prototype v1.3 · Glass</span></div>            <div class="status" id="status"></div>      <div class="btns" data-adv>
+<div class="mark"><div class="mxBrand"><svg class="mxMark" viewBox="0 0 200 200" role="img" aria-label="Mandalux logo"><rect width="200" height="200" rx="36" fill="#0E0B1F"/><defs><rect id="mxSq" x="20" y="20" width="160" height="160" rx="6" fill="none" stroke-width="1.3" vector-effect="non-scaling-stroke"/></defs><use href="#mxSq" stroke="#9ACA71" opacity="0.7"/><use href="#mxSq" stroke="#65CCC0" opacity="0.75" transform="translate(100 100) rotate(11.25) scale(0.82) translate(-100 -100)"/><use href="#mxSq" stroke="#EDAF5B" opacity="0.8" transform="translate(100 100) rotate(22.5) scale(0.67) translate(-100 -100)"/><use href="#mxSq" stroke="#EC8976" opacity="0.85" transform="translate(100 100) rotate(33.75) scale(0.55) translate(-100 -100)"/><use href="#mxSq" stroke="#8DACE7" opacity="0.9" transform="translate(100 100) rotate(45) scale(0.45) translate(-100 -100)"/><use href="#mxSq" stroke="#BA9BE3" opacity="0.95" transform="translate(100 100) rotate(56.25) scale(0.37) translate(-100 -100)"/><use href="#mxSq" stroke="#E2D165" transform="translate(100 100) rotate(67.5) scale(0.3) translate(-100 -100)"/><use href="#mxSq" stroke="#C8DBC9" transform="translate(100 100) rotate(78.75) scale(0.25) translate(-100 -100)"/><circle cx="100" cy="100" r="6" fill="#FFF4D1"/></svg><b class="mxWord">MANDALUX</b></div><span>prototype v1.3 · Glass</span></div>            <div class="status" id="status"></div>      <div class="btns" data-adv>
         <button class="btn" id="bCopy">Copy settings</button>
         <button class="btn" id="bReset">Reset all</button>
         <button class="btn" id="bResetUndo" disabled>Undo reset</button>
@@ -1622,7 +1632,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <div class="btns"><button class="btn" id="modeLite">Run Lite</button><button class="btn primary" id="modeFull">Run Full</button></div>
 </div></div>
 <div class="lookpop" id="lookPop" role="dialog" aria-label="Settings" hidden>
-  <h3>Settings <span class="meta">Submersion</span></h3>
+  <h3>Settings <span class="meta">Mandalux</span></h3>
   <div class="lkTop" id="lkTop"><button class="btn" id="lkTut" type="button" title="A quick or interactive tour of the controls"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-play"/></svg>Tutorial</button><button class="btn" id="lkKeys" type="button"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-keys"/></svg>Shortcuts</button></div>
   <details class="lkg" data-lkg="frame" open><summary>Frame</summary><div class="lkgb">
   <div class="lrowp"><span>Aspect ratio</span><select id="aspectSel" aria-label="Aspect ratio">
@@ -2170,7 +2180,7 @@ function markDirty(){ if (DIRTY || TUT_SB) return; DIRTY = true; syncDirty(); }
 function clearDirty(quiet = 500){ dirtyQuiet = performance.now() + quiet; DIRTY = false; syncDirty(); }
 function syncDirty(){
   const pn = document.getElementById('projName'), nm = pn ? pn.value.trim() : '';
-  document.title = (DIRTY ? '\u25CF ' : '') + (nm ? nm + ' \u00B7 ' : '') + 'Submersion';
+  document.title = (DIRTY ? '\u25CF ' : '') + (nm ? nm + ' \u00B7 ' : '') + 'Mandalux';
   for (const id of ['projDot', 'mSaveDot', 'dMoreDot']){ const el = document.getElementById(id); if (el) el.hidden = !DIRTY; }
   const mb = document.getElementById('dMore'); if (mb){ const t = DIRTY ? 'More (unsaved changes)' : 'More'; mb.title = t; mb.setAttribute('aria-label', t); }
 }
@@ -3630,7 +3640,7 @@ function setSmartTol(v, cx, cy){
 }
 function syncSmartTouch(){ cv.classList.toggle('smartbr', !!cal && cal.id !== 'bg' && T.tool === 'smart'); }
 
-/* ---------- auto layers: pick how many and what each one is; Submersion makes the selections ---------- */
+/* ---------- auto layers: pick how many and what each one is; Mandalux makes the selections ---------- */
 function renderAutoRows(){
   const host = $('#autoRows'); host.innerHTML = '';
   for (let i=0; i<AUTO.n; i++){
@@ -4466,7 +4476,7 @@ $('#fPresets').onchange = async e => {
     let n = 0;
     for (const p of list) if (p && p.name && p.settings){ await savePreset(String(p.name).slice(0,40), typeof p.settings === 'string' ? JSON.parse(p.settings) : p.settings); n++; }
     toast(n ? `Imported ${n} Look ${n===1?'preset':'presets'}` : 'No Look presets found in that file');
-  } catch(err){ toast('That file is not a Submersion Look preset export'); }
+  } catch(err){ toast('That file is not a Mandalux Look preset export'); }
 };
 
 /* ---------- import separated layer images ---------- */
@@ -4693,7 +4703,7 @@ $('#fProj').onchange = async e => {
     tlFromSave(j.timeline, j.files);   // older projects have none: the timeline starts empty
     curProj = null; $('#projName').value = j.name || ''; toast('Project file opened'); markDirty();
     pushProjectLoad(before, (j.name || 'Project file') + ' project');
-  } catch(err){ toast('That file is not a Submersion project'); }
+  } catch(err){ toast('That file is not a Mandalux project'); }
   projNote();
 };
 
@@ -5849,10 +5859,10 @@ const audioEl = $('#audioEl');
 let actx, analyser, freq, srcNode, mon = null, liveIn = false;   // liveIn: tab audio from the Music panel's Listen button feeds the same analyser
 const hit = [0,0,0], hSlow = [0,0,0], hPrev = [0,0,0], hArmed = [true,true,true], hLast = [0,0,0];
 const env = [0,0,0], avg = [0,0,0], peak = [.1,.1,.1], band = [0,0,0], gateOpen = [false,false,false];
-/* Ableton (Max for Live): the Submersion Bridge device sends level and five bands about 60 times a second over ws://localhost.
+/* Ableton (Max for Live): the Mandalux Bridge device sends level and five bands about 60 times a second over ws://localhost.
    Those bands replace the analyser's FFT bands and then go through the same normaliser, gates, smoothing and routes as every other source. */
 const ABL_PORT = 8787, ABL_EDGES = [25, 150, 500, 2000, 6000, 16000], ABL_STALE = 400;
-const ABL_ERR = "Couldn't connect to Ableton. Add the Submersion Bridge device to a track and allow local network access in Chrome.";
+const ABL_ERR = "Couldn't connect to Ableton. Add the Mandalux Bridge device to a track and allow local network access in Chrome.";
 const abl = {on: false, ws: null, timer: 0, retry: 0, edges: ABL_EDGES, v: null, rms: 0, at: 0, msg: '', hello: false, hasClock: false, clock: null, fWas: false, cNow: 0, wasPlaying: false, cKey: ''};
 let ablFollow = (() => { try { return JSON.parse(localStorage.getItem('depthscope.ui.ablFollow')) === true; } catch(e){ return false; } })();   // same storage as UI.set, which is defined further down
 const ablFollowing = () => !!(abl.on && ablFollow && abl.hasClock);
@@ -6050,7 +6060,7 @@ $('#bRec').onclick = () => {
   rec.onstop = () => {
     stream.getTracks().forEach(t => t.stop()); rec = null;
     updateBadge(); $('#bRec').disabled = false;
-    offer(`submersion-${P.seg}fold-${P.loop}s.${ext}`, new Blob(chunks, {type: mime}));
+    offer(`mandalux-${P.seg}fold-${P.loop}s.${ext}`, new Blob(chunks, {type: mime}));
   };
   t = 0; paused = false; $('#hPause').textContent = 'Pause';
   rec.start(); recEnd = performance.now() + P.loop*1000;
@@ -6553,7 +6563,7 @@ function frame(now){
     const ow = cv.width, oh = cv.height, s = 2400/Math.max(ow,oh);
     cv.width = Math.round(ow*s); cv.height = Math.round(oh*s);
     draw(cv.width, cv.height);
-    cv.toBlob(bl => { if (bl) offer('submersion-still.png', bl); else toast('Could not render the still'); }, 'image/png');
+    cv.toBlob(bl => { if (bl) offer('mandalux-still.png', bl); else toast('Could not render the still'); }, 'image/png');
     cv.width = ow; cv.height = oh;
   }
   draw(cv.width, cv.height);
@@ -6929,7 +6939,7 @@ function presetKit(o){
     }
     else if (a === 'exp'){
       if (!list.length){ toast(`No ${o.noun}s of your own to export yet`); return; }
-      offer(`submersion-${o.kind}-presets.json`, new Blob([JSON.stringify({app:'Submersion', kind:o.kind, version:1, presets:list}, null, 1)], {type:'application/json'}));
+      offer(`mandalux-${o.kind}-presets.json`, new Blob([JSON.stringify({app:'Submersion', kind:o.kind, version:1, presets:list}, null, 1)], {type:'application/json'}));
     }
     else if (a === 'imp') file.click();
   });
@@ -6950,7 +6960,7 @@ function presetKit(o){
       }
       if (!n){ toast(`Couldn't import. No ${o.noun}s found in that file.`, 3200); return; }
       persist(); toast(`Imported ${n} ${o.noun}${n === 1 ? '' : 's'}` + (skipped ? `. ${skipped} could not be read.` : ''), 3200); o.onChange(); sync();
-    } catch(err){ toast(`Couldn't import. That isn't a Submersion ${o.noun} export.`, 3200); }
+    } catch(err){ toast(`Couldn't import. That isn't a Mandalux ${o.noun} export.`, 3200); }
   };
   sync();
   return {list: () => list, find, sync};
@@ -9835,7 +9845,7 @@ const testMode = (() => {
   function report(r){
     const L = listFor(r.mode), c = tally(L, r.res), d = new Date(), p = n => String(n).padStart(2, '0');
     const ua = (navigator.userAgent || '').replace(/^Mozilla\/5\.0 /, '').replace(/\s+/g, ' ').slice(0, 100);
-    const out = ['Submersion test report',
+    const out = ['Mandalux test report',
       'Date: ' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()),
       'Mode: ' + MODES[r.mode].name + ' (' + L.length + ' steps)',
       'Update tag: ' + (r.mode === 'new' ? newest : 'all (newest: ' + newest + ')'),
@@ -10236,7 +10246,7 @@ function lvUI(){
 }
 function ablClockText(){
   if (!abl.hello) return '';
-  if (!abl.hasClock) return "This version of the Submersion Bridge device can't send Live's tempo. Update the device to follow Live.";
+  if (!abl.hasClock) return "This version of the Mandalux Bridge device can't send Live's tempo. Update the device to follow Live.";
   if (!ablFollow) return '';
   const c = abl.clock;
   if (!c || performance.now() - c.at > ABL_STALE) return "Waiting for Live's tempo.";
@@ -10321,7 +10331,7 @@ function ablFail(){
 }
 function ablMsg(data){
   let m; try { m = JSON.parse(data); } catch(e){ return; }
-  if (!m || m.v !== 1){ if (m && m.t === 'hello'){ stopLive(); toast("Couldn't use this version of the Submersion Bridge device. Update the device, then try again.", 4500); } return; }
+  if (!m || m.v !== 1){ if (m && m.t === 'hello'){ stopLive(); toast("Couldn't use this version of the Mandalux Bridge device. Update the device, then try again.", 4500); } return; }
   if (m.t === 'hello'){
     const ed = m.edges;
     abl.hello = true; abl.hasClock = m.clock === true;

@@ -1,6 +1,6 @@
-# Submersion
+# Mandalux
 
-Submersion turns a still image into depth-layered parallax with 3D kaleidoscope symmetry. Full and Lite modes, oscillators, a layer stack, Look presets, stills and loop recording, all running in the browser with no install and no server.
+Mandalux (formerly Submersion) turns a still image into depth-layered parallax with 3D kaleidoscope symmetry. Full and Lite modes, oscillators, a layer stack, Look presets, stills and loop recording, all running in the browser with no install and no server.
 
 **Live:** https://tofabass.github.io/submersion/
 
