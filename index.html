@@ -364,6 +364,7 @@ body{background:var(--stage)}
 .lrow .rnin{width:100%;min-width:0;font:600 12px var(--f-ui);color:var(--ink);background:var(--raise);border:1px solid var(--accent);border-radius:4px;padding:3px 6px}
 .drawer{flex:0 0 auto;border-top:1px solid var(--line-soft);display:grid}
 .fp.folded .drawer{display:none}
+body.easy .drawer{display:none}   /* nothing left in it for Easy: the parallax sliders moved to Motion */
 .dwbar{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:transparent;color:var(--dim);font:600 10.5px var(--f-ui);text-transform:uppercase;letter-spacing:.12em;padding:10px 14px;cursor:pointer;border-radius:0 0 var(--glass-radius,10px) var(--glass-radius,10px)}
 .dwbar:hover{color:var(--ink)}
 .dwbar:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
@@ -1333,7 +1334,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
 
     <div class="cat off" data-cat="depth">
       <div class="cath"><span class="catn">Depth</span></div>
-<div class="stack" id="g-depth"></div>        <div class="lbl" data-adv>Whole-image depth</div>
+        <div class="lbl" data-adv>Whole-image depth</div>
         <div class="btns" data-adv>
           <select id="depthMode" aria-label="Auto depth guess">
             <option value="mixed">Guess: mixed</option>
@@ -1357,6 +1358,8 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <div class="cat off" data-cat="motion">
       <div class="cath"><span class="catn">Motion</span></div>
 <div class="stack" id="g-motion">        <p class="note">Every animated control repeats a whole number of times per loop, so exports loop seamlessly.</p></div>
+      <div class="lbl">Depth &amp; parallax</div>
+<div class="stack" id="g-depth"></div>
     </div>
 
     <div class="cat off" data-cat="view">
@@ -7002,7 +7005,7 @@ renderOsc();   // the panel starts closed; Osc (O) opens it
 const drawer = document.createElement('div'); drawer.className = 'drawer'; drawer.id = 'srcDrawer';
 drawer.innerHTML = `<button type="button" class="dwbar" id="dwBar" aria-expanded="false" aria-controls="dwBody" title="Source and Depth"><span><span data-adv>Source &amp; </span>Depth</span><svg class="gi-svg chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg></button>
 <div class="dwbody" id="dwBody" role="region" aria-label="Source and Depth"><div class="dwin"><div class="dwscroll"><div class="seg dwtabs" id="dwTabs"><button type="button" data-dw="view" aria-pressed="true" data-adv>Source</button><button type="button" data-dw="depth" aria-pressed="false">Depth</button></div></div></div></div>`;
-pL.appendChild(drawer);   // shown in Easy too, as "Depth" with only Parallax strength (Source is Full only)
+pL.appendChild(drawer);   // Full only: Source and the depth-map tools (the parallax sliders live in the Motion tab, which Easy shows)
 for (const id of ['view', 'depth']){ const c = document.querySelector(`.cat[data-cat="${id}"]`); c.classList.remove('off'); drawer.querySelector('.dwscroll').appendChild(c); }
 function setDrawer(open, tab){
   if (tab) UI.set('drawerTab', tab); tab = UI.get('drawerTab', 'view'); if (tab !== 'view' && tab !== 'depth') tab = 'view';
@@ -9432,7 +9435,7 @@ const testMode = (() => {
     S('sc2', B, aSC, '', 'View › Tr1ppical Butterfly.', 'The butterfly scene loads: six picture layers and particles.', '#bSample2', {drawer: 'view'}),
     S('sc3', B, aSC, '', 'Press Undo right after loading a sample.', 'The previous scene returns. If no Undo is offered, mark Fail and say so.'),
 
-    S('dp1', B, aDP, '', 'Open the Depth tab and drag its sliders one at a time.', 'Nearer layers move more than farther ones; nothing flickers.', '#g-depth', {cat: 'depth'}),
+    S('dp1', B, aDP, '', 'Open the Motion tab and drag the Depth & parallax sliders one at a time.', 'Nearer layers move more than farther ones; nothing flickers.', '#g-depth', {cat: 'motion'}),
     S('dp2', B, aDP, '', 'Layer tab › Depth offset: drag it.', 'That layer moves nearer or farther against the others.', '#g-lpos', {cat: 'layer', top: 1}),
     S('dp3', B, aDP, '', 'Layer tab › Instances: raise it to 3.', 'Three copies stack in depth; Offset delays timed effects on each copy.', '#instBox', {cat: 'layer', top: 1}),
     S('dp4', D3, aDP, '', 'Open Layers, choose 3D view, then drag the picture (one finger or the mouse).', 'The stack turns and tilts, the pad dot follows, and the angle stays when you let go. Pinch or scroll changes Layer spacing; double-tap or double-click centres it.', '#viewSeg', {panel: 'L'}),
