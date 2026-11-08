@@ -1400,7 +1400,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
           <button class="btn" id="bPlay" disabled>Play</button>
           <input type="file" id="fAudio" accept="audio/*" hidden>
         </div>
-        <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
+        <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><label class="check lvFollow" hidden><input type="checkbox" class="lvFollowIn"> Follow Live tempo</label><p class="note lvNote" hidden></p></div>
         <div class="lbl" data-adv>Frequency bands</div>
         <div class="bands" data-adv>
           <div class="band"><span class="bn">Low</span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" data-adv id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
@@ -1508,7 +1508,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <div class="musSp" id="musSp" hidden><div class="musSpRow"><button class="btn" id="musSignIn" type="button">Sign in to Spotify</button><button class="btn" id="musReload" type="button">I've signed in, reload player</button></div><p class="note">Full tracks need Spotify Premium, signed in on this browser (desktop). Otherwise Spotify plays 30-second previews.</p></div>
     <div class="musListen" id="musListen" hidden><button class="btn" id="musListenBtn" type="button" title="Share this tab's audio so the picture reacts to the music">Listen</button><button class="btn" id="musStop" type="button" hidden>Stop</button><span class="live" id="musLive" hidden>Listening</span></div>
     <p class="note" id="musListenNote"></p>
-    <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
+    <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><label class="check lvFollow" hidden><input type="checkbox" class="lvFollowIn"> Follow Live tempo</label><p class="note lvNote" hidden></p></div>
   </div>
 </section>
 
@@ -5245,7 +5245,9 @@ const env = [0,0,0], avg = [0,0,0], peak = [.1,.1,.1], band = [0,0,0], gateOpen 
    Those bands replace the analyser's FFT bands and then go through the same normaliser, gates, smoothing and routes as every other source. */
 const ABL_PORT = 8787, ABL_EDGES = [25, 150, 500, 2000, 6000, 16000], ABL_STALE = 400;
 const ABL_ERR = "Couldn't connect to Ableton. Add the Submersion Bridge device to a track and allow local network access in Chrome.";
-const abl = {on: false, ws: null, timer: 0, retry: 0, edges: ABL_EDGES, v: null, rms: 0, at: 0, msg: ''};
+const abl = {on: false, ws: null, timer: 0, retry: 0, edges: ABL_EDGES, v: null, rms: 0, at: 0, msg: '', hello: false, hasClock: false, clock: null, fWas: false, cNow: 0, wasPlaying: false, cKey: ''};
+let ablFollow = (() => { try { return JSON.parse(localStorage.getItem('depthscope.ui.ablFollow')) === true; } catch(e){ return false; } })();   // same storage as UI.set, which is defined further down
+const ablFollowing = () => !!(abl.on && ablFollow && abl.hasClock);
 const ablFresh = () => !!abl.v && performance.now() - abl.at < ABL_STALE;
 /* the five device bands into the app's three, weighted by how much of each (in octaves) falls inside the crossover range; silence once frames stop */
 function ablBands(edges){
@@ -5307,6 +5309,7 @@ function pulseAt(beat, period, off, rand, k){
   return v;
 }
 function tapTempo(){
+  if (ablFollowing()){ toast('Live is in charge of the tempo. Turn off Follow Live tempo to tap.'); return; }
   const now = performance.now();
   if (taps.length && now - taps[taps.length-1] > 2000) taps = [];
   taps.push(now); if (taps.length > 5) taps.shift();
@@ -5329,6 +5332,33 @@ function bandAvg(lo, hi){
   const hz = actx.sampleRate/analyser.fftSize; let s=0, n=0;
   for (let i=Math.max(1, Math.floor(lo/hz)); i<=Math.min(freq.length-1, Math.ceil(hi/hz)); i++){ s+=freq[i]; n++; }
   return n ? s/n/255 : 0;
+}
+/* Follow Live tempo: Live's tempo and song position drive the same beat clock the tap tempo uses (P.bpm, beatOrigin, MOD.origin).
+   Live playing: the beat is Live's beat, nudged gently towards it each frame and snapped when it jumps. Live stopped, or no data: the beat freezes. */
+function ablClockTick(now){
+  const dtm = Math.max(0, Math.min(100, now - (abl.cNow || now))); abl.cNow = now;
+  const on = ablFollowing();
+  if (on !== abl.fWas){ abl.fWas = on; abl.wasPlaying = false; ablFollowUI(); lvUI(); }
+  if (!on) return;
+  const c = abl.clock, fresh = !!c && now - c.at < ABL_STALE;
+  if (fresh){
+    const bpm = Math.round(Math.min(240, Math.max(30, c.bpm))*100)/100;
+    if (Math.abs(bpm - P.bpm) >= .01){ P.bpm = bpm; MOD.bpm = bpm; gCtl.forEach(x => x.sync()); }
+  }
+  if (!fresh || !c.playing || !(P.bpm > 0)){
+    abl.wasPlaying = false;
+    beatOrigin += dtm; MOD.origin = beatOrigin;   // time passes but the beat does not move
+    return;
+  }
+  const live = c.beat + (now - c.at)/60000*c.bpm, target = now - live*60000/P.bpm, err = (now - beatOrigin)/60000*P.bpm - live;
+  if (!abl.wasPlaying || Math.abs(err) > .2){ beatOrigin = target; if (oscReady) oscDrawSoon(); }
+  else beatOrigin += (target - beatOrigin)*.08;
+  abl.wasPlaying = true; MOD.origin = beatOrigin; MOD.bpm = P.bpm;
+}
+function ablFollowUI(){
+  const f = ablFollowing(), inp = document.getElementById('g-audio-bpm');
+  if (inp){ inp.disabled = f; inp.title = f ? "Live is in charge of the tempo. Turn off Follow Live tempo to change it." : ''; }
+  const b = $('#bTap'); if (b) b.setAttribute('aria-disabled', f);
 }
 function updateAudio(t, dt){
   const edges = bandEdges(), gates = [P.gateLow, P.gateMid, P.gateHigh];
@@ -5849,6 +5879,7 @@ function frame(now){
   const dt = Math.min(.1, (now - lastNow)/1000); lastNow = now; frameDt = dt || 1/60;
   if (!paused) t += dt;
   if (TL && TL.run) tlTick(dt);
+  ablClockTick(now);
   if (oscReady) modTick(now, dt);
   updateAudio(t, dt);
   if (depthDirty) uploadDepth();
@@ -9246,15 +9277,28 @@ function lvUI(){
     mic.setAttribute('aria-pressed', !!(LV.src && LV.src.kind === 'mic')); dev.setAttribute('aria-pressed', !!(LV.src && LV.src.kind === 'device')); ab.setAttribute('aria-pressed', !!(LV.src && LV.src.kind === 'ableton'));
     const parts = [];
     if (!live){ if (musCanListen) parts.push(LV_DEV_NOTE); if (lvLast) parts.push('Last used: ' + LV_NAMES[lvLast] + '.'); }
-    else if (LV.src && LV.src.kind === 'ableton' && abl.msg) parts.push(abl.msg);
+    else if (LV.src && LV.src.kind === 'ableton'){
+      if (abl.msg) parts.push(abl.msg);
+      const ct = ablClockText(); if (ct) parts.push(ct);
+    }
+    const fo = q('.lvFollow'), fi = q('.lvFollowIn'), isAbl = !!(LV.src && LV.src.kind === 'ableton');
+    fo.hidden = !isAbl; fi.checked = ablFollow; fi.disabled = isAbl && abl.hello && !abl.hasClock;
     nt.textContent = parts.join(' '); nt.hidden = !parts.length;
   }
+}
+function ablClockText(){
+  if (!abl.hello) return '';
+  if (!abl.hasClock) return "This version of the Submersion Bridge device can't send Live's tempo. Update the device to follow Live.";
+  if (!ablFollow) return '';
+  const c = abl.clock;
+  if (!c || performance.now() - c.at > ABL_STALE) return "Waiting for Live's tempo.";
+  return `Following Live at ${+c.bpm.toFixed(2)} bpm. Live is ${c.playing ? 'playing' : 'stopped'}.`;
 }
 function lvMeters(l){ for (const b of document.querySelectorAll('.lvMeter b')) b.style.transform = 'scaleX(' + l.toFixed(3) + ')'; }
 function lvTick(){
   LV.timer = 0;
   if (!(LV.src || musListening) || !analyser){ lvMeters(0); return; }
-  if (LV.src && LV.src.kind === 'ableton'){ lvMeters(ablFresh() ? abl.rms : 0); LV.timer = setTimeout(lvTick, 70); return; }
+  if (LV.src && LV.src.kind === 'ableton'){ lvMeters(ablFresh() ? abl.rms : 0); const k = ablClockText(); if (k !== abl.cKey){ abl.cKey = k; lvUI(); } LV.timer = setTimeout(lvTick, 70); return; }
   if (!LV.td || LV.td.length !== analyser.fftSize) LV.td = new Uint8Array(analyser.fftSize);
   analyser.getByteTimeDomainData(LV.td);
   let s = 0; for (let i = 0; i < LV.td.length; i++){ const v = (LV.td[i] - 128) / 128; s += v*v; }
@@ -9319,7 +9363,7 @@ async function startDevice(){
 /* Ableton connection: starts only from a click (so Chrome's local network prompt appears in context), then keeps retrying with a short backoff.
    Browser errors carry no useful detail, so only fixed messages are ever shown. */
 function ablClose(){
-  abl.on = false; clearTimeout(abl.timer); abl.v = null; abl.msg = '';
+  abl.on = false; clearTimeout(abl.timer); abl.v = null; abl.msg = ''; abl.hello = abl.hasClock = false; abl.clock = null;
   const w = abl.ws; abl.ws = null;
   if (w){ w.onopen = w.onmessage = w.onclose = w.onerror = null; try { w.close(); } catch(e){} }
 }
@@ -9332,9 +9376,12 @@ function ablMsg(data){
   if (!m || m.v !== 1){ if (m && m.t === 'hello'){ stopLive(); toast("Couldn't use this version of the Submersion Bridge device. Update the device, then try again.", 4500); } return; }
   if (m.t === 'hello'){
     const ed = m.edges;
+    abl.hello = true; abl.hasClock = m.clock === true;
     abl.edges = Array.isArray(ed) && ed.length === 4 && ed.every((x, i) => Number.isFinite(x) && x > (i ? ed[i-1] : 25) && x < 16000) ? [25, ...ed, 16000] : ABL_EDGES;
   } else if (m.t === 'f' && Array.isArray(m.bands) && m.bands.length === 5){
     abl.v = m.bands.map(x => clamp01(+x || 0)); abl.rms = clamp01(+m.rms || 0); abl.at = performance.now();
+    const bpm = +m.bpm, beat = +m.beat;
+    abl.clock = (abl.hasClock && Number.isFinite(bpm) && bpm >= 20 && bpm <= 999 && Number.isFinite(beat) && Math.abs(beat) < 1e7) ? {bpm, beat, playing: m.playing === 1 || m.playing === true, at: abl.at} : null;
   }
 }
 function ablConnect(){
@@ -9345,13 +9392,13 @@ function ablConnect(){
   ws.onopen = () => { abl.retry = 0; abl.msg = 'Connected to Ableton.'; lvUI(); };
   ws.onmessage = ev => ablMsg(ev.data);
   ws.onerror = () => {};
-  ws.onclose = () => { if (abl.ws === ws){ abl.ws = null; if (abl.on) ablFail(); } };
+  ws.onclose = () => { if (abl.ws === ws){ abl.ws = null; abl.hello = abl.hasClock = false; abl.clock = null; if (abl.on) ablFail(); } };
 }
 function startAbleton(){
   if (!ablCan || (LV.src && LV.src.kind === 'ableton')) return;
   try { ensureCtx(); } catch(e){}   // inside the click, so the audio context may start
   stopSources();
-  abl.on = true; abl.retry = 0; abl.v = null; abl.edges = ABL_EDGES; abl.msg = 'Looking for Ableton…';
+  abl.on = true; abl.retry = 0; abl.v = null; abl.clock = null; abl.edges = ABL_EDGES; abl.msg = 'Looking for Ableton…';
   const noTracks = {getTracks: () => [], getAudioTracks: () => []};   // no media stream here; stopLive() ends the source through node.disconnect()
   lvBegin('ableton', noTracks, {disconnect: ablClose}, null);
   ablConnect();
@@ -9368,6 +9415,7 @@ for (const r of lvRows){
   r.querySelector('.lvMic').onclick = startMic;
   r.querySelector('.lvDev').onclick = startDevice;
   r.querySelector('.lvAbl').onclick = startAbleton;
+  r.querySelector('.lvFollowIn').onchange = e => { ablFollow = e.target.checked; UI.set('ablFollow', ablFollow); ablFollowUI(); lvUI(); };
   r.querySelector('.lvStop').onclick = () => { stopLive(); stopListen(); };
   r.querySelector('.lvGainIn').addEventListener('input', e => lvSetGain(+e.target.value, e.target));
 }

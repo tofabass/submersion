@@ -75,7 +75,7 @@ obj("trig", "t b b b b b b", 620, 410, 1, 6, w=100, outlettype=["bang"] * 6)
 wire("metro", 0, "trig", 0)
 wire("trig", 0, "snapr", 0)
 for i in range(5): wire("trig", i + 1, f"snap{i}", 0)
-obj("pack", "pack 0. 0. 0. 0. 0. 0. 0.", 30, 520, 7, 1, w=200, outlettype=[""])
+obj("pack", "pack 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.", 30, 520, 10, 1, w=260, outlettype=[""])   # rms, peak, 5 bands, then Live's bpm, beat, playing (cold inlets)
 wire("snapr", 0, "pack", 0); wire("pk", 0, "pack", 1)
 for i in range(5): wire(f"snap{i}", 0, "pack", i + 2)
 obj("pre", "prepend frame", 30, 555, 1, 1, outlettype=[""])
@@ -90,6 +90,46 @@ comment("status", "Bridge: starting", 700, 60, 200, pres=[10, 30, 210, 20])
 comment("clients", "Clients: 0", 700, 100, 200, pres=[10, 54, 210, 20])
 wire("node", 0, "route", 0); wire("route", 0, "p1", 0); wire("route", 1, "p2", 0)
 wire("p1", 0, "status", 0); wire("p2", 0, "clients", 0)
+
+# ---- Live's transport through the Live API: tempo, song position (beats) and play state ----
+def msg(key, text, x, y, w=None):
+    n = len(boxes) + 1
+    box = {"id": f"obj-{n}", "maxclass": "message", "text": text, "numinlets": 2, "numoutlets": 1, "outlettype": [""],
+           "patching_rect": [x, y, w or max(30, 7 * len(text) + 12), 22]}
+    boxes.append({"box": box}); ids[key] = (box["id"], 2, 1)
+
+obj("thisdev", "live.thisdevice", 900, 20, 1, 3, w=110, outlettype=["bang", "int", "int"])
+obj("defer", "deferlow", 900, 50, 1, 1)
+msg("pathmsg", "path live_set", 900, 80, 90)
+obj("lpath", "live.path", 900, 110, 1, 3, w=70, outlettype=["", "", ""])
+obj("tid", "t b l", 900, 140, 1, 2, w=50, outlettype=["bang", ""])
+obj("lobj", "live.object", 900, 200, 2, 3, w=90, outlettype=["", "", ""])
+msg("one", "1", 960, 170, 24)
+obj("mBeat", "metro 16", 1010, 200, 2, 1, outlettype=["bang"])        # song position every 16 ms
+obj("mTemp", "metro 100", 1090, 200, 2, 1, outlettype=["bang"])       # tempo and play state every 100 ms
+msg("gBeat", "get current_song_time", 1010, 235, 140)
+msg("gTemp", "get tempo", 1090, 265, 70)
+msg("gPlay", "get is_playing", 1090, 295, 100)
+obj("lroute", "route tempo is_playing current_song_time", 900, 330, 1, 4, w=250, outlettype=["", "", "", ""])
+wire("thisdev", 0, "defer", 0); wire("defer", 0, "pathmsg", 0); wire("pathmsg", 0, "lpath", 0)
+wire("lpath", 0, "tid", 0)
+wire("tid", 1, "lobj", 0)                 # the id first (right outlet fires first) ...
+wire("tid", 0, "one", 0)                  # ... then start both polls
+wire("one", 0, "mBeat", 0); wire("one", 0, "mTemp", 0)
+wire("mBeat", 0, "gBeat", 0); wire("mTemp", 0, "gTemp", 0); wire("mTemp", 0, "gPlay", 0)
+wire("gBeat", 0, "lobj", 0); wire("gTemp", 0, "lobj", 0); wire("gPlay", 0, "lobj", 0)
+wire("lobj", 0, "lroute", 0)
+wire("lroute", 0, "pack", 7); wire("lroute", 2, "pack", 8); wire("lroute", 1, "pack", 9)
+# readouts: tempo (throttled) and transport state
+obj("lim", "speedlim 250", 900, 365, 2, 1, w=90, outlettype=[""])
+obj("p3", "prepend set Tempo:", 900, 395, 1, 1, w=130)
+obj("sel", "sel 0 1", 1040, 365, 1, 3, w=60, outlettype=["bang", "bang", ""])
+msg("stopped", "set Transport: stopped", 1040, 395, 140); msg("playing", "set Transport: playing", 1040, 425, 140)
+comment("tempo", "Tempo: 0", 700, 140, 120, pres=[10, 78, 100, 20])
+comment("trans", "Transport: stopped", 700, 180, 150, pres=[112, 78, 118, 20])
+wire("lroute", 0, "lim", 0); wire("lim", 0, "p3", 0); wire("p3", 0, "tempo", 0)
+wire("lroute", 1, "sel", 0); wire("sel", 0, "stopped", 0); wire("sel", 1, "playing", 0)
+wire("stopped", 0, "trans", 0); wire("playing", 0, "trans", 0)
 
 patch = {"patcher": {
     "fileversion": 1, "appversion": {"major": 8, "minor": 6, "revision": 0, "architecture": "x64", "modernui": 1},

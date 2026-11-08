@@ -45,3 +45,7 @@ In Live:
 - Bands are not loudness-weighted: bass reads higher than treble for the same musical level. Per-band trim comes in Phase 4.
 - Peak is smoothed in the server (fast attack, short release); RMS is the 1024-sample window from `average~`.
 - Band envelopes in the device are fixed (about 1 ms attack, 40 ms release, so no hit falls between two 16 ms reports). How snappy or smooth the visuals feel is set in Submersion, not on the device.
+
+## Follow Live tempo
+
+The device also reports Live's tempo, song position and whether Live is playing. In Submersion, tick **Follow Live tempo** under the Ableton source and the tempo pulses and Sync oscillators lock to Live's beat. While following, Live is in charge: tap tempo and the tempo slider are locked. When Live stops, the beat freezes, and it picks up in step when you press play. The Tempo and Transport lines on the device show what it reads from Live. Older copies of the device don't send this, so Submersion asks you to update the device.

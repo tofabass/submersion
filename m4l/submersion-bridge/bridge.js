@@ -1,6 +1,7 @@
 'use strict';
 /* node.script entry point for the Submersion Bridge Max for Live device.
-   Max sends:   frame <rms> <peak> <b1> <b2> <b3> <b4> <b5>   (linear amplitudes, ~60/s)
+   Max sends:   frame <rms> <peak> <b1> <b2> <b3> <b4> <b5> <bpm> <beat> <playing>   (linear amplitudes, ~60/s;
+                                                                  bpm, beat in quarter notes and playing 0/1 come from Live)
                 floor <dB>                                    (optional, default -60)
    Max receives: status <state> <port>   and   clients <n> */
 const Max = require('max-api');
@@ -13,8 +14,8 @@ const bridge = createBridge({
   onClients: n => Max.outlet('clients', n),
 });
 
-Max.addHandler('frame', (rms, peak, b1, b2, b3, b4, b5) =>
-  bridge.sendFrame({ rms, peak, bands: [b1, b2, b3, b4, b5] }));
+Max.addHandler('frame', (rms, peak, b1, b2, b3, b4, b5, bpm, beat, playing) =>
+  bridge.sendFrame({ rms, peak, bands: [b1, b2, b3, b4, b5], bpm, beat, playing }));
 Max.addHandler('floor', d => bridge.setFloorDb(Number(d)));
 
 bridge.start();

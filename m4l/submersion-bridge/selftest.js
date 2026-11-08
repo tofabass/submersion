@@ -52,6 +52,23 @@ const connect = (origin) => new Promise(res => {
   ok(f && f.bands[0] > f.bands[1] && f.bands[1] > f.bands[2] && f.bands[4] === 0, 'dB scaling keeps band order, silence is 0');
   ok(fr.length && fr[0].v === 1 && typeof fr[0].ts === 'number', 'frame carries protocol version and timestamp');
 
+  // Live transport fields: hello announces the clock, valid values pass through, junk is dropped
+  ok(good[0].readyState === 1, 'client still open before clock checks');
+  const hc = await connect(undefined); hc.ws.close(); const hello = hc.msgs[0];
+  ok(hello && hello.t === 'hello' && hello.clock === true, 'hello announces clock support');
+  c.length = 0;
+  b.sendFrame({ rms: 0.1, peak: 0.1, bands: [0, 0, 0, 0, 0], bpm: 128.12345, beat: 17.123456, playing: 1 });
+  b.sendFrame({ rms: 0.1, peak: 0.1, bands: [0, 0, 0, 0, 0], bpm: 0, beat: 4, playing: 1 });
+  b.sendFrame({ rms: 0.1, peak: 0.1, bands: [0, 0, 0, 0, 0], bpm: 'x', beat: NaN, playing: 1 });
+  b.sendFrame({ rms: 0.1, peak: 0.1, bands: [0, 0, 0, 0, 0], bpm: 120, beat: 2, playing: 0 });
+  b.sendFrame({ rms: 0.1, peak: 0.1, bands: [0, 0, 0, 0, 0] });
+  await sleep(200);
+  const cf = c.filter(m => m.t === 'f');
+  ok(cf.length === 5, 'five clock test frames arrived');
+  ok(cf[0] && cf[0].bpm === 128.123 && cf[0].beat === 17.1235 && cf[0].playing === 1, 'valid tempo, beat and playing pass through, rounded');
+  ok(cf[1] && cf[2] && cf[4] && !('bpm' in cf[1]) && !('bpm' in cf[2]) && !('bpm' in cf[4]), 'zero, junk and missing tempo are left out');
+  ok(cf[3] && cf[3].playing === 0 && cf[3].bpm === 120, 'stopped transport sends playing 0');
+
   // test page is served
   const page = await new Promise(r => http.get('http://127.0.0.1:' + PORT + '/', res => { let s = ''; res.on('data', d => s += d); res.on('end', () => r({ code: res.statusCode, s })); }));
   ok(page.code === 200 && page.s.includes('Bridge test'), 'test page served at /');

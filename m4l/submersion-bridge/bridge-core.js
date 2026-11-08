@@ -41,7 +41,7 @@ function createBridge({ port = DEFAULT_PORT, onStatus = () => {}, onClients = ()
     });
     const me = wss;   // sockets can close after stop() has cleared the shared reference
     wss.on('connection', ws => {
-      ws.send(JSON.stringify({ v: PROTOCOL, t: 'hello', app: 'submersion-bridge', rate: 60, edges: BAND_EDGES_HZ }));
+      ws.send(JSON.stringify({ v: PROTOCOL, t: 'hello', app: 'submersion-bridge', rate: 60, edges: BAND_EDGES_HZ, clock: true }));
       ws.on('error', () => {});
       onClients(me.clients.size);
       ws.on('close', () => onClients(me.clients.size));
@@ -62,7 +62,7 @@ function createBridge({ port = DEFAULT_PORT, onStatus = () => {}, onClients = ()
     server = wss = null; setState('stopped'); onClients(0);
   }
 
-  /* raw = { rms, peak, bands:[5] } as linear amplitudes straight from the MSP analysis */
+  /* raw = { rms, peak, bands:[5], bpm, beat, playing }: amplitudes are linear, straight from the MSP analysis */
   function sendFrame(raw) {
     if (!wss || wss.clients.size === 0) return;
     lastRms = norm(raw.rms, floorDb);
@@ -72,6 +72,11 @@ function createBridge({ port = DEFAULT_PORT, onStatus = () => {}, onClients = ()
       rms: +lastRms.toFixed(4), peak: +lastPeak.toFixed(4),
       bands: raw.bands.slice(0, 5).map(b => +norm(b, floorDb).toFixed(4)) };
     while (f.bands.length < 5) f.bands.push(0);
+    /* Live's transport (optional): tempo in BPM, song position in beats (quarter notes), 1 while playing */
+    const bpm = Number(raw.bpm), beat = Number(raw.beat);
+    if (Number.isFinite(bpm) && bpm >= 20 && bpm <= 999 && Number.isFinite(beat) && Math.abs(beat) < 1e7){
+      f.bpm = +bpm.toFixed(3); f.beat = +beat.toFixed(4); f.playing = raw.playing ? 1 : 0;
+    }
     const msg = JSON.stringify(f);
     for (const c of wss.clients) if (c.readyState === 1 && c.bufferedAmount < MAX_BUFFERED) c.send(msg);
   }
