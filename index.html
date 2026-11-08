@@ -3896,10 +3896,12 @@ function deleteLayerById(id, fromHist){
   }, () => deleteLayerById(u.L.id, true));
   actionToast(`${L.name} deleted; its area went back to Background`, 'Undo', () => histUndoEntry(e));
 }
+function noDup(id){ return id === 'bg' || ['part','obj'].includes(kindOf(id)); }
 function duplicateLayer(id){
   if (cal){ toast('Finish calibrating first'); return; }
   if (id === 'bg'){ toast('Background cannot be duplicated'); return; }
   const src = getL(id), kd = kindOf(id), nm = (layerDefs().find(x => x.id === id) || {}).name || src.name;
+  if (noDup(id)){ toast(`Couldn't duplicate ${nm}. Particles and 3D object layers can't be copied; adjust this one instead.`); return; }
   const copy = clone(src); copy.name = nm + ' copy'; copy.solo = false; delete copy.gone;
   if (kd === 'img'){
     if (P.L.layers.length >= MAX_OBJ){ toast(`You can have up to ${MAX_OBJ} layers plus Background`); return; }
@@ -4003,7 +4005,7 @@ function renderLayers(){
       <div class="lmain">${sw}<span class="role" title="${rName}"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#${rIcon}"/></svg></span><span class="nm" title="${nmE} · double-click to rename">${renaming === d.id ? `<input class="rnin" id="rn-${d.id}" type="text" data-typing maxlength="40" autocomplete="off" spellcheck="false" aria-label="Rename ${nmE}" value="${escH(renameDraft || d.name)}">` : nmE}</span><span class="vh">${rName}${fxs.length ? ', ' + escH(fxs.join(', ')) : ''}</span></div>
       <button class="ibtn lock" id="lock-${d.id}" title="${L.rlock ? 'Unlock' : 'Lock'} ${nmE} ${L.rlock ? '(Roll can change it again)' : '(Roll leaves it alone)'}" aria-pressed="${!!L.rlock}" aria-label="Lock ${nmE} from Roll">${L.rlock ? LOCK_ON : LOCK_OFF}</button>
       <button class="ibtn solo" data-adv id="solo-${d.id}" title="Solo ${nmE} (S solos the selected layer)" aria-pressed="${L.solo}" aria-label="Solo ${nmE}" aria-keyshortcuts="S">${SOLO_SVG}</button>
-      <button class="ibtn dup" data-adv id="dup-${d.id}" title="Duplicate ${nmE}" aria-label="Duplicate ${nmE}" ${d.id === 'bg' ? 'disabled' : ''}>${DUP_SVG}</button>
+      <button class="ibtn dup" data-adv id="dup-${d.id}" title="Duplicate ${nmE}" aria-label="Duplicate ${nmE}" ${noDup(d.id) ? 'disabled' : ''}>${DUP_SVG}</button>
       <button class="ibtn del${delArm.id === d.id ? ' armed' : ''}" id="del-${d.id}" aria-label="${delArm.id === d.id ? 'Confirm: delete ' : 'Delete '}${nmE}" title="${!canDel ? '' : delArm.id === d.id ? 'Click again to delete' : 'Delete ' + nmE}" ${canDel ? '' : 'disabled'}><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-trash"/></svg></button>`;
     const rin = row.querySelector('.rnin');
     if (rin){
@@ -5076,7 +5078,21 @@ async function loadIconFiles(list, intoSel){
   } else if (msg) toast(msg, ms);
 }
 $('#bIconLoad').onclick = () => $('#fIcon').click();
-$('#fIcon').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; loadIconFiles(fs, true); };
+let iconPickInto = true;   // false when the Add menu opened the picker: every file then gets a layer of its own
+$('#bIconLoad').addEventListener('click', () => { iconPickInto = true; }, true);
+$('#fIcon').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; const into = iconPickInto; iconPickInto = true; loadIconFiles(fs, into); };
+/* Add › Icon: built-in switches the built-in Icon on when it is off, otherwise adds an icon layer; either way the grid opens to pick from */
+function addBuiltinIcon(){
+  if (cal){ toast('Finish calibrating first'); return; }
+  if (!P.L.icon.vis){ P.L.icon.vis = true; uploadIcon(); selectLayer('icon'); changed(); markDirty(); toast('Pick an icon from the grid', 2200); return; }
+  const room = layerRoomMsg(); if (room){ toast(room, 5000); return; }
+  const used = new Set(P.L.xs.filter(l => l.kind === 'icon').map(l => l.slot)); let slot = 1; while (used.has(slot)) slot++;
+  if (slot >= ICON_MAX){ toast(`Couldn't add an icon. You can have up to ${ICON_MAX} icon layers; delete one, then try again.`, 5000); return; }
+  const L = {...defLayers().icon, id: 'x' + (++layerSeq), kind: 'icon', slot, anchor: 'icon', which: 'eye', vis: true, name: 'Icon ' + (slot + 1)};
+  P.L.xs.push(L); uploadIcon(); selectLayer(L.id); changed(); markDirty();
+  const e = histPush('add', L.name + ' add', () => deleteLayerById(L.id, true), () => { if (!P.L.xs.some(l => l.id === L.id)){ P.L.xs.push(L); uploadIcon(); selectLayer(L.id); changed(); } });
+  actionToast(L.name + ' added. Pick an icon from the grid.', 'Undo', () => histUndoEntry(e));
+}
 { const box = $('#iconBox');
   box.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')){ e.preventDefault(); box.classList.add('dropOn'); } });
   box.addEventListener('dragleave', e => { if (!box.contains(e.relatedTarget)) box.classList.remove('dropOn'); });
@@ -7748,7 +7764,7 @@ function openRowMenu(id, x, y){
   const item = (ico, text, fn, off) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = (ico.charAt(0) === '<' ? ico : use(ico)) + '<span>' + escH(text) + '</span>'; if (off){ b.disabled = true; b.title = off; } b.onclick = () => fn(b); m.append(b); return b; };
   const act = fn => () => { closePinMenu(); fn(); };
   item('i-brush', 'Rename', act(() => beginRename(id)));
-  item(DUP_SVG, 'Duplicate', act(() => duplicateLayer(id)), id === 'bg' ? 'Background cannot be duplicated' : '');
+  item(DUP_SVG, 'Duplicate', act(() => duplicateLayer(id)), id === 'bg' ? 'Background cannot be duplicated' : noDup(id) ? 'Particles and 3D object layers cannot be duplicated' : '');
   item(OL_SVG, L.olOn ? 'Outline off' : 'Outline on', act(() => { L.olOn = L.olOn ? 0 : 1; changed(); renderLayers(); if (id === sel) syncLayerEd(); toast(`${d.name} outline ${L.olOn ? 'on' : 'off'}`); }), canOl ? '' : 'Outlines are for image layers and Icon');
   item(L.vis ? EYE_OFF : EYE_ON, L.vis ? 'Hide' : 'Show', act(() => { L.vis = !L.vis; changed(); renderLayers(); if (id === sel) syncLayerEd(); toast(`${d.name} ${L.vis ? 'shown' : 'hidden'}`); }));
   item(SOLO_SVG, L.solo ? 'Solo off' : 'Solo', act(() => { L.solo = !L.solo; if (L.solo) L.vis = true; changed(); renderLayers(); if (id === sel) syncLayerEd(); toast(`${d.name} ${L.solo ? 'solo on' : 'solo off'}`); }));
@@ -7852,10 +7868,12 @@ function drawAddMenu(){
   const m = $('#addMenu'); m.innerHTML = '';
   const add = (icon, label, fn, off, adv) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = use(icon) + '<span>' + label + '</span>'; if (adv) b.setAttribute('data-adv', ''); if (off){ b.disabled = true; b.title = off; } b.onclick = () => { setAddMenu(false); fn(); }; m.appendChild(b); };
   add('i-plus', 'New layer, then pick its object', addLayer, P.L.layers.length >= MAX_OBJ ? `You can have up to ${MAX_OBJ} layers plus Background` : '', true);   // needs calibration, so Easy leaves it out
-  add('r-shape', 'Shape', () => addShape());
-  add('i-wand', 'Auto layers\u2026', () => toggleAutoLayers(true));
   if (easyOn()) add('i-image', 'Upload a picture\u2026', () => $('#fImg').click());
   else add('i-image', 'Import layer images\u2026', () => $('#bLayersImport').click());
+  add('r-shape', 'Shape', () => addShape());
+  add('r-icon', 'Icon: upload\u2026', () => { iconPickInto = false; $('#fIcon').click(); });
+  add('r-icon', 'Icon: built-in', addBuiltinIcon);
+  add('i-wand', 'Auto layers\u2026', () => toggleAutoLayers(true));
   const lf = document.createElement('form'); lf.className = 'impLink'; lf.autocomplete = 'off';
   lf.innerHTML = '<input type="text" inputmode="url" spellcheck="false" placeholder="Paste an image or folder link" aria-label="Paste an image or folder link" data-typing><button class="btn primary" type="submit">Go</button>';
   wireImpLink(lf, () => setAddMenu(false)); m.appendChild(lf);
