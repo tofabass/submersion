@@ -76,6 +76,7 @@ select{font:400 12px var(--f-ui);background:var(--raise);color:var(--ink);border
 .note{color:var(--dim);font-size:12px;margin:0;max-width:60ch}
 .meters{display:grid;gap:5px}
 .bands{display:grid;gap:6px}
+.bn .hit{display:inline-block;width:6px;height:6px;margin-left:4px;border-radius:50%;background:var(--c-audio,var(--accent));opacity:0;text-decoration:none;vertical-align:middle}
 .band{display:grid;grid-template-columns:38px minmax(0,1fr) auto 28px;align-items:center;gap:8px;font:400 11px var(--f-num);color:var(--dim)}
 .band .bn{color:var(--ink);font:500 12px var(--f-ui)}
 .bm{position:relative;display:block;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
@@ -216,7 +217,13 @@ body{background:var(--stage)}
 #pMusic .musCtl .ttl{flex:1;min-width:0;font:500 12px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pMusic .musListen{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 #pMusic .musListen .live{font:600 12px var(--f-ui);color:var(--accent)}
-#pTime{right:16px;bottom:84px;width:360px;z-index:21;max-height:min(640px,calc(100% - 110px))}
+#pTime{right:16px;left:var(--tlL,auto);bottom:84px;width:360px;z-index:21;max-height:min(640px,calc(100% - 110px))}
+@media (min-width:761px) and (min-height:521px){
+  #pTime.wide{width:min(1000px,calc(100vw - 32px))}
+  #pTime.wide .tlList{display:flex;flex-direction:row;align-items:flex-start;gap:8px;overflow-x:auto;padding-bottom:8px}
+  #pTime.wide .tlCard{flex:0 0 280px;min-width:0}
+}
+@media (max-width:760px),(max-height:520px){ #tlMode{display:none} }
 #pTime .tlBody{padding:10px;display:grid;gap:8px;overflow:auto;min-height:0;align-content:start}
 #pTime .tlTop{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 #pTime .tlTop .check{margin-left:auto;font:500 12px var(--f-ui)}
@@ -231,6 +238,8 @@ body{background:var(--stage)}
 #pTime .tlCard.drag{opacity:.45}
 #pTime .tlCard.dropB{box-shadow:0 -3px 0 var(--accent)}
 #pTime .tlCard.dropA{box-shadow:0 3px 0 var(--accent)}
+#pTime.wide .tlCard.dropB{box-shadow:-3px 0 0 var(--accent)}
+#pTime.wide .tlCard.dropA{box-shadow:3px 0 0 var(--accent)}
 #pTime .tlHead{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:8px}
 #pTime .tlHead .tlBar{grid-column:1/-1}
 #pTime .tlCard:not(.cur) .tlBar{display:none}
@@ -1403,9 +1412,9 @@ body.easy .moreMenu .onlyCmp{display:flex}
         <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><label class="check lvFollow" hidden><input type="checkbox" class="lvFollowIn"> Follow Live tempo</label><p class="note lvNote" hidden></p></div>
         <div class="lbl" data-adv>Frequency bands</div>
         <div class="bands" data-adv>
-          <div class="band"><span class="bn">Low</span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" data-adv id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
-          <div class="band"><span class="bn">Mid</span><i class="bm"><b id="mM"></b><em id="gM"></em></i><span class="hz" id="hzM"></span><button class="ibtn solo" data-adv id="soloM" aria-pressed="false" aria-label="Solo the mid band" title="Solo the mid band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
-          <div class="band"><span class="bn">High</span><i class="bm"><b id="mH"></b><em id="gH"></em></i><span class="hz" id="hzH"></span><button class="ibtn solo" data-adv id="soloH" aria-pressed="false" aria-label="Solo the high band" title="Solo the high band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">Low<s class="hit" id="fB" aria-hidden="true"></s></span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" data-adv id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">Mid<s class="hit" id="fM" aria-hidden="true"></s></span><i class="bm"><b id="mM"></b><em id="gM"></em></i><span class="hz" id="hzM"></span><button class="ibtn solo" data-adv id="soloM" aria-pressed="false" aria-label="Solo the mid band" title="Solo the mid band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">High<s class="hit" id="fH" aria-hidden="true"></s></span><i class="bm"><b id="mH"></b><em id="gH"></em></i><span class="hz" id="hzH"></span><button class="ibtn solo" data-adv id="soloH" aria-pressed="false" aria-label="Solo the high band" title="Solo the high band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
         </div>
         <div class="btns" data-adv><button class="btn" id="bGateSolo" aria-pressed="false">Gate solo</button><span class="note">Hear only what the gates let through. The headphone button on a band listens to that band alone.</span></div>
         <div id="g-aband" data-adv class="stack"></div>
@@ -1514,6 +1523,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
 
 <section class="fp" id="pTime" aria-label="Timeline panel" hidden>
   <div class="fph"><span class="grip" aria-hidden="true"></span><h2><span class="hic" style="color:var(--c-motion)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-tl"/></svg></span>Timeline</h2><span class="meta" id="tlMeta"></span>
+    <button class="ib" id="tlMode" type="button" aria-pressed="false"></button>
     <button class="ib" data-fold aria-label="Fold the Timeline panel" title="Fold the Timeline panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-fold"/></svg></button><button class="ib" data-close aria-label="Hide the Timeline panel" title="Hide the Timeline panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
   <div class="fpb tlBody">
     <div class="tlTop">
@@ -1747,7 +1757,7 @@ const P0 = {
   hue:0, depthHue:0, sat:1, fog:0, edges:0, ginv:0,
   wet:1, wetSwing:0, wetRate:1,
   bpm:0,
-  xLowL:Math.log2(150), xHighL:Math.log2(3000), gateLow:0, gateMid:0, gateHigh:0, aSmooth:.35,
+  xLowL:Math.log2(150), xHighL:Math.log2(3000), gateLow:0, gateMid:0, gateHigh:0, aSmooth:.35, hitSens:.6, hitDecay:.15,
   glide:0,
   pRateL:'1/4', pRateM:'1/2', pRateH:'1/8', pOffL:0, pOffM:.5, pOffH:.5, pRandL:0, pRandM:0, pRandH:0,
   brushSize:60, brushStrength:.25, q:.75, aspect:'image', exposure:1,
@@ -1809,6 +1819,7 @@ const SPEC = {
     ['xHighL','Mid / high crossover',Math.log2(600),Math.log2(14000),.01,hzFmt,HZ],
     ['gateLow','Low gate',0,.95,.01,pctFmt], ['gateMid','Mid gate',0,.95,.01,pctFmt], ['gateHigh','High gate',0,.95,.01,pctFmt],
     ['aSmooth','Audio smoothing',0,1,.01,fx(2)],
+    ['hitSens','Hit sensitivity',0,1,.01,pctFmt], ['hitDecay','Hit decay',.03,.6,.01,v => Math.round(v*1000) + ' ms'],
   ],
   'g-audio':[
     ['bpm','Tempo pulse',0,240,1,v=>v==0?'off':v+' bpm'],
@@ -5240,6 +5251,7 @@ window.addEventListener('paste', e => {
 /* ---------- audio: three bands with adjustable crossovers, gates, smoothing and solo monitoring ---------- */
 const audioEl = $('#audioEl');
 let actx, analyser, freq, srcNode, mon = null, liveIn = false;   // liveIn: tab audio from the Music panel's Listen button feeds the same analyser
+const hit = [0,0,0], hSlow = [0,0,0], hPrev = [0,0,0], hArmed = [true,true,true], hLast = [0,0,0];
 const env = [0,0,0], avg = [0,0,0], peak = [.1,.1,.1], band = [0,0,0], gateOpen = [false,false,false];
 /* Ableton (Max for Live): the Submersion Bridge device sends level and five bands about 60 times a second over ws://localhost.
    Those bands replace the analyser's FFT bands and then go through the same normaliser, gates, smoothing and routes as every other source. */
@@ -5360,6 +5372,22 @@ function ablFollowUI(){
   if (inp){ inp.disabled = f; inp.title = f ? "Live is in charge of the tempo. Turn off Follow Live tempo to change it." : ''; }
   const b = $('#bTap'); if (b) b.setAttribute('aria-disabled', f);
 }
+/* Transient catcher: a band hit fires when a band jumps well above its own slow average (a drum attack, not a sustained note),
+   then fades over Hit decay. Sensitivity lowers the jump needed. Each band is caught separately, so kick, snare and hats stay apart. */
+function hitStep(raw, dt, live){
+  const T = .5 - .42*P.hitSens, dec = Math.exp(-dt/Math.max(.02, P.hitDecay)), slowK = 1 - Math.exp(-dt/.12), now = performance.now();
+  for (let k=0;k<3;k++){
+    const v = live && raw ? raw[k] : 0, o = v - hSlow[k];
+    hit[k] *= dec;
+    if (live){
+      if (hArmed[k] && o > T && v > hPrev[k] && now - hLast[k] > 50){ hit[k] = Math.max(hit[k], clamp01(.45 + .55*(o - T)/Math.max(.05, 1 - T))); hArmed[k] = false; hLast[k] = now; }
+      else if (!hArmed[k] && o < T*.4) hArmed[k] = true;
+    } else hArmed[k] = true;
+    hSlow[k] += (v - hSlow[k])*slowK; hPrev[k] = v;
+    if (hit[k] < .001) hit[k] = 0;
+    const f = document.getElementById('f' + BAND_IDS[k]); if (f) f.style.opacity = hit[k].toFixed(3);
+  }
+}
 function updateAudio(t, dt){
   const edges = bandEdges(), gates = [P.gateLow, P.gateMid, P.gateHigh];
   const playing = analyser && (!audioEl.paused || liveIn);
@@ -5372,6 +5400,7 @@ function updateAudio(t, dt){
     const beat = (performance.now() - beatOrigin)/1000*P.bpm/60;
     raw = PULSE_BANDS.map(([b], k) => pulseAt(beat, RATE_BEATS[P['pRate' + b]] || 0, P['pOff' + b], P['pRand' + b], k));
   }
+  hitStep(raw, dt, !!(abl.on || playing));
   const sm = P.aSmooth, atk = 1 - Math.exp(-dt/(.008 + .18*sm)), rel = 1 - Math.exp(-dt/(.04 + 1.1*sm));
   for (let k=0;k<3;k++){
     const v = raw ? raw[k] : 0, th = gates[k];
@@ -5938,7 +5967,7 @@ for (const p of [pL, pI, pO, pM, pT]){
     const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); const q = p.getBoundingClientRect(); UI.set('pos.' + p.id, [Math.round(q.left), Math.round(q.top)]); };
     h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
   });
-  h.addEventListener('dblclick', e => { if (e.target.closest('button')) return; p.style.left = p.style.top = p.style.right = p.style.bottom = ''; UI.set('pos.' + p.id, null); if (p === pO) placeOsc(); });
+  h.addEventListener('dblclick', e => { if (e.target.closest('button')) return; p.style.left = p.style.top = p.style.right = p.style.bottom = ''; UI.set('pos.' + p.id, null); if (p === pO) placeOsc(); if (p === pT) placeTime(); });
   const fb = p.querySelector('[data-fold]');
   const setFold = f => { p.classList.toggle('folded', f); fb.innerHTML = use(f ? 'i-unfold' : 'i-fold'); fb.setAttribute('aria-label', (f ? 'Unfold ' : 'Fold ') + PANEL_NAMES[p.id]); fb.title = fb.getAttribute('aria-label'); UI.set('fold.' + p.id, f); };
   fb.onclick = () => setFold(!p.classList.contains('folded'));
@@ -5951,6 +5980,13 @@ function placeOsc(){                       // default place: centred over the Os
   const b = $('#dOsc').getBoundingClientRect(), w = pO.offsetWidth;
   if (!b.width){ pO.style.removeProperty('--oscL'); return; }
   pO.style.setProperty('--oscL', Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width/2 - w/2)) + 'px');
+}
+function placeTime(){                      // default place: centred over the Timeline button; a place the user chose wins
+  if (pT.hidden || pT.style.left) return;
+  if (phone.matches || landscape.matches){ pT.style.removeProperty('--tlL'); return; }
+  const b = $('#dTime').getBoundingClientRect(), w = pT.offsetWidth;
+  if (!b.width){ pT.style.removeProperty('--tlL'); return; }
+  pT.style.setProperty('--tlL', Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width/2 - w/2)) + 'px');
 }
 addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); clampPanel(pT); });
 /* one shared way to open a phone sheet: its state is set from defaults, nothing animates from a stale size, and the same tap cannot toggle twice */
@@ -5971,7 +6007,7 @@ function showPanel(p, on){
   syncSides(); try { applySheet(); } catch(e){}
   if (on && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });   // settle once layout is final
   if (p === pO){ UI.set('oscOpen', !!on); if (on) placeOsc(); if (on && oscReady) oscDrawSoon(); }
-  if (p === pT && on && TL) renderTL();
+  if (p === pT && on){ placeTime(); if (TL) renderTL(); }
 }
 $('#dLayers').onclick = tapOnce(() => showPanel(pL, pL.hidden));
 $('#dInsp').onclick = tapOnce(() => showPanel(pI, pI.hidden));
@@ -6415,13 +6451,20 @@ const BAND_SRC = ['Low band', 'Mid band', 'High band'], BAND_SHORT = ['Low', 'Mi
 const bandsOf = id => { const m = /^band:([012]+)$/.exec(id); return m ? [...new Set(m[1].split('').map(Number))].sort() : null; };
 const bandId = ks => 'band:' + [...new Set(ks)].sort().join('');
 const bandName = ks => ks.length === 1 ? BAND_SRC[ks[0]] : ks.map(k => BAND_SHORT[k]).join(' + ') + ' bands';
+const hitsOf = id => { const m = /^hit:([012]+)$/.exec(id); return m ? [...new Set(m[1].split('').map(Number))].sort() : null; };   // hit:<digits> = percussion hits of those bands (the strongest wins)
+const hitId = ks => 'hit:' + [...new Set(ks)].sort().join('');
+const hitName = ks => ks.length === 1 ? BAND_SHORT[ks[0]] + ' hits' : ks.map(k => BAND_SHORT[k]).join(' + ') + ' hits';
+const hitVal = ks => { let a = 0; for (const k of ks) a = Math.max(a, hit[k] || 0); return a; };
+const audKs = id => bandsOf(id) || hitsOf(id);
+const audId = (id, ks) => (hitsOf(id) ? hitId : bandId)(ks);
 const bandVal = ks => { let a = 0; for (const k of ks) a += band[k] || 0; return ks.length ? a/ks.length : 0; };
 function srcInfo(id){
   if (typeof id !== 'string') return null;
   if (id.startsWith('band:')){ const ks = bandsOf(id); return ks ? {id, name: bandName(ks), col: 'var(--c-audio)', bands: ks} : null; }
+  if (id.startsWith('hit:')){ const ks = hitsOf(id); return ks ? {id, name: hitName(ks), col: 'var(--c-audio)', hits: ks} : null; }
   const o = oscById(id); return o ? {id, name: o.name, col: OSC_COLS[o.c % OSC_COLS.length], osc: o} : null;
 }
-const srcVal = id => { const s = srcInfo(id); return !s ? null : s.osc ? rtOf(s.osc).v : bandVal(s.bands); };
+const srcVal = id => { const s = srcInfo(id); return !s ? null : s.osc ? rtOf(s.osc).v : s.hits ? hitVal(s.hits) : bandVal(s.bands); };
 // Easy mode's Reactivity slider scales every band mapping (oscillator mappings are not touched)
 const mapAmt = m => (+m.amt || 0)*(bandsOf(m.src) ? reactMul() : 1);
 const oscColor = id => (srcInfo(id) || {}).col || 'var(--accent)';
@@ -6493,7 +6536,7 @@ function applyMods(dt){
   }
 }
 // a source's value `shift` seconds later (copies made with Instances run behind); audio bands have no future, so they read now
-function srcValAt(id, shift){ const s = srcInfo(id); if (!s) return null; if (s.bands) return bandVal(s.bands); return shift ? oscValueAt(s.osc, -shift) : rtOf(s.osc).v; }
+function srcValAt(id, shift){ const s = srcInfo(id); if (!s) return null; if (s.hits) return hitVal(s.hits); if (s.bands) return bandVal(s.bands); return shift ? oscValueAt(s.osc, -shift) : rtOf(s.osc).v; }
 function modAtShift(e, shift){
   let d = 0;
   for (const m of e.maps){ const v = srcValAt(m.src, shift*(m.stag || 1)); if (v != null) d += mapAmt(m)*e.span*mapGain(m)*curveOf(v, m.curve); }
@@ -6669,8 +6712,8 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && mapArmed){ e.preven
 
 /* ================= Mod: the matrix. One row per mapping, every column editable in place ================= */
 const MX = {src: UI.get('mxSrc', 'all'), layer: UI.get('mxLayer', 'all'), type: UI.get('mxType', 'all'), sort: UI.get('mxSort', 'added'), rows: []};
-const srcChoices = () => [...oscList().map(o => [o.id, o.name]), ...BAND_SRC.map((n, k) => ['band:' + k, n])];
-const rowSrcOptions = cur => [...oscList().map(o => [o.id, o.name]), ['bands', 'Audio bands']].map(([v, n]) => `<option value="${v}"${v === (bandsOf(cur) ? 'bands' : cur) ? ' selected' : ''}>${escH(n)}</option>`).join('');
+const srcChoices = () => [...oscList().map(o => [o.id, o.name]), ...BAND_SRC.map((n, k) => ['band:' + k, n]), ...BAND_SHORT.map((n, k) => ['hit:' + k, n + ' hits'])];
+const rowSrcOptions = cur => [...oscList().map(o => [o.id, o.name]), ['bands', 'Audio bands'], ['hits', 'Percussion hits']].map(([v, n]) => `<option value="${v}"${v === (bandsOf(cur) ? 'bands' : hitsOf(cur) ? 'hits' : cur) ? ' selected' : ''}>${escH(n)}</option>`).join('');
 const srcOptions = cur => srcChoices().map(([v, n]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${escH(n)}</option>`).join('');
 const mapType = m => m.tgt.startsWith('osc:') ? 'osc' : (MAPT.get(m.tgt)?.cat.id || 'other');
 const typeName = t => t === 'osc' ? 'Oscillators' : t === 'layers' ? 'Layers panel' : (CATS.find(c => c.id === t) || {name: t}).name;
@@ -6758,7 +6801,7 @@ function syncSoundUI(){
   const sel = $('#mPreset'), cur = mapReady ? bsCurrent() : 'off';
   if (sel && sel.value !== cur) sel.value = cur;
   let n = 0;
-  if (mapReady){ try { n += mapList().filter(m => { const si = srcInfo(m.src); return si && si.bands; }).length; } catch(e){} }
+  if (mapReady){ try { n += mapList().filter(m => { const si = srcInfo(m.src); return si && (si.bands || si.hits); }).length; } catch(e){} }
   const fc = $('#fxCount'); if (fc) fc.textContent = n === 1 ? '1 mapping reacts to sound' : n + ' mappings react to sound';
 }
 {
@@ -6773,7 +6816,7 @@ function renderMatrix(){
   if (!mapReady) return;
   fillMatrixFilters();
   const host = $('#modList'), all = mapList(); host.innerHTML = ''; MX.rows = [];
-  let ms = all.filter(m => (MX.src === 'all' || m.src === MX.src || (MX.src.startsWith('band:') && (bandsOf(m.src) || []).includes(+MX.src.slice(5)))) && (MX.layer === 'all' || (MX.layer === 'global' ? !m.layer : m.layer === MX.layer)) && (MX.type === 'all' || mapType(m) === MX.type));
+  let ms = all.filter(m => (MX.src === 'all' || m.src === MX.src || (MX.src.startsWith('band:') && (bandsOf(m.src) || []).includes(+MX.src.slice(5))) || (MX.src.startsWith('hit:') && (hitsOf(m.src) || []).includes(+MX.src.slice(4)))) && (MX.layer === 'all' || (MX.layer === 'global' ? !m.layer : m.layer === MX.layer)) && (MX.type === 'all' || mapType(m) === MX.type));
   const by = {src: m => (srcInfo(m.src) || {name: '~'}).name, tgt: m => targetName(m.tgt, m.layer), layer: m => m.layer ? layerName(m.layer) : ''}[MX.sort];
   if (by) ms = [...ms].sort((a, b) => by(a).localeCompare(by(b), undefined, {numeric: true}));
   if (!all.length) host.innerHTML = '<p class="note">No mappings yet. Pick a preset, click an oscillator\'s node then a slider\'s icon, or use Add mapping.</p>';
@@ -6795,15 +6838,15 @@ function matrixRow(m){
       <span class="ml">Smooth</span><span class="msmw"><input type="text" class="msm" inputmode="decimal" data-typing aria-label="Smooth, in seconds"><span class="mu">s</span></span></div>
     <div class="mr3"><span class="ml">Range</span><div class="rng2"><span class="rfill"></span><input type="range" class="rlo" aria-label="Lowest value it can reach"><input type="range" class="rhi" aria-label="Highest value it can reach"></div><output class="mo mro"></output>
       <select class="mcurve" aria-label="Curve"><option value="lin">Linear</option><option value="in">Ease in</option><option value="out">Ease out</option><option value="inout">Ease in + out</option></select></div>
-    ${bandsOf(m.src) ? '<div class="mr4"><span class="ml">Bands</span><span class="mbands" role="group" aria-label="Bands this mapping follows (their average)">' + BAND_SHORT.map((n, k) => `<button type="button" class="btn mband" data-k="${k}" aria-pressed="${bandsOf(m.src).includes(k)}">${n}</button>`).join(' ') + '</span></div>' : ''}`;
+    ${audKs(m.src) ? '<div class="mr4"><span class="ml">Bands</span><span class="mbands" role="group" aria-label="' + (hitsOf(m.src) ? 'Bands whose percussion hits this mapping follows (the strongest wins)' : 'Bands this mapping follows (their average)') + '">' + BAND_SHORT.map((n, k) => `<button type="button" class="btn mband" data-k="${k}" aria-pressed="${audKs(m.src).includes(k)}">${n}</button>`).join(' ') + '</span></div>' : ''}`;
   const q = s => el.querySelector(s), amt = q('.mamt'), amtO = q('.mr2 .mo'), sm = q('.msm'), rlo = q('.rlo'), rhi = q('.rhi'), rfill = q('.rfill'), rO = q('.mro'), cur = q('.mcurve');
   const save = () => { changed(); MOD.lastMark = 0; };
   q('.mon').onchange = e => { m.on = e.target.checked ? 1 : 0; el.classList.toggle('off', !m.on); save(); };
-  q('.msrc select').onchange = e => { if (!e.target.value) return; m.src = e.target.value === 'bands' ? (bandsOf(m.src) ? m.src : 'band:0') : e.target.value; MAP_RT.delete(m.id); save(); renderMatrix(); };
+  q('.msrc select').onchange = e => { if (!e.target.value) return; m.src = e.target.value === 'bands' ? (bandsOf(m.src) ? m.src : 'band:0') : e.target.value === 'hits' ? (hitsOf(m.src) ? m.src : 'hit:0') : e.target.value; MAP_RT.delete(m.id); save(); renderMatrix(); };
   el.querySelectorAll('.mband').forEach(b => b.onclick = () => {   // Low / Mid / High chips: any mix, at least one stays on
-    const ks = bandsOf(m.src) || [], k = +b.dataset.k, on = ks.includes(k);
+    const ks = audKs(m.src) || [], k = +b.dataset.k, on = ks.includes(k);
     if (on && ks.length === 1){ toast('Keep at least one band on'); return; }
-    m.src = bandId(on ? ks.filter(x => x !== k) : [...ks, k]); MAP_RT.delete(m.id); save(); renderMatrix(); });
+    m.src = audId(m.src, on ? ks.filter(x => x !== k) : [...ks, k]); MAP_RT.delete(m.id); save(); renderMatrix(); });
   q('.mtgt').onclick = () => jumpToMap(m);
   q('.mdel').onclick = () => { const ml = mapList(), i = ml.indexOf(m); if (i < 0) return; ml.splice(i, 1); save(); renderMatrix();
     actionToast(`Mapping removed: ${si ? si.name : 'source'} → ${targetName(m.tgt, m.layer)}`, 'Undo', () => { if (!mapList().includes(m)){ mapList().splice(Math.min(i, mapList().length), 0, m); save(); renderMatrix(); } }); };
@@ -6843,7 +6886,7 @@ function drawMatrixWaves(){
     if (cv.width !== Math.round(W*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
     const g = cv.getContext('2d'), si = srcInfo(m.src); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); if (!si) continue;
     const col = si.osc ? OSC_COLS[si.osc.c % OSC_COLS.length] : getComputedStyle(cv).getPropertyValue('--c-audio').trim() || '#b8a233';
-    if (si.bands){ const v = bandVal(si.bands); g.fillStyle = oscGuide; g.fillRect(0, H - 3, W, 2); g.fillStyle = col; g.fillRect(0, H*(1 - v), W*.18, H*v); g.fillRect(W*.24, H - 3, W*.76*v, 2); continue; }
+    if (si.bands || si.hits){ const v = si.hits ? hitVal(si.hits) : bandVal(si.bands); g.fillStyle = oscGuide; g.fillRect(0, H - 3, W, 2); g.fillStyle = col; g.fillRect(0, H*(1 - v), W*.18, H*v); g.fillRect(W*.24, H - 3, W*.76*v, 2); continue; }
     const o = si.osc, yOf = v => o.bip ? H/2 - v*(H/2 - 2) : H - 2 - v*(H - 4);
     g.strokeStyle = col; g.lineWidth = 1.3; g.beginPath();
     for (let i = 0; i <= 30; i++){ const f = i/30, y = yOf(oscValueAt(o, (1 - f)*2)); i ? g.lineTo(f*W, y) : g.moveTo(0, y); }
@@ -7610,7 +7653,7 @@ function menuDrag(el, handle, btn, key){
   handle.addEventListener('dblclick', e => { if (e.target.closest('button, input, select, a')) return; UI.set('pos.' + key, null); placeMenu(el, btn, key); });
 }
 menuDrag(lookPop, lookPop.querySelector('h3'), $('#dTheme'), 'lookPop');
-addEventListener('resize', () => { try { if (!lookPop.hidden) placeMenu(lookPop, $('#dTheme'), 'lookPop'); if (!moreMenu.hidden) placeMenu(moreMenu, $('#dMore'), 'moreMenu'); placeOsc(); } catch(e){} });
+addEventListener('resize', () => { try { if (!lookPop.hidden) placeMenu(lookPop, $('#dTheme'), 'lookPop'); if (!moreMenu.hidden) placeMenu(moreMenu, $('#dMore'), 'moreMenu'); placeOsc(); placeTime(); } catch(e){} });
 function syncLookPop(){
   lookPop.querySelectorAll('[data-lk]').forEach(b => b.setAttribute('aria-pressed', String(LOOK[b.dataset.lk]) === b.dataset.v));
   $('#lkColor').value = LOOK.color; $('#lkColorOut').textContent = LOOK.color.toUpperCase();
@@ -10025,6 +10068,16 @@ tlList.addEventListener('change', e => {
   else return;
   renderTL(); markDirty();
 });
+/* scenes as a vertical list or as a horizontal strip side by side (like the Oscillators' one/all switch); remembered per browser */
+let tlWide = UI.get('tlWide', false) === true;
+function tlSyncMode(){
+  pT.classList.toggle('wide', tlWide);
+  const b = $('#tlMode'); b.innerHTML = tlWide ? ICON_ONE : ICON_ALL; b.setAttribute('aria-pressed', tlWide);
+  b.title = tlWide ? 'Show scenes in a list' : 'Show scenes side by side'; b.setAttribute('aria-label', b.title);
+  placeTime();
+}
+$('#tlMode').onclick = () => { tlWide = !tlWide; UI.set('tlWide', tlWide); tlSyncMode(); };
+tlSyncMode();
 /* desktop: drag a card by its grip; touch uses the arrows */
 let tlDrag = null;
 const tlDragClear = () => { tlDrag = null; for (const li of tlList.children){ li.draggable = false; li.classList.remove('drag', 'dropB', 'dropA'); } };
@@ -10035,7 +10088,7 @@ tlList.addEventListener('dragstart', e => {
   tlDrag = li.dataset.id; li.classList.add('drag'); e.dataTransfer.effectAllowed = 'move';
   try { e.dataTransfer.setData('text/plain', li.querySelector('.tlName')?.textContent || 'scene'); } catch(err){}
 });
-const tlDropAt = e => { const li = e.target.closest && e.target.closest('.tlCard'); if (!li) return null; const r = li.getBoundingClientRect(); return {li, after: e.clientY > r.top + r.height/2}; };
+const tlDropAt = e => { const li = e.target.closest && e.target.closest('.tlCard'); if (!li) return null; const r = li.getBoundingClientRect(); return {li, after: pT.classList.contains('wide') && !phone.matches ? e.clientX > r.left + r.width/2 : e.clientY > r.top + r.height/2}; };
 tlList.addEventListener('dragover', e => {
   if (!tlDrag) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move';
   const d = tlDropAt(e); for (const li of tlList.children) li.classList.remove('dropB', 'dropA');
