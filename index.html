@@ -1872,7 +1872,7 @@ const LSPECS = {
   ],
   /* Fractal: the sample point runs through a fractal formula before the picture is looked up, so the picture itself becomes fractal. Full interface only (the host div carries data-adv). */
   'g-lfr':[
-    ['frType','Fractal type',0,4,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral'][+v] || 'off'],
+    ['frType','Fractal type',0,5,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral','Burning Ship'][+v] || 'off'],
     ['frAmt','Fractal amount',0,1,.01,fx(2)],
     ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
@@ -2609,14 +2609,15 @@ vec2 fractalWarp(int i, vec2 p, float phi){
   }
   if (ty < 1.5){                       // Julia: c travels the circle where the set stays connected
     z = q; c = .7885*vec2(cos(a), sin(a));
-  } else {                             // Mandelbrot: c is the point itself; the angle turns the view
+  } else {                             // Mandelbrot and Burning Ship: c is the point itself; the angle turns the view
     float cs = cos(a), sn = sin(a);
-    ctr = vec2(-.5, 0.);
+    ctr = ty > 4.5 ? vec2(-.6, -.5) : vec2(-.5, 0.);   // Burning Ship view centre: the ship sits down and left of Mandelbrot's; at zoom 1 the window is 3 units high (y -2 to 1), tune this vec2 by eye
     c = vec2(cs*q.x - sn*q.y, sn*q.x + cs*q.y) + ctr;
     z = vec2(0.);
   }
   for (int r = 0; r < 12; r++){
     if (float(r) >= n) break;
+    if (ty > 4.5) z = abs(z);          // Burning Ship: fold both parts positive before squaring
     z = vec2(z.x*z.x - z.y*z.y, 2.*z.x*z.y) + c;
     if (dot(z, z) > 16.) break;        // escaped: stop before the numbers grow large
   }
@@ -9105,6 +9106,7 @@ const testMode = (() => {
     S('fc5', FC, aFC, 'adv', 'Set Fractal type to Mandelbrot and sweep amount, iterations, zoom and angle again.', 'The familiar Mandelbrot outline shows in the warp, centred in the frame, and every slider behaves as it does for Julia.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc12', FC, aFC, 'adv', 'Set Fractal type to Kaleidoscope fold. Sweep amount, iterations, zoom and angle, then set spin to 1 and -1.', 'The picture folds into a crystalline, self-similar pattern with sharp mirror lines. Iterations 1 to 12 add finer folds without popping or black frames, and spin turns the pattern once per loop with no jump at the loop point. Lite stops at 3 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc13', FC, aFC, 'adv', 'Set Fractal type to Droste spiral on a plain photo. Sweep amount, zoom and angle, move iterations, then set spin to 1, 2 and -1 and watch a full loop each time. Look closely at the centre and to the left of it.', 'The picture repeats inside itself along a spiral, each copy 3 times smaller, with every other ring turned inside out. Iterations changes nothing and its hover note says so. There is no seam line to the left of the centre, the centre does not flicker or go black, and spin flows the copies inward or outward and ends each loop exactly where it started.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc14', FC, aFC, 'adv', 'Set Fractal type to Burning Ship. Sweep amount, iterations, zoom and angle, then set spin to 1 and -1.', 'The picture bends into the jagged, ship-like Burning Ship shape, sitting below and left of where the Mandelbrot type frames its set, with sharp masts instead of round bulbs. At zoom 1 the whole ship is in view. Iterations 1 to 12 sharpen it without popping or black frames, and spin turns the view once per loop with no jump at the loop point. Lite stops at 4 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc7', FC, aPJ, 'adv', 'Save a project with a fractal set, reload the page and import it. Then open a project, Look preset or timeline scene saved before this update.', 'The fractal comes back exactly as saved. Older files open with Fractal off and look and move exactly as they did before.', '#bProjImport', {cat: 'project'}),
     S('fc8', FC, aTL, 'adv', 'Give two timeline scenes different Fractal angle values, then different type, iterations and spin values, and play with Glide.', 'Angle, amount and zoom glide smoothly between scenes. Type, iterations and spin switch instead of gliding, like Source spin, because gliding them would make the picture jump.', '#tlPlay', {panel: 'T'}),
