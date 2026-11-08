@@ -1049,6 +1049,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
   <symbol id="r-text" viewBox="0 0 16 16"><path d="M3 3.5h10M8 3.5v9.5M6 13h4"/></symbol>
   <symbol id="r-accent" viewBox="0 0 16 16"><path d="M1.5 11.5 4.6 5l3.2 6.5L11 5l3.5 6.5"/></symbol>
   <symbol id="r-bg" viewBox="0 0 16 16"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.5"/><path d="M1.8 9.5h12.4"/></symbol>
+  <symbol id="r-shape" viewBox="0 0 16 16"><path d="M5 1.8 8.7 8.2H1.3Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10.6" cy="10.6" r="3.6" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
   <symbol id="r-icon" viewBox="0 0 16 16"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></symbol>
   <symbol id="r-obj" viewBox="0 0 16 16"><path d="M8 1.6 14 5v6l-6 3.4L2 11V5Z"/><path d="M2 5l6 3.4L14 5M8 8.4v6"/></symbol>
   <symbol id="r-part" viewBox="0 0 16 16"><circle cx="4" cy="4.5" r="1.3"/><circle cx="11.5" cy="3.5" r="1"/><circle cx="8" cy="8.5" r="1.6"/><circle cx="3.5" cy="12" r="1"/><circle cx="12" cy="11.5" r="1.3"/></symbol>
@@ -1206,6 +1207,13 @@ body.easy .moreMenu .onlyCmp{display:flex}
           <div id="iconBox" data-adv class="stack" hidden>
             <div class="icons" id="iconGrid" role="group" aria-label="Icon"></div>
             <div class="btns"><button class="btn" id="bIconLoad">Load icon image</button><input type="file" id="fIcon" accept="image/*" hidden></div>
+          </div>
+          <div id="shapeBox" class="stack" hidden>
+            <div class="ctl"><label for="shShape">Shape</label><output></output>
+              <select id="shShape"><option value="circle">Circle</option><option value="square">Square</option><option value="triangle">Triangle</option><option value="polygon">Polygon</option><option value="star">Star</option><option value="ring">Ring</option><option value="line">Line</option><option value="heart">Heart</option></select></div>
+            <div class="seg" id="shFill" role="group" aria-label="Fill"><button data-f="solid" aria-pressed="true">Solid</button><button data-f="outline" aria-pressed="false">Outline only</button></div>
+            <div id="g-shape" class="stack"></div>
+            <p class="note" data-adv>Colour comes from Recolour below. Shape, sides, points and stroke width redraw the shape, so oscillators and audio cannot drive them; everything else maps as usual.</p>
           </div>
           <div id="objBox" data-adv class="stack" hidden>
             <div class="btns">
@@ -1749,6 +1757,9 @@ const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsr
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
+const SHAPE_MAX = 8, SHAPE_BASE = 8, ICON_SLICES = 16;   // shape layers draw like icons from slices 8-15 of the icon texture
+const SHAPE_NAMES = {circle:'Circle', square:'Square', triangle:'Triangle', polygon:'Polygon', star:'Star', ring:'Ring', line:'Line', heart:'Heart'};
+function shapeDef(){ return {...LD, z:.4, x:.5, y:.5, size:.35, sspin:0, vis:true, shp:'circle', fill:'solid', shStroke:14, shSides:6, shPoints:5, shInner:.45, shRing:.3, rcOn:1, rcCol:'#ffffff', rcStr:1}; }
 const TYPE_NAMES = {fg:'Foreground object', bgobj:'Background object', text:'Text', accent:'Accent', bg:'Background'};
 const TYPE_NOTES = {
   fg: 'Click the object. The selection grows by colour and depth from that point, fills holes, then snaps to edges. Nearer pixels join easily; farther ones are resisted.',
@@ -1966,7 +1977,7 @@ function randSummary(){
 }
 function saveRand(){ try { localStorage.setItem('depthscope.rand', JSON.stringify([...randSet])); } catch(e){} }
 /* Easy mode keeps only these slider rows on screen; every other row in these groups is tagged data-adv (groups not listed are hidden whole or fully shown) */
-const EASY_ROWS = {'g-depth':['strength'], 'g-sym':['seg','twist','zoom'], 'g-color':['hue','depthHue','sat'], 'g-motion':['loop','spin','hueCycle'], 'g-lpos':['z'], 'g-lmix':['wet'], 'g-lrc':['rcStr'], 'g-lfx':['wig','glow']};
+const EASY_ROWS = {'g-shape':['shStroke'], 'g-depth':['strength'], 'g-sym':['seg','twist','zoom'], 'g-color':['hue','depthHue','sat'], 'g-motion':['loop','spin','hueCycle'], 'g-lpos':['z'], 'g-lmix':['wet'], 'g-lrc':['rcStr'], 'g-lfx':['wig','glow']};
 function makeSlider(host, [k,label,min,max,step,fmt,typed], target, after, rk, def){
   const row = document.createElement('div'); row.className = 'ctl';
   if (EASY_ROWS[host.id] && !EASY_ROWS[host.id].includes(k)) row.setAttribute('data-adv', '');
@@ -2003,12 +2014,15 @@ const gAfter = k => {
   if (k === 'xHighL' && P.xHighL < P.xLowL + .5){ P.xLowL = Math.max(Math.log2(40), P.xHighL - .5); gCtl.forEach(c => c.sync()); }
 };
 /* double-click puts a slider back to its default: the value it has on a fresh start */
-const layerDefault = k => { const d = defLayers(), kd = kindOf(sel); return (kd === 'part' ? d.part : kd === 'icon' ? d.icon : kd === 'obj' ? d.obj : LD)[k] ?? LD[k] ?? 0; };
+const layerDefault = k => { const d = defLayers(), kd = kindOf(sel); return (kd === 'part' ? d.part : kd === 'icon' ? d.icon : kd === 'obj' ? d.obj : kd === 'shape' ? shapeDef() : LD)[k] ?? LD[k] ?? 0; };
 const NO_RAND = ['g-snap','g-brush'];
 for (const [gid, list] of Object.entries(SPEC)) { const host = document.getElementById(gid); for (const s of list) gCtl.push(makeSlider(host, s, () => P, gAfter, NO_RAND.includes(gid) || s[0] === 'rblend' ? null : 'g:' + s[0], () => P0[s[0]])); }
 for (const [gid, list] of Object.entries(LSPECS)) { const host = document.getElementById(gid); for (const s of list) lCtl.push(makeSlider(host, s, () => getL(sel), () => renderLayers(), 'l:' + s[0], () => layerDefault(s[0]))); }
 for (const s of SSPEC) lCtl.push(makeSlider($('#g-sprite'), s, () => getL(sel), null, 'l:' + s[0], () => layerDefault(s[0])));
-for (const s of ISPEC) lCtl.push(makeSlider($('#g-icon'), s, () => selOf('icon'), null, 'l:' + s[0], () => defLayers().icon[s[0]]));
+const SHSPEC = [['shStroke','Stroke width',2,80,1,v=>v+' px'], ['shSides','Sides',3,12,1,v=>v], ['shPoints','Points',4,12,1,v=>v], ['shInner','Inner radius',.15,.9,.01,fx(2)], ['shRing','Ring thickness',.05,.9,.01,fx(2)]];
+const shapeTarget = () => kindOf(sel) === 'shape' ? getL(sel) : shapeDef();
+const shCtl = SHSPEC.map(s => makeSlider($('#g-shape'), s, shapeTarget, () => markDirty(), null, () => shapeDef()[s[0]]));
+for (const s of ISPEC) lCtl.push(makeSlider($('#g-icon'), s, () => kindOf(sel) === 'shape' ? getL(sel) : selOf('icon'), null, 'l:' + s[0], () => defLayers().icon[s[0]]));
 for (const s of OSPEC) lCtl.push(makeSlider($('#g-objx'), s, () => selOf('obj'), null, 'l:' + s[0], () => defLayers().obj[s[0]]));
 for (const s of PSPEC) lCtl.push(makeSlider($('#g-part'), s, () => selOf('part'), () => renderLayers(), 'l:' + s[0], () => defLayers().part[s[0]]));
 // layer hue drift range (same two-handle spectrum as the global one)
@@ -2162,7 +2176,7 @@ function getL(id){ return id==='part' ? P.L.part : id==='obj' ? P.L.obj : id==='
 const isExtra = id => (P.L.xs || []).some(l => l.id === id);
 const kindOf = id => (id === 'icon' || id === 'obj' || id === 'part') ? id : ((P.L.xs || []).find(l => l.id === id) || {}).kind || 'img';
 const selOf = kind => kindOf(sel) === kind ? getL(sel) : P.L[kind];
-const KIND_NAMES = {icon:'Icon', obj:'3D object', part:'Particles'};
+const KIND_NAMES = {icon:'Icon', obj:'3D object', part:'Particles', shape:'Shape'};
 const escH = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function isImageLayer(id){ return id === 'bg' || P.L.layers.some(l => l.id === id); }
 function coverageExcept(id){
@@ -3052,7 +3066,7 @@ const texImg = mkTex(0, gl.TEXTURE_2D, MR, gl.LINEAR_MIPMAP_LINEAR);
 const texDepth = mkTex(1, gl.TEXTURE_2D, MR, gl.LINEAR);
 const texBg = mkTex(2, gl.TEXTURE_2D, MR, gl.LINEAR_MIPMAP_LINEAR);
 const texIcon = mkTex(3, gl.TEXTURE_2D_ARRAY, CE, gl.LINEAR);
-gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA8, 512, 512, SL, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA8, 512, 512, ICON_SLICES, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 const texObj = mkTex(4, gl.TEXTURE_2D_ARRAY, CE, gl.LINEAR);
 const texMasks = mkTex(5, gl.TEXTURE_2D_ARRAY, MR, gl.LINEAR);
 const texOther = mkTex(7, gl.TEXTURE_2D, MR, gl.LINEAR);
@@ -3895,10 +3909,11 @@ function duplicateLayer(id){
     uploadMasks(); uploadLayerCols(); rebuildBg(); computeMedians(); status();
     selectLayer(nid); changed(); toast(copy.name); return;
   }
-  const used = new Set(P.L.xs.filter(l => l.kind === kd).map(l => l.slot));
-  let slot = 1; while (used.has(slot)) slot++;
-  if (slot >= SL){ toast(`You can have up to ${SL} ${KIND_NAMES[kd].toLowerCase()} layers`); return; }
-  copy.id = 'x' + (++layerSeq); copy.kind = kd; copy.slot = slot; copy.anchor = id;
+  { const room = layerRoomMsg(); if (room){ toast(room, 5000); return; } }
+  const used = new Set(P.L.xs.filter(l => l.kind === kd).map(l => l.slot)), cap = kd === 'shape' ? SHAPE_MAX : SL;
+  let slot = kd === 'shape' ? 0 : 1; while (used.has(slot)) slot++;
+  if (slot >= cap){ toast(kd === 'shape' ? `Couldn't duplicate ${nm}. You can have up to ${SHAPE_MAX} shape layers; delete one, then try again.` : `You can have up to ${SL} ${KIND_NAMES[kd].toLowerCase()} layers`, 5000); return; }
+  copy.id = 'x' + (++layerSeq); copy.kind = kd; copy.slot = slot; copy.anchor = id; delete copy.autoName;
   if (mapReady) dupLayerMaps(id, copy.id);
   P.L.xs.push(copy); uploadIcon(); selectLayer(copy.id); changed(); toast(copy.name);
 }
@@ -3933,7 +3948,7 @@ function endRename(commit){
   const id = renaming, inp = document.getElementById('rn-' + id); renaming = null;
   if (commit && inp){
     const v = inp.value.trim().slice(0, 40), cur = (layerDefs().find(x => x.id === id) || {}).name;
-    if (v && v !== cur){ getL(id).name = v; changed(); }
+    if (v && v !== cur){ getL(id).name = v; delete getL(id).autoName; changed(); }
   }
   renderLayers(); syncLayerEd();
 }
@@ -3943,7 +3958,7 @@ const LOCK_OFF = '<svg class="gi-svg" viewBox="0 0 16 16" fill="none" stroke="cu
 /* a locked layer is skipped by every roll (Roll, oscillator roll, Roll colours); the lock is saved with the layer */
 function rollLocked(id){ return id !== 'global' && !!getL(id).rlock; }
 function rollOff(id){ return diceOff.has(id) || rollLocked(id); }
-const ROLE = {fg:['r-fg','Foreground object'], bgobj:['r-bgobj','Background object'], text:['r-text','Text'], accent:['r-accent','Accent'], bg:['r-bg','Background'], icon:['r-icon','Icon'], obj:['r-obj','3D object'], part:['r-part','Particles']};
+const ROLE = {fg:['r-fg','Foreground object'], bgobj:['r-bgobj','Background object'], text:['r-text','Text'], accent:['r-accent','Accent'], bg:['r-bg','Background'], icon:['r-icon','Icon'], obj:['r-obj','3D object'], part:['r-part','Particles'], shape:['r-shape','Shape']};
 function roleOf(id, L){ const kd = kindOf(id); return ROLE[kd === 'img' ? (id === 'bg' ? 'bg' : L.type) : kd] || ROLE.fg; }
 const DUP_SVG = '<svg class="gi-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 3.5V3.2A1.7 1.7 0 0 0 8.8 1.5H3.2A1.7 1.7 0 0 0 1.5 3.2v5.6a1.7 1.7 0 0 0 1.7 1.7h.3"/></svg>';
 function renderLayers(){
@@ -4027,7 +4042,7 @@ function selectLayer(id){
 }
 function syncLayerEd(){
   if ((!P.L.layers.some(l => l.id === sel) && !['bg','icon','obj','part'].includes(sel) && !isExtra(sel))) sel = 'bg';
-  const kd = kindOf(sel), isI = kd==='icon', isO = kd==='obj', isPt = kd==='part', img = isImageLayer(sel), L = getL(sel);
+  const kd = kindOf(sel), isI = kd==='icon', isO = kd==='obj', isPt = kd==='part', isS = kd==='shape', img = isImageLayer(sel), L = getL(sel);
   const d = layerDefs().find(x => x.id === sel);
   $('#edTitle').textContent = d ? d.name : '';
   $('#layerCtlName').textContent = d ? d.name : '';
@@ -4035,13 +4050,13 @@ function syncLayerEd(){
     const area = sel === 'bg' ? 1 - maskArea(coverageExcept(null)) : maskArea(masks.get(sel) || new Uint8Array(1));
     const med = sel === 'bg' ? bgMed : medians.get(sel) ?? .5;
     $('#edInfo').textContent = `${TYPE_NAMES[L.type]} · ${(area*100).toFixed(1)}% of image · depth ${med.toFixed(2)}`;
-  } else $('#edInfo').textContent = isI ? 'Icon overlay' : isO ? '3D object overlay' : 'Particle layer';
+  } else $('#edInfo').textContent = isI ? 'Icon overlay' : isO ? '3D object overlay' : isS ? 'Shape layer' : 'Particle layer';
   $('#bCalibrate').hidden = !img; $('#bLayerDelete').hidden = !P.L.layers.some(l => l.id === sel) && !isExtra(sel); resetLayerDelete();
-  $('#olBox').hidden = !(isI || (img && sel !== 'bg')); $('#olOn').checked = !!L.olOn; $('#olCol').value = L.olCol || '#ffffff'; $('#olColOut').textContent = ($('#olCol').value).toUpperCase();
+  $('#olBox').hidden = !(isI || isS || (img && sel !== 'bg')); $('#olOn').checked = !!L.olOn; $('#olCol').value = L.olCol || '#ffffff'; $('#olColOut').textContent = ($('#olCol').value).toUpperCase();
   $('#olOnly').checked = !!L.olOnly; $('#trOn').checked = !!L.trOn; $('#trOnly').checked = !!L.trOnly; $('#trGrad').checked = !!L.trGrad; $('#trOuter').checked = !!L.trOuter; syncTrUI();
-  $('#rcBox').hidden = !(img || isI); $('#rcOn').checked = !!L.rcOn; $('#rcKeep').checked = !!L.rcKeep; $('#rcCol').value = L.rcCol || '#00e5ff'; $('#rcColOut').textContent = $('#rcCol').value.toUpperCase();
+  $('#rcBox').hidden = !(img || isI || isS); $('#rcOn').checked = !!L.rcOn; $('#rcKeep').checked = !!L.rcKeep; $('#rcCol').value = L.rcCol || '#00e5ff'; $('#rcColOut').textContent = $('#rcCol').value.toUpperCase();
   $('#iconBox').hidden = !isI; $('#objBox').hidden = !isO; $('#partBox').hidden = !isPt; $('#g-sprite').hidden = img || isPt; syncPart();
-  $('#g-icon').hidden = !isI; $('#g-objx').hidden = !isO;
+  $('#g-icon').hidden = !(isI || isS); $('#g-objx').hidden = !isO; $('#shapeBox').hidden = !isS; if (isS) syncShapeBox();
   document.getElementById('g-lpos-relief').closest('.ctl').hidden = !img;
   { const th = $('#g-lth'); th.hidden = !(img && sel !== 'bg'); th.previousElementSibling.hidden = th.hidden; }   // Thickness: picture and mask layers only
   lCtl.forEach(c => c.sync());
@@ -4062,7 +4077,8 @@ $('#bLayerReset').onclick = () => {
 };
 function layerFxReset(){
   const L = getL(sel), keep = {vis:L.vis, solo:L.solo};
-  const kd = kindOf(sel), base = kd==='icon' ? defLayers().icon : kd==='obj' ? defLayers().obj : kd==='part' ? {} : {...LD};
+  const kd = kindOf(sel), base = kd==='icon' ? defLayers().icon : kd==='obj' ? defLayers().obj : kd==='part' ? {} : kd==='shape' ? shapeDef() : {...LD};
+  if (kd==='shape') for (const k of ['shp','fill','shStroke','shSides','shPoints','shInner','shRing','name','autoName','kind','slot','id','anchor','rlock']) if (k in L) base[k] = L[k];
   if (kd==='part') Object.assign(base, defLayers().part);
   if (kd==='icon') base.which = L.which;
   if (kd==='obj'){ base.shape = L.shape; base.style = L.style; }
@@ -4234,6 +4250,7 @@ function builtinState(name){
 function presetOf(s){
   return {...globalsOf(s), mod: modForSave(s), L:{ layersFx: s.L.layers.map(l => ({...fxPick(l), name: l.name})), bgFx: {...fxPick(s.L.bg), name: s.L.bg.name, solid: s.L.bg.solid || 0, solidCol: s.L.bg.solidCol}, icon: clone(s.L.icon), obj: clone(s.L.obj), part: clone(s.L.part), xs: clone(s.L.xs || []) }, pins: pinsOf()};
 }
+function xsOk(l){ return !!l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : ['icon','obj','part'].includes(l.kind) && l.slot > 0 && l.slot < SL); }
 function applyState(s){
   s = migrateTw(clone(s));
   const tools = {}; for (const k of TOOL_KEYS) tools[k] = P[k];
@@ -4248,7 +4265,7 @@ function applyState(s){
   const di = defLayers(), oldNames = {icon: P.L.icon.name, obj: P.L.obj.name, part: P.L.part.name};
   P.L.icon = {...di.icon, ...(sL.icon || {})}; P.L.obj = {...di.obj, ...(sL.obj || {})}; P.L.part = {...di.part, ...(sL.part || {})};
   for (const id of ['part','icon','obj']){ delete P.L[id].gone; if (!P.L[id].name && oldNames[id]) P.L[id].name = oldNames[id]; }
-  if (Array.isArray(sL.xs)) P.L.xs = clone(sL.xs).filter(l => l && ['icon','obj','part'].includes(l.kind) && l.slot > 0 && l.slot < SL).map(l => ({...di[l.kind], ...l}));
+  if (Array.isArray(sL.xs)) P.L.xs = clone(sL.xs).filter(xsOk).map(l => ({...(l.kind === 'shape' ? shapeDef() : di[l.kind]), ...l}));
   if (P.L.icon.which === 'custom' && !iconCv.custom) P.L.icon.which = 'eye';
   if (P.L.obj.shape === 'custom' && !meshCache.custom) P.L.obj.shape = 'merkaba';
   if (mapReady){ remapLayerMaps(); convertSwings(); }
@@ -4479,7 +4496,7 @@ async function restoreProject(st, urlOf, objTextIn){
   P = {...clone(P0), ...clone(sP), ...tools};
   for (const k of REMOVED_FX) delete P[k];   // old projects carry the removed Audio effects settings; they are unused
   const di = defLayers();
-  P.L = {layers: (sP.L?.layers || []).map(l => ({...LD, ...l})), bg: {...di.bg, ...(sP.L?.bg || {})}, icon: {...di.icon, ...(sP.L?.icon || {})}, obj: {...di.obj, ...(sP.L?.obj || {})}, part: {...di.part, ...(sP.L?.part || {})}, xs: (sP.L?.xs || []).filter(l => l && ['icon','obj','part'].includes(l.kind)).map(l => ({...di[l.kind], ...l}))};
+  P.L = {layers: (sP.L?.layers || []).map(l => ({...LD, ...l})), bg: {...di.bg, ...(sP.L?.bg || {})}, icon: {...di.icon, ...(sP.L?.icon || {})}, obj: {...di.obj, ...(sP.L?.obj || {})}, part: {...di.part, ...(sP.L?.part || {})}, xs: (sP.L?.xs || []).filter(l => l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : ['icon','obj','part'].includes(l.kind))).map(l => ({...(l.kind === 'shape' ? shapeDef() : di[l.kind]), ...l}))};
   layerSeq = Math.max(st.layerSeq || 0, ...P.L.layers.map(l => +String(l.id).slice(1) || 0), ...P.L.xs.map(l => +String(l.id).slice(1) || 0));
   [MW, MH] = maskDims();
   masks.clear(); medians.clear(); ownCols.clear(); plateC = null;
@@ -4619,7 +4636,7 @@ const syncRandLC = () => { $('#fltLCState').textContent = randLCBox.checked ? 'o
 randLCBox.addEventListener('change', () => { try { localStorage.setItem('depthscope.randLC', randLCBox.checked ? '1' : '0'); } catch(e){} syncRandLC(); });
 syncRandLC();
 const lcTicked = id => { const t = P.lcTicks && P.lcTicks[id]; return t === undefined ? id !== 'bg' : !!t; };
-const lcCandidates = () => layerDefs().filter(d => { const k = kindOf(d.id); return k === 'img' || k === 'icon'; });   // image + icon layers (Background listed, off by default); 3D object and particles never
+const lcCandidates = () => layerDefs().filter(d => { const k = kindOf(d.id); return k === 'img' || k === 'icon' || k === 'shape'; });   // image + icon layers (Background listed, off by default); 3D object and particles never
 function renderLcList(){
   const host = $('#lcList'); host.innerHTML = '';
   for (const d of lcCandidates()){
@@ -4727,7 +4744,7 @@ $('#bResetAll').onclick = () => {
     } else {
       for (const d of layerDefs()){
         if (rollLocked(d.id)) continue;   // locked layers keep their look through Reset all too
-        const L = getL(d.id), kd = kindOf(d.id), base = kd === 'part' ? dl.part : kd === 'icon' ? dl.icon : kd === 'obj' ? dl.obj : LD;
+        const L = getL(d.id), kd = kindOf(d.id), base = kd === 'part' ? dl.part : kd === 'icon' ? dl.icon : kd === 'obj' ? dl.obj : kd === 'shape' ? shapeDef() : LD;
         const bs = sceneBase && sceneBase[d.id] ? sceneBase[d.id] : null;   // a sample scene's own look wins over the blank defaults
         if (k === 'hdRange'){ L.hdMin = bs && 'hdMin' in bs ? bs.hdMin : LD.hdMin; L.hdMax = bs && 'hdMax' in bs ? bs.hdMax : LD.hdMax; continue; }
         const v = bs && k in bs ? bs[k] : (base[k] ?? LD[k]); if (v !== undefined && k in L) L[k] = v;
@@ -4979,6 +4996,92 @@ $('#fIcon').onchange = e => {
   img.onerror = () => toast('That file could not be read as an image');
   img.src = url;
 };
+
+/* ---------- shape layers: drawn white on a 512 canvas (Recolour gives the colour), placed and rendered like icons ---------- */
+const shapeKey = L => [L.shp, L.fill, L.shStroke, L.shSides, L.shPoints, L.shInner, L.shRing].join('|');
+const shapeCvs = new Map();   // layer id -> {key, cv}; a new canvas per change, so the light-trace cache sees a new picture
+function drawShape(x, L){
+  const R = 236, sw = Math.max(1, Math.min(80, +L.shStroke || 14)), line = L.shp === 'line', out = line || L.fill === 'outline';
+  const r = out ? R - sw/2 : R;
+  x.translate(256, 256); x.fillStyle = x.strokeStyle = '#fff'; x.lineWidth = sw; x.lineCap = 'round';
+  x.lineJoin = ['square','triangle','polygon'].includes(L.shp) ? 'miter' : 'round'; x.miterLimit = 3;
+  const poly = (n, rr, a0, dy = 0) => { x.beginPath(); for (let i=0;i<n;i++){ const a = a0 + i/n*TAU; x.lineTo(Math.cos(a)*rr, Math.sin(a)*rr + dy); } x.closePath(); };
+  let even = false;
+  switch (L.shp){
+    case 'square': { const h = r*.8; x.beginPath(); x.rect(-h, -h, 2*h, 2*h); break; }
+    case 'triangle': poly(3, r*1.1, -Math.PI/2, r*.25); break;                      // centred on its bounding box, not its centroid
+    case 'polygon': { const n = Math.max(3, Math.min(12, Math.round(L.shSides || 6))); poly(n, r, -Math.PI/2 + (n % 2 ? 0 : Math.PI/n)); break; }
+    case 'star': { const n = Math.max(4, Math.min(12, Math.round(L.shPoints || 5))); star(x, 0, 0, r, r*Math.max(.15, Math.min(.9, L.shInner ?? .45)), n); break; }
+    case 'ring': {
+      const t = Math.max(.05, Math.min(.9, L.shRing ?? .3)), ri = Math.max(out ? sw : 2, R*(1 - t) + (out ? sw/2 : 0));
+      x.beginPath(); x.arc(0, 0, r, 0, TAU); x.moveTo(ri, 0); x.arc(0, 0, ri, 0, TAU, true); even = true; break;
+    }
+    case 'line': x.beginPath(); x.moveTo(-r, 0); x.lineTo(r, 0); break;
+    case 'heart': x.beginPath(); x.moveTo(0, r*.82); x.bezierCurveTo(-r*1.25, 0, -r*.9, -r*1.02, 0, -r*.42); x.bezierCurveTo(r*.9, -r*1.02, r*1.25, 0, 0, r*.82); x.closePath(); break;
+    default: x.beginPath(); x.arc(0, 0, r, 0, TAU);
+  }
+  if (out) x.stroke(); else x.fill(even ? 'evenodd' : 'nonzero');
+}
+function shapeCanvas(L){
+  const key = shapeKey(L), e = shapeCvs.get(L.id);
+  if (e && e.key === key) return e.cv;
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  drawShape(c.getContext('2d', {willReadFrequently: true}), L); shapeCvs.set(L.id, {key, cv: c, up: -1});
+  return c;
+}
+/* runs every frame: redraws and uploads only the shape slices whose settings changed (sliders, undo, load, timeline) */
+const shapeUp = new Array(SHAPE_MAX).fill('');
+function syncShapeTex(){
+  let flip = null;
+  for (const L of P.L.xs || []){
+    if (L.kind !== 'shape' || !(L.slot >= 0 && L.slot < SHAPE_MAX)) continue;
+    const k = L.id + '|' + shapeKey(L); if (shapeUp[L.slot] === k) continue;
+    const cv = shapeCanvas(L);
+    if (flip === null){ flip = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL); gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texIcon); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); }
+    gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, SHAPE_BASE + L.slot, 512, 512, 1, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+    shapeUp[L.slot] = k;
+  }
+  if (flip !== null) gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flip);
+  if (shapeCvs.size > SHAPE_MAX*2) for (const id of [...shapeCvs.keys()]) if (!(P.L.xs || []).some(l => l.id === id)) shapeCvs.delete(id);
+}
+function shapeName(shp, skip){
+  const base = SHAPE_NAMES[shp] || 'Shape', taken = new Set(layerDefs().filter(d => d.id !== skip).map(d => d.name));
+  if (!taken.has(base)) return base;
+  let n = 2; while (taken.has(base + ' ' + n)) n++; return base + ' ' + n;
+}
+function layerRoomMsg(){   // the renderer draws at most MAX_ENTRIES layers at once
+  return layerDefs().length >= MAX_ENTRIES ? "Couldn't add the layer. Delete a layer or lower Instances, then try again." : '';
+}
+function addShape(shp = 'circle'){
+  if (cal){ toast('Finish calibrating first'); return; }
+  const room = layerRoomMsg(); if (room){ toast(room, 5000); return; }
+  const used = new Set(P.L.xs.filter(l => l.kind === 'shape').map(l => l.slot));
+  let slot = 0; while (used.has(slot)) slot++;
+  if (slot >= SHAPE_MAX){ toast(`Couldn't add a shape. You can have up to ${SHAPE_MAX} shape layers; delete one, then try again.`, 5000); return; }
+  const L = {...shapeDef(), id: 'x' + (++layerSeq), kind: 'shape', slot, shp, name: shapeName(shp), autoName: 1};
+  P.L.xs.push(L); selectLayer(L.id); changed(); markDirty();
+  const e = histPush('add', L.name + ' add', () => deleteLayerById(L.id, true), () => { if (!P.L.xs.some(l => l.id === L.id)){ P.L.xs.push(L); selectLayer(L.id); changed(); } });
+  actionToast(L.name + ' added', 'Undo', () => histUndoEntry(e));
+}
+function syncShapeBox(){
+  const L = getL(sel); if (kindOf(sel) !== 'shape') return;
+  $('#shShape').value = L.shp; setSeg($('#shFill'), 'f', L.fill);
+  const line = L.shp === 'line';
+  $('#shFill').querySelectorAll('button').forEach(b => b.disabled = line);
+  const show = {shStroke: line || L.fill === 'outline', shSides: L.shp === 'polygon', shPoints: L.shp === 'star', shInner: L.shp === 'star', shRing: L.shp === 'ring'};
+  for (const [k, on] of Object.entries(show)){ const i = document.getElementById('g-shape-' + k); if (i) i.closest('.ctl').hidden = !on; }
+  shCtl.forEach(c => c.sync());
+}
+$('#shShape').addEventListener('change', e => {
+  if (kindOf(sel) !== 'shape') return;
+  const L = getL(sel); L.shp = e.target.value; L.vis = true;
+  if (L.autoName) L.name = shapeName(L.shp, L.id);
+  syncShapeBox(); renderLayers(); syncLayerEd(); changed(); markDirty();
+});
+$('#shFill').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled || kindOf(sel) !== 'shape') return;
+  getL(sel).fill = b.dataset.f; syncShapeBox(); renderLayers(); changed(); markDirty();
+});
 
 /* ---------- 3D meshes ---------- */
 function polyMesh(V, F, {smooth=false, fix=false} = {}){
@@ -5823,7 +5926,7 @@ function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el
 const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96), Ov = new Float32Array(96), Pv = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
-const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo','rlock']);
+const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo','rlock','shSides','shPoints']);
 let frameDt = 1/60;
 function smooth(key, target){
   if (!(P.glide > 0)){ GLIDE.set(key, target); return target; }
@@ -5865,7 +5968,7 @@ function blendG(Q){
 function blendL(L, L0, b){
   if (!(b > 0)) return L;
   const id = L0.id || (L0 === P.L.icon ? 'icon' : L0 === P.L.obj ? 'obj' : L0 === P.L.part ? 'part' : '');
-  const kd = id ? kindOf(id) : '', dl = defLayers(), base = kd === 'part' ? dl.part : kd === 'icon' ? dl.icon : kd === 'obj' ? dl.obj : LD;
+  const kd = id ? kindOf(id) : '', dl = defLayers(), base = kd === 'part' ? dl.part : kd === 'icon' ? dl.icon : kd === 'obj' ? dl.obj : kd === 'shape' ? shapeDef() : LD;
   const bs = id && sceneBase && sceneBase[id] ? sceneBase[id] : null, o = {...L};
   for (const k of blendKeys().l){ if (!(k in o)) continue; const t = bs && k in bs ? bs[k] : (base[k] ?? LD[k]); if (t !== undefined) o[k] = blendV(k, o[k], t, b); }
   return o;
@@ -5897,7 +6000,7 @@ function activeLayers(phi, Q){
   if (ok(P.L.icon)) add(P.L.icon, 1, 0, .5, false, 8, 'icon');
   if (ok(P.L.obj))  add(P.L.obj,  2, 0, .5, false, 9, 'obj');
   if (ok(P.L.part)) add(P.L.part, 3, 0, .5, false, 10, 'part');
-  (P.L.xs || []).forEach((l, n) => { if (ok(l)) add(l, {icon:1, obj:2, part:3}[l.kind], l.slot, .5, false, 11 + n, l.id); });
+  (P.L.xs || []).forEach((l, n) => { if (ok(l)) add(l, {icon:1, obj:2, part:3, shape:1}[l.kind], l.kind === 'shape' ? SHAPE_BASE + l.slot : l.slot, .5, false, 11 + n, l.id); });
   // the shader draws at most MAX_ENTRIES; drop the deepest copies first
   const CAP = LITE.on ? LITE.entries : MAX_ENTRIES;
   while (list.length > CAP){ let w = -1; list.forEach((x, i) => { if (x.inst > 0 && (w < 0 || x.inst > list[w].inst)) w = i; }); if (w < 0) break; list.splice(w, 1); }
@@ -6085,10 +6188,10 @@ function ensureTrace(x, l){
     const sh = cached(key, () => shapeOf(boxDown(m, MW, MH, 512, TH, 1, 0), 512, TH));
     traceUpload(12, texTrI, slice, traceField(sh.loops, 512, TH, .07, sh.sil), 512, TH); TRC.got.img[slice] = key; TRC.at = now;
   } else if (x.type === 1){
-    const which = iconCv[l.which] ? l.which : 'eye', src = iconCv[which], slice = x.idx, key = which + ':' + cvId(src) + ':' + outer;
+    const which = l.kind === 'shape' ? 'shape' : iconCv[l.which] ? l.which : 'eye', src = which === 'shape' ? shapeCanvas(x.orig) : iconCv[which], slice = x.idx, key = which + ':' + cvId(src) + ':' + outer;
     if (!TRC.icnReady){
       gl.activeTexture(gl.TEXTURE13); gl.bindTexture(gl.TEXTURE_2D_ARRAY, texTrS);
-      gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA16F, 512, 512, SL, 0, gl.RGBA, gl.FLOAT, null); TRC.icnReady = true;
+      gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA16F, 512, 512, ICON_SLICES, 0, gl.RGBA, gl.FLOAT, null); TRC.icnReady = true;
     }
     if (TRC.got.icn[slice] === key) return;
     const sh = cached(key, () => shapeOf(boxDown(src.getContext('2d').getImageData(0, 0, 512, 512).data, 512, 512, 512, 512, 4, 3), 512, 512));
@@ -6096,6 +6199,7 @@ function ensureTrace(x, l){
   }
 }
 function draw(w, h){
+  syncShapeTex();
   const Q = blendG(smoothObj('g:', P));
   const L = Q.loop, ph = (t % L)/L, phi = ph*TAU;
   steer[0] += (steerT[0]-steer[0])*.08; steer[1] += (steerT[1]-steer[1])*.08;
@@ -6839,13 +6943,13 @@ for (const row of RANGE_ROWS){
   gi.classList.add('mappable'); gi.dataset.mt = inp.id;
 }
 const layerExists = id => ['bg','icon','obj','part'].includes(id) || P.L.layers.some(l => l.id === id) || (P.L.xs || []).some(l => l.id === id);
-function layerFor(info, lid = sel){ const need = LAYER_HOST_KIND[info.host]; return need ? (kindOf(lid) === need ? lid : need) : lid; }
+function layerFor(info, lid = sel){ const need = LAYER_HOST_KIND[info.host]; return need ? (kindOf(lid) === need || (need === 'icon' && kindOf(lid) === 'shape') ? lid : need) : lid; }
 function layerFits(info, lid){
   const kd = kindOf(lid);
-  if (info.host in LAYER_HOST_KIND) return kd === LAYER_HOST_KIND[info.host];
-  if (info.host === 'g-sprite') return kd === 'icon' || kd === 'obj';
-  if (info.host === 'g-lol') return (kd === 'img' && lid !== 'bg') || kd === 'icon';
-  if (info.host === 'g-lrc') return kd === 'img' || kd === 'icon';
+  if (info.host in LAYER_HOST_KIND) return kd === LAYER_HOST_KIND[info.host] || (info.host === 'g-icon' && kd === 'shape');
+  if (info.host === 'g-sprite') return kd === 'icon' || kd === 'obj' || kd === 'shape';
+  if (info.host === 'g-lol') return (kd === 'img' && lid !== 'bg') || kd === 'icon' || kd === 'shape';
+  if (info.host === 'g-lrc') return kd === 'img' || kd === 'icon' || kd === 'shape';
   if (info.k === 'relief') return kd === 'img';
   return true;
 }
@@ -7552,7 +7656,7 @@ function openRowMenu(id, x, y){
   if (easyOn()) return;
   closePinMenu();
   const d = layerDefs().find(q => q.id === id), L = d && getL(id); if (!d || !L) return;
-  const img = isImageLayer(id), canDel = (img && id !== 'bg') || isExtra(id), canOl = kindOf(id) === 'icon' || (img && id !== 'bg');
+  const img = isImageLayer(id), canDel = (img && id !== 'bg') || isExtra(id), canOl = kindOf(id) === 'icon' || kindOf(id) === 'shape' || (img && id !== 'bg');
   const m = pinMenuEl = document.createElement('div'); m.className = 'pinMenu rowMenu'; m.setAttribute('role', 'menu'); m.setAttribute('aria-label', d.name + ' layer menu');
   const OL_SVG = '<svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="2.5" stroke-dasharray="2.2 2"/></svg>';
   const item = (ico, text, fn, off) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = (ico.charAt(0) === '<' ? ico : use(ico)) + '<span>' + escH(text) + '</span>'; if (off){ b.disabled = true; b.title = off; } b.onclick = () => fn(b); m.append(b); return b; };
@@ -7662,6 +7766,7 @@ function drawAddMenu(){
   const m = $('#addMenu'); m.innerHTML = '';
   const add = (icon, label, fn, off, adv) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = use(icon) + '<span>' + label + '</span>'; if (adv) b.setAttribute('data-adv', ''); if (off){ b.disabled = true; b.title = off; } b.onclick = () => { setAddMenu(false); fn(); }; m.appendChild(b); };
   add('i-plus', 'New layer, then pick its object', addLayer, P.L.layers.length >= MAX_OBJ ? `You can have up to ${MAX_OBJ} layers plus Background` : '', true);   // needs calibration, so Easy leaves it out
+  add('r-shape', 'Shape', () => addShape());
   add('i-wand', 'Auto layers\u2026', () => toggleAutoLayers(true));
   if (easyOn()) add('i-image', 'Upload a picture\u2026', () => $('#fImg').click());
   else add('i-image', 'Import layer images\u2026', () => $('#bLayersImport').click());
