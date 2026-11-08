@@ -4726,6 +4726,7 @@ $('#bResetAll').onclick = () => {
       if (k in P0) P[k] = P0[k];
     } else {
       for (const d of layerDefs()){
+        if (rollLocked(d.id)) continue;   // locked layers keep their look through Reset all too
         const L = getL(d.id), kd = kindOf(d.id), base = kd === 'part' ? dl.part : kd === 'icon' ? dl.icon : kd === 'obj' ? dl.obj : LD;
         const bs = sceneBase && sceneBase[d.id] ? sceneBase[d.id] : null;   // a sample scene's own look wins over the blank defaults
         if (k === 'hdRange'){ L.hdMin = bs && 'hdMin' in bs ? bs.hdMin : LD.hdMin; L.hdMax = bs && 'hdMax' in bs ? bs.hdMax : LD.hdMax; continue; }
@@ -4735,7 +4736,8 @@ $('#bResetAll').onclick = () => {
   }
   syncUI(); syncPart(); renderLayers(); changed();
   const after = fxSnap(), e = histPush('reset', 'Reset all', () => fxRestore(before), () => fxRestore(after));
-  actionToast('Every rollable control is back to its starting value', 'Undo', () => histUndoEntry(e));
+  const nLk = layerDefs().filter(d => rollLocked(d.id)).length;
+  actionToast('Every rollable control is back to its starting value' + (nLk ? `, except on ${nLk} locked ${nLk === 1 ? 'layer' : 'layers'}` : ''), 'Undo', () => histUndoEntry(e));
 };
 $('#bRandAll').onclick = () => { randSet = new Set(Object.keys(RLABEL)); diceOff.clear(); saveRand(); renderDiceTargets(); syncRk(); toast('Everything ticked'); };
 $('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(); saveRand(); renderDiceTargets(); syncRk(); toast('Basic: colour, symmetry segments and effects'); };
