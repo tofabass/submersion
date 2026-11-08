@@ -1233,6 +1233,8 @@ body.easy .moreMenu .onlyCmp{display:flex}
           </div>
           <div class="lbl" data-adv>Symmetry</div>
           <div id="g-lsym" data-adv class="stack"></div>
+          <div class="lbl" data-adv>Fractal</div>
+          <div id="g-lfr" data-adv class="stack"></div>
           <div id="bgBox" data-adv class="stack" hidden>
             <div class="lbl">Background fill</div>
             <div class="seg" id="bgFill" role="group" aria-label="Background fill">
@@ -1714,7 +1716,8 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 
 /* ---------- parameters ---------- */
 const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsrcAngle:0, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
-  seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trOuter:0, trStops:[{p:0,c:'#00e5ff'},{p:1,c:'#9b5cff'}], rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0, vis:true, solo:false};
+  seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trOuter:0, trStops:[{p:0,c:'#00e5ff'},{p:1,c:'#9b5cff'}], rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0,
+  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
@@ -1852,6 +1855,15 @@ const LSPECS = {
     ['lsymAngle','Symmetry angle',0,360,1,v=>v+'°'],
     ['lsrcAngle','Source angle',0,360,1,v=>v+'°'],
     ['ltwist','Twist',-3,3,.01,fx(2)],
+  ],
+  /* Fractal: the sample point runs through a fractal formula before the picture is looked up, so the picture itself becomes fractal. Full interface only (the host div carries data-adv). */
+  'g-lfr':[
+    ['frType','Fractal type',0,2,1,v=>['off','Julia','Mandelbrot'][+v] || 'off'],
+    ['frAmt','Fractal amount',0,1,.01,fx(2)],
+    ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
+    ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
+    ['frAng','Fractal angle',0,360,1,v=>v+'°'],
+    ['frSpin','Fractal spin',-4,4,1,turns],
   ],
   'g-lcol':[
     ['hue','Hue',-180,180,1,v=>v+'°'],
@@ -2515,9 +2527,13 @@ precision highp float;
 precision highp sampler2DArray;
 uniform sampler2D uImg, uDepth, uBg, uOther, uSel;
 uniform sampler2DArray uMasks, uLayerCol, uIcon, uObj, uPart, uTrI, uTrS;
-uniform vec4 uK[24], uM[24];
+uniform vec4 uK[24], uM[24], uN[24];
 uniform sampler2D uTrG;
 vec2 gTr;
+/* Fractal rounds allowed in the current evalL call. The outline and glow taps call evalL dozens of
+   times per pixel, so they can be given a lower cap; FR_TAP_CAP of 99 means no cap is applied. */
+const float FR_TAP_CAP = 99.;
+float gFrCap = 99.;
 uniform vec2 uRes, uSteer, uRange;
 uniform float uPitch, uCross, uHSpeed, uHMin, uHRange, uExposure, uLite;
 uniform vec4 uSymB;
@@ -2545,6 +2561,40 @@ vec2 toUV(vec2 p, float phi){
   p /= uZoom*(1. + uBreathe*.5*sin(2.*phi))*uZoomMod;
   return vec2(p.x/uImgAspect, p.y)/coverK() + .5 + uSrcOrbit*vec2(cos(phi), sin(phi));
 }
+/* Fractal warp: push the sample point through a few rounds of a fractal formula, then look the
+   picture up at the result, so the picture itself becomes fractal. No extra texture reads.
+   uN.x = amount (0 = off), uN.y = zoom, uN.z = angle in radians,
+   uN.w = ((spin + 4)*8 + (type - 1))*32 + iterations, all small whole numbers. */
+vec2 fractalWarp(int i, vec2 p, float phi){
+  vec4 N = uN[i];
+  float pk = N.w, it = mod(pk, 32.); pk = floor(pk/32.);
+  float ty = mod(pk, 8.) + 1., sp = floor(pk/8.) - 4.;
+  float n = min(it, gFrCap);
+  if (n < .5) return p;
+  float a = N.z + sp*phi;              // whole turns per loop, so the loop closes seamlessly
+  float k = 3./max(N.y, .05);          // zoom 1 = the classic fractal window fills the height
+  vec2 q = p*k, z, c;
+  vec2 ctr = vec2(0.);
+  if (ty < 1.5){                       // Julia: c travels the circle where the set stays connected
+    z = q; c = .7885*vec2(cos(a), sin(a));
+  } else {                             // Mandelbrot: c is the point itself; the angle turns the view
+    float cs = cos(a), sn = sin(a);
+    ctr = vec2(-.5, 0.);
+    c = vec2(cs*q.x - sn*q.y, sn*q.x + cs*q.y) + ctr;
+    z = vec2(0.);
+  }
+  for (int r = 0; r < 12; r++){
+    if (float(r) >= n) break;
+    z = vec2(z.x*z.x - z.y*z.y, 2.*z.x*z.y) + c;
+    if (dot(z, z) > 16.) break;        // escaped: stop before the numbers grow large
+  }
+  z -= ctr;                            // back to the picture's own centre
+  float r2 = dot(z, z);
+  if (!(r2 < 1e8)) return p;           // not a number, or a runaway: leave the point alone
+  float rr = sqrt(r2);
+  if (rr > 4.) z *= 4./rr;             // soft limit so an escaped point cannot fling the sample far away
+  return z/k;
+}
 vec2 containUV(vec2 p, float shrink){ float k = min(1., (uRes.x/uRes.y)/uImgAspect)*shrink; return vec2(p.x/(uImgAspect*k), p.y/k) + .5; }
 vec4 sprite(int i, vec2 uv, float phi){
   if (uA[i].x > 2.5){ vec4 t = texture(uPart, vec3(uv, uA[i].y)); float a = clamp(t.a, 0., 1.); return vec4(t.rgb/max(a, 1e-3), a); }
@@ -2571,7 +2621,9 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   // uM.y = Symmetry angle, uM.z = Source spin (turns per loop), uM.w = Source angle. The symmetry is turned first (mirror lines move), then the folded point is turned (the picture moves inside fixed mirror lines).
   vec2 pf = fold(p0, uSpin*phi + uAudioRot + uSymAng + uM[i].y + B.x*phi, A.w, uG[i].w)/F.y/(uH[i].w > 0. ? uH[i].w : 1.);
   float sa = uM[i].z*phi + uM[i].w; float sc = cos(sa), ss = sin(sa);
-  vec2 uv = toUV(vec2(sc*pf.x - ss*pf.y, ss*pf.x + sc*pf.y), phi);
+  vec2 pr = vec2(sc*pf.x - ss*pf.y, ss*pf.x + sc*pf.y);
+  if (uN[i].x > 0.) pr = mix(pr, fractalWarp(i, pr, phi), uN[i].x);   // Fractal runs inside the symmetry wedge, so the mirror lines stay clean
+  vec2 uv = toUV(pr, phi);
   vec2 cam = uDrift*vec2(sin(phi), .6*sin(2.*phi)) + uSteer;
   float dz = A.x < .5 ? Q.z*(D(uv) - F.w) : 0.;   // inner depth: per-pixel parallax inside the layer
   float zz = A.z - uFocus + dz;
@@ -2734,6 +2786,7 @@ void main(){
       float satQ = floor(pkd/360.), hueQ = pkd - satQ*360., nL = mod(fl, 6.) + 1., flg = floor(fl/6.);
       bool so = flg > 3.5;                                  // outside edge only: the outline follows the filled silhouette, not the layer itself
       float W = uI[i].x*.001, R = W*(1. + uI[i].y*.8), mx = 0.;
+      gFrCap = FR_TAP_CAP;                                  // the outline taps may run fewer fractal rounds
       for (int k=0; k<12; k++){
         for (int j=1; j<=3; j++){
           float an = float(k)*.5235988 + float(j)*.37, r = R*float(j)/3.;
@@ -2743,6 +2796,7 @@ void main(){
           mx = max(mx, (so ? silA(i, gTr) : G.a)*wgt);
         }
       }
+      gFrCap = 99.;
       float ringRaw = clamp(mx - (so ? silA(i, tUV) : la), 0., 1.), steady = ringRaw*uI[i].z, lcov = 0.;
       vec3 lcol = vec3(0.);
       if (uK[i].z > 0. && ringRaw > 0.){
@@ -2773,12 +2827,14 @@ void main(){
     if (gw > 0.){
       vec3 halo = vec3(0.);
       int gN = uLite > .5 ? 4 : 8;                       // Lite: half the glow taps
+      gFrCap = FR_TAP_CAP;                               // the glow taps may run fewer fractal rounds
       for (int k=0; k<8; k++){
         if (k >= gN) break;
         float an = float(k)*2.39996, rr = gw*.05*sqrt((float(k) + .5)/8.);
         vec4 G = evalL(i, p + rr*vec2(cos(an), sin(an)), phi, false, zd);
         halo += G.rgb*G.a;
       }
+      gFrCap = 99.;
       halos += halo*gw*1.5/float(gN)*op*w;
     }
     float a = clamp(la*op*w, 0., 1.);
@@ -2893,8 +2949,11 @@ gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
 gl.useProgram(prog);
 /* ---------- Lite / Full: runtime caps only; saved values are never rewritten, so presets open in either mode ---------- */
 var LITE = {on:false, fps:30, entries:12, dpr:1, partRes:512, partMul:.35, objRes:512, lastDraw:0};
+/* How many vec4 uniform slots the fragment shader may use on this device. The per-layer arrays take
+   most of them, so the test report shows it: a low number here is what would block more of them. */
+const maxFragVecs = () => { try { return gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS); } catch(e){ return '?'; } };
 const U = {};
-for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uTrG']) U[n] = gl.getUniformLocation(prog, n);
+for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uN','uTrG']) U[n] = gl.getUniformLocation(prog, n);
 const MU = {}; for (const n of ['uMVP','uR','uOff','uMode','uPh','uDim']) MU[n] = gl.getUniformLocation(mprog, n);
 const PU = {}; for (const n of ['uTw','uTwRot','uCountF','uPh','uPhi','uSize','uSizeVar','uSpeed','uAngle','uSpread','uTurb','uWobble','uTwinkle','uHue','uHueVar','uSat','uBright','uSymN','uSymMirror','uMode','uAspect','uSeed','uScale','uCenter','uShape']) PU[n] = gl.getUniformLocation(pprog, n);
 
@@ -4413,8 +4472,8 @@ $('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(
 /* randomizer presets: built-in themes plus the user's own saved tick sets */
 const RP_BUILTIN = [
   {id:'b:colour', name:'Colour only', amt:.8, keys:['g:hue','g:depthHue','g:sat','g:hueCycle','l:hue','l:sat','l:con','l:phue','l:phueVar','l:psat','l:pbright']},
-  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:psymN','l:psymMirror','l:ptwist']},
-  {id:'b:motion', name:'Motion + depth', amt:.6, keys:['g:strength','g:focus','g:depthScale','g:drift','g:srcOrbit','g:spin','l:lsrcSpin','g:fog','l:z','l:relief','l:inst','l:instSp','l:instOff','l:spinX','l:spinY','l:pspeed','l:pangle','l:pturb','l:pmode']},
+  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:frAmt','l:frZoom','l:frAng','l:psymN','l:psymMirror','l:ptwist']},
+  {id:'b:motion', name:'Motion + depth', amt:.6, keys:['g:strength','g:focus','g:depthScale','g:drift','g:srcOrbit','g:spin','l:lsrcSpin','l:frSpin','g:fog','l:z','l:relief','l:inst','l:instSp','l:instOff','l:spinX','l:spinY','l:pspeed','l:pangle','l:pturb','l:pmode']},
   {id:'b:fx', name:'FX', amt:.7, keys:['l:wig','l:glow','l:melt','l:trail','l:blend','g:edges','g:fog','l:ptwinkle','l:pshape']},
   {id:'b:chaos', name:'Chaos (everything, 100%)', amt:1, keys:'*'},
 ];
@@ -5419,10 +5478,10 @@ let toastT;
 function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove('on'), ms); }
 
 /* ---------- render ---------- */
-const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96);
+const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
-const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
+const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
 let frameDt = 1/60;
 function smooth(key, target){
   if (!(P.glide > 0)){ GLIDE.set(key, target); return target; }
@@ -5699,13 +5758,18 @@ function draw(w, h){
     if (l.rcOn && x.type < 2){                                   // recolour: strength (negative = keep shading) and the colour packed as one 24-bit number
       const s = clamp01(l.rcStr ?? 1); if (s > 0){ const c = olRGB(l.rcCol); Iv[o+3] = l.rcKeep ? -s : s; Jv[o+3] = Math.round(c[0]*255)*65536 + Math.round(c[1]*255)*256 + Math.round(c[2]*255); }
     }
+    { const ty = Math.round(l.frType || 0), solid = x.isBg && x.orig.solid;   // Fractal: amount, zoom and angle, then type + iterations + spin packed as one small whole number
+      const amt = ty > 0 && !solid ? clamp01(l.frAmt ?? 1) : 0;
+      Nv[o] = amt; Nv[o+1] = Math.max(.05, +l.frZoom || 1); Nv[o+2] = (l.frAng || 0)*Math.PI/180;
+      const it = Math.max(1, Math.min(LITE.on ? 4 : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds
+      Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0; }
     Gd[o]=l.hdSpeed || 0; Gd[o+1]=(l.hdMin ?? 0)/360; Gd[o+2]=((l.hdMax ?? 360) - (l.hdMin ?? 0))/360;
     const pk = phi + (x.off || 0);
     Gd[o+3]=(x.off ? instG(Q, 'twist', x.off) + Q.twBounce*Math.sin(Q.twBounceRate*pk) : twG) + (l.ltwist || 0) + (l.ltwBounce || 0)*Math.sin((l.ltwBounceRate || 1)*pk);
   });
   trLutUpload();
   gl.viewport(0,0,w,h);
-  gl.uniform4fv(U.uA, A); gl.uniform4fv(U.uB, B); gl.uniform4fv(U.uC, C); gl.uniform4fv(U.uD, Dv); gl.uniform4fv(U.uE, E); gl.uniform4fv(U.uF, F); gl.uniform4fv(U.uG, Gd); gl.uniform4fv(U.uH, H); gl.uniform4fv(U.uI, Iv); gl.uniform4fv(U.uJ, Jv); gl.uniform4fv(U.uK, Kv); gl.uniform4fv(U.uM, Mv); gl.uniform1f(U.uGInv, clamp01(Q.ginv || 0));
+  gl.uniform4fv(U.uA, A); gl.uniform4fv(U.uB, B); gl.uniform4fv(U.uC, C); gl.uniform4fv(U.uD, Dv); gl.uniform4fv(U.uE, E); gl.uniform4fv(U.uF, F); gl.uniform4fv(U.uG, Gd); gl.uniform4fv(U.uH, H); gl.uniform4fv(U.uI, Iv); gl.uniform4fv(U.uJ, Jv); gl.uniform4fv(U.uK, Kv); gl.uniform4fv(U.uM, Mv); gl.uniform4fv(U.uN, Nv); gl.uniform1f(U.uGInv, clamp01(Q.ginv || 0));
   { const c = P.L.bg.solidCol || '#000000'; gl.uniform3f(U.uBgCol, parseInt(c.slice(1,3),16)/255, parseInt(c.slice(3,5),16)/255, parseInt(c.slice(5,7),16)/255); }
   gl.uniform1i(U.uCount, list.length);
   gl.uniform2f(U.uRes, w, h);
@@ -7170,7 +7234,7 @@ var fltBuilt = false;
 const FGROUPS = [
   ['Symmetry','g',['g-sym']], ['Colour','g',['g-color']], ['Depth & parallax','g',['g-depth']], ['Motion','g',['g-motion']],
   ['All-layer dry/wet','g',['g-layers']], ['Sound','g',['g-aband','g-afx','g-audio','g-apulse']],
-  ['Layer depth','l',['g-lpos']], ['Layer dry/wet & blend','l',['g-lmix']], ['Layer symmetry & twist','l',['g-lsym']],
+  ['Layer depth','l',['g-lpos']], ['Layer dry/wet & blend','l',['g-lmix']], ['Layer symmetry & twist','l',['g-lsym']], ['Layer fractal','l',['g-lfr']],
   ['Layer colour','l',['g-lcol','g-lrc']], ['Layer effects','l',['g-lfx']], ['Layer outline','l',['g-lol']], ['Layer instances','l',['g-linst']], ['Icon & 3D object placement','l',['g-sprite','g-icon','g-objx']],
   ['Particles','l',['g-part']],
 ];
@@ -7538,6 +7602,8 @@ function syncModeUI(){
   mb.disabled = LITE.on; mb.title = LITE.on ? 'Full mode only' : '';
   const sb = $('#qSeg [data-q="1"]');
   if (sb){ sb.disabled = LITE.on; sb.title = LITE.on ? 'Full mode only (Lite renders at Normal at most)' : ''; }
+  const fi = $('#g-lfr-frIt');
+  if (fi) fi.title = LITE.on ? 'Lite runs at most 4 fractal rounds' : '';
 }
 function setMode(m, persist = true){
   const on = m === 'lite';
@@ -7561,6 +7627,7 @@ $('#lkRemember').onchange = e => store.set(MODE_REM, e.target.checked ? '1' : nu
     if (!remembered){
       const mp = $('#modePrompt'), bits = [];
       try { const g = document.createElement('canvas').getContext('webgl2'), x = g && g.getExtension('WEBGL_debug_renderer_info'); if (x) bits.push('GPU: ' + g.getParameter(x.UNMASKED_RENDERER_WEBGL).replace(/^ANGLE \((.*)\)$/, '$1').slice(0, 80)); if (g) g.getExtension('WEBGL_lose_context')?.loseContext(); } catch(e){}
+      bits.push('Shader slots: ' + maxFragVecs());
       if (navigator.deviceMemory) bits.push('RAM: ' + navigator.deviceMemory + (navigator.deviceMemory >= 8 ? '+ GB' : ' GB'));
       if (navigator.hardwareConcurrency) bits.push(navigator.hardwareConcurrency + ' CPU threads');
       $('#modeDetect').textContent = bits.length ? 'This device: ' + bits.join(' · ') : '';
@@ -8323,15 +8390,15 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins', 'layer-fractal'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins', FC = 'layer-fractal';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
   const aFR = 'First run and Easy / Full', aLY = 'Layers', aIM = 'Image import', aSC = 'Sample scenes', aDP = 'Depth and parallax', aSY = 'Symmetry', aCO = 'Colour and Recolour',
     aFX = 'Effects', aMO = 'Motion and loop', aOS = 'Oscillators and Mod', aAU = 'Audio', aRL = 'Randomize and Roll', aLC = 'Layer colours', aPN = 'Pins and phone pin bar',
     aUD = 'Undo and redo', aPJ = 'Projects and presets', aOU = 'Output', aLF = 'Lite vs Full', aLK = 'Look settings', aHU = 'Hide UI and mini menu', aPS = 'Phone sheets',
-    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode';
+    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode', aFC = 'Layer fractal';
   const LK = {look: 1, lkg: ['iface']};
   /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
   const STEPS = [
@@ -8493,6 +8560,17 @@ const testMode = (() => {
     S('sp7', SP, aSY, 'adv', 'Pin Source spin, map an oscillator to it, press Roll with Geometry and Motion ticked, then Reset all and Undo.', 'Pin, mapping and Roll work for the new sliders; Reset all returns them to 0 and Undo brings the values back. Save and import a project and the values are kept.', '#g-lsym', {cat: 'layer', top: 1}),
     S('sp8', SP, aTL, 'adv', 'Set different Source angle values in two timeline scenes and play with Glide. Give the scenes different Source spin values.', 'The angle glides smoothly between scenes. Source spin switches at the middle of the transition, like Spin, because gliding a turns-per-loop speed would make the picture jump.', '#tlPlay', {panel: 'T'}),
     S('sp9', SP, aLF, 'lite', 'In Lite, turn Source spin and Source angle on.', 'The picture still turns inside the symmetry with no extra stutter.', '#g-lsym', {cat: 'layer', top: 1}),
+    S('fc1', FC, aFC, 'adv', 'Select a picture layer and open the Layer tab. Look for the Fractal group under Symmetry, then switch the interface to Easy and back to Full.', 'Fractal has six sliders: Fractal type, amount, iterations, zoom, angle and spin. Type reads "off" to start with, and the whole group is hidden in Easy.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc2', FC, aFC, 'adv', 'Set Fractal type to Julia, then sweep Fractal amount from 0 to 1 and back.', 'At 0 the layer looks exactly as it did with Fractal off. Raising it bends the picture into repeating Julia shapes, smoothly, with no flashing and no black frames.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc3', FC, aFC, 'adv', 'With Julia on, move Fractal iterations from 1 to 12, then Fractal zoom from 0.25 to 4.', 'More iterations give finer detail and zoom magnifies the fractal window. No speckled or flickering pixels at any setting.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc4', FC, aFC, 'adv', 'Set Fractal spin to 1 and watch a full loop, then try -1 and 2. Put spin back to 0 and move Fractal angle through 0-360°.', 'The pattern turns in whole turns per loop and the end of the loop matches the start with no jump. Angle turns the pattern and then holds still.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc5', FC, aFC, 'adv', 'Set Fractal type to Mandelbrot and sweep amount, iterations, zoom and angle again.', 'The familiar Mandelbrot outline shows in the warp, centred in the frame, and every slider behaves as it does for Julia.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc7', FC, aPJ, 'adv', 'Save a project with a fractal set, reload the page and import it. Then open a project, Look preset or timeline scene saved before this update.', 'The fractal comes back exactly as saved. Older files open with Fractal off and look and move exactly as they did before.', '#bProjImport', {cat: 'project'}),
+    S('fc8', FC, aTL, 'adv', 'Give two timeline scenes different Fractal angle values, then different type, iterations and spin values, and play with Glide.', 'Angle, amount and zoom glide smoothly between scenes. Type, iterations and spin switch instead of gliding, like Source spin, because gliding them would make the picture jump.', '#tlPlay', {panel: 'T'}),
+    S('fc9', FC, aFC, 'adv', 'Turn a fractal on for an Icon layer, a 3D object layer and a particle layer. Then set Instances to 3 on a picture layer and turn on Glow and an outline.', 'Every layer kind warps. The instance copies stay in step, and the glow and outline follow the warped shape rather than the original one.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc10', FC, aLF, 'lite', 'Switch to Lite with one fractal layer running. Hover or long-press the Fractal iterations slider, raise iterations to 12, then add a second fractal layer.', 'The iterations slider says that Lite runs at most 4 fractal rounds. Lite holds its frame rate at 12 as well, because it caps the rounds itself.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc11', FC, aFC, 'adv', 'With every Fractal type set to off, compare the frame rate against a scene from before this update. Then finish a Test mode run and read the Device line of the report.', 'The frame rate is the same as before, because nothing extra is drawn while Fractal is off. The Device line now includes the fragment uniform vector count for this device.', '#g-lfr', {cat: 'layer', top: 1}),
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
     S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
@@ -8738,7 +8816,7 @@ const testMode = (() => {
       'Mode: ' + MODES[r.mode].name + ' (' + L.length + ' steps)',
       'Update tag: ' + (r.mode === 'new' ? newest : 'all (newest: ' + newest + ')'),
       'Testing as: ' + devName() + (devPick() ? ' (chosen)' : ' (detected)'),
-      'Device: ' + [touchy() ? 'touch' : 'desktop', LITE.on ? 'Lite' : 'Full', (easyOn() ? 'Easy' : 'Full') + ' interface', 'screen ' + screen.width + 'x' + screen.height, 'window ' + innerWidth + 'x' + innerHeight, ua].join(' | '),
+      'Device: ' + [touchy() ? 'touch' : 'desktop', LITE.on ? 'Lite' : 'Full', (easyOn() ? 'Easy' : 'Full') + ' interface', 'screen ' + screen.width + 'x' + screen.height, 'window ' + innerWidth + 'x' + innerHeight, 'fragment uniform vectors ' + maxFragVecs(), ua].join(' | '),
       'Results: ' + c.pass + ' pass, ' + c.fail + ' fail, ' + c.skip + ' skip' + (c.na ? ' (' + c.na + ' n/a)' : '') + (c.todo ? ', ' + c.todo + ' not run' : '')];
     const fails = L.filter(s => r.res[s.id] && r.res[s.id].r === 'fail');
     if (fails.length){
