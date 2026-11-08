@@ -8051,10 +8051,10 @@ function afterClear(){
 }
 function deleteBackground(fromHist){
   if (P.L.bg.gone) return;
-  const prev = {solid: P.L.bg.solid || 0, selWas: sel};
-  P.L.bg.gone = 1; P.L.bg.solid = 1; if (sel === 'bg') sel = homeSel(); afterClear();
+  const prev = {solid: P.L.bg.solid || 0, col: P.L.bg.solidCol, selWas: sel};
+  P.L.bg.gone = 1; P.L.bg.solid = 1; P.L.bg.solidCol = '#000000'; if (sel === 'bg') sel = homeSel(); afterClear();   // a deleted Background leaves pure black
   if (fromHist) return;
-  const e = histPush('delete', 'Background delete', () => { P.L.bg.gone = 0; P.L.bg.solid = prev.solid; sel = prev.selWas; afterClear(); }, () => deleteBackground(true));
+  const e = histPush('delete', 'Background delete', () => { P.L.bg.gone = 0; P.L.bg.solid = prev.solid; P.L.bg.solidCol = prev.col; sel = prev.selWas; afterClear(); }, () => deleteBackground(true));
   actionToast('Background deleted; the scene shows a flat colour. Add layer › Background brings it back', 'Undo', () => histUndoEntry(e));
 }
 function restoreBackground(){
@@ -8067,15 +8067,15 @@ function restoreBackground(){
 }
 function clearPictureLayers(){
   if (cal){ toast('Finish calibrating first'); return; }
-  const before = P.L.layers.slice(), bgWas = P.L.bg.solid || 0, goneWas = P.L.bg.gone || 0;
+  const before = P.L.layers.slice(), bgWas = P.L.bg.solid || 0, goneWas = P.L.bg.gone || 0, colWas = P.L.bg.solidCol;
   if (!before.length && goneWas){ toast('No picture layers to clear'); return; }
   const keep = before.map(L => ({L, mask: masks.get(L.id), own: ownCols.get(L.id), med: medians.get(L.id)})), selWas = sel;
-  const doIt = () => { for (const L of before) removeLayer(L.id); P.L.bg.gone = 1; P.L.bg.solid = 1; if (sel === 'bg') sel = homeSel(); afterClear(); };
+  const doIt = () => { for (const L of before) removeLayer(L.id); P.L.bg.gone = 1; P.L.bg.solid = 1; P.L.bg.solidCol = '#000000'; if (sel === 'bg') sel = homeSel(); afterClear(); };
   doIt();
   const e = histPush('clear', 'Clear layers', () => {
     if (before.some(L => P.L.layers.some(x => x.id === L.id))) return;
     P.L.layers = before.slice(); for (const k of keep){ if (k.mask) masks.set(k.L.id, k.mask); if (k.own) ownCols.set(k.L.id, k.own); if (k.med !== undefined) medians.set(k.L.id, k.med); }
-    P.L.bg.solid = bgWas; P.L.bg.gone = goneWas; if (layerDefs().some(d => d.id === selWas)) sel = selWas; afterClear();
+    P.L.bg.solid = bgWas; P.L.bg.gone = goneWas; P.L.bg.solidCol = colWas; if (layerDefs().some(d => d.id === selWas)) sel = selWas; afterClear();
   }, doIt, true);
   actionToast(`Cleared ${before.length ? before.length + ' picture ' + (before.length === 1 ? 'layer' : 'layers') + ' and the Background' : 'the Background'}; the scene shows a flat colour`, 'Undo', () => histUndoEntry(e));
 }
@@ -8083,13 +8083,13 @@ function clearHiddenLayers(){
   if (cal){ toast('Finish calibrating first'); return; }
   const h = hiddenDeletable(), n = h.pics.length + h.xs.length + (h.bg ? 1 : 0);
   if (!n){ toast('No hidden layers to clear'); return; }
-  const picsBefore = P.L.layers.slice(), xsBefore = P.L.xs.slice(), selWas = sel, bgPrev = {solid: P.L.bg.solid || 0};
+  const picsBefore = P.L.layers.slice(), xsBefore = P.L.xs.slice(), selWas = sel, bgPrev = {solid: P.L.bg.solid || 0, col: P.L.bg.solidCol};
   const keep = h.pics.map(L => ({L, mask: masks.get(L.id), own: ownCols.get(L.id), med: medians.get(L.id)}));
-  const doIt = () => { for (const L of h.pics) removeLayer(L.id); P.L.xs = P.L.xs.filter(l => l.vis); if (h.bg){ P.L.bg.gone = 1; P.L.bg.solid = 1; if (sel === 'bg') sel = homeSel(); } afterClear(); };
+  const doIt = () => { for (const L of h.pics) removeLayer(L.id); P.L.xs = P.L.xs.filter(l => l.vis); if (h.bg){ P.L.bg.gone = 1; P.L.bg.solid = 1; P.L.bg.solidCol = '#000000'; if (sel === 'bg') sel = homeSel(); } afterClear(); };
   doIt();
   const e = histPush('clear', 'Clear hidden', () => {
     if (h.pics.some(L => P.L.layers.some(x => x.id === L.id))) return;
-    P.L.layers = picsBefore.slice(); P.L.xs = xsBefore.slice(); if (h.bg){ P.L.bg.gone = 0; P.L.bg.solid = bgPrev.solid; }
+    P.L.layers = picsBefore.slice(); P.L.xs = xsBefore.slice(); if (h.bg){ P.L.bg.gone = 0; P.L.bg.solid = bgPrev.solid; P.L.bg.solidCol = bgPrev.col; }
     for (const k of keep){ if (k.mask) masks.set(k.L.id, k.mask); if (k.own) ownCols.set(k.L.id, k.own); if (k.med !== undefined) medians.set(k.L.id, k.med); }
     if (layerDefs().some(d => d.id === selWas)) sel = selWas; afterClear();
   }, doIt, true);
