@@ -839,6 +839,8 @@ input[type=range].modded{background:linear-gradient(90deg,transparent calc(7px +
 .msm{width:46px;flex:none;padding:3px 7px;font:400 11px var(--f-num);text-align:right}
 .mu{color:var(--dim);font:400 10.5px var(--f-num)}
 .mr3 select{padding:3px 8px;font-size:11px;max-width:96px}
+.mr4{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--dim)}
+.mr4 .btn{padding:2px 10px;font-size:11px;min-height:0}
 .rng2{position:relative;height:18px}
 .rng2::before{content:"";position:absolute;left:7px;right:7px;top:50%;height:3px;margin-top:-1.5px;border-radius:2px;background:var(--track)}
 .rng2 .rfill{position:absolute;top:50%;height:3px;margin-top:-1.5px;border-radius:2px;background:var(--mc)}
@@ -1319,33 +1321,6 @@ body.easy .moreMenu .onlyCmp{display:flex}
 <div class="stack" id="g-motion">        <p class="note">Every animated control repeats a whole number of times per loop, so exports loop seamlessly.</p></div>
     </div>
 
-    <div class="cat off" data-cat="audio">
-      <div class="cath"><span class="catn">Sound</span></div>
-        <div class="bsync"><label for="bsSel">Beat sync</label><select class="bsSel" id="bsSel" aria-label="Beat sync"></select></div>
-<p class="note bsNote"><span data-adv>Beat sync sets how the picture reacts to sound. Fine-tune it in Mod.</span><span class="easyOnly">Beat sync sets how the picture reacts to sound.</span></p>
-        <div class="btns">
-          <button class="btn" id="bAudio">Load audio</button>
-          <button class="btn" id="bPlay" disabled>Play</button>
-          <input type="file" id="fAudio" accept="audio/*" hidden>
-        </div>
-        <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
-        <div class="lbl" data-adv>Frequency bands</div>
-        <div class="bands" data-adv>
-          <div class="band"><span class="bn">Low</span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" data-adv id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
-          <div class="band"><span class="bn">Mid</span><i class="bm"><b id="mM"></b><em id="gM"></em></i><span class="hz" id="hzM"></span><button class="ibtn solo" data-adv id="soloM" aria-pressed="false" aria-label="Solo the mid band" title="Solo the mid band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
-          <div class="band"><span class="bn">High</span><i class="bm"><b id="mH"></b><em id="gH"></em></i><span class="hz" id="hzH"></span><button class="ibtn solo" data-adv id="soloH" aria-pressed="false" aria-label="Solo the high band" title="Solo the high band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
-        </div>
-        <div class="btns" data-adv><button class="btn" id="bGateSolo" aria-pressed="false">Gate solo</button><span class="note">Hear only what the gates let through. The headphone button on a band listens to that band alone.</span></div>
-        <div id="g-aband" data-adv class="stack"></div>
-        <div class="btns" data-adv id="fxLine"><span class="note" id="fxCount"></span><button class="btn" id="bToMod">Edit in Mod</button></div>
-        <div class="lbl" data-adv>Tempo pulse</div>
-        <div id="g-audio" data-adv class="stack"></div>
-        <div class="btns"><button class="btn primary" id="bTap" title="Tap tempo (M)" aria-keyshortcuts="M">Tap tempo</button><span class="note" data-adv id="tapNote">Tap along with your music (or press M). Every tap also restarts the beat on that tap, so you can line it up.</span></div>
-        <div class="rctl easyOnly" id="reactRow"><label for="reactIn">Reactivity</label><input type="range" id="reactIn" min="0" max="150" step="1" value="100" aria-label="Reactivity, how strongly the picture reacts to sound"><output id="reactOut">100%</output></div>
-        <div id="g-apulse" data-adv class="stack"></div>
-        <p class="note" data-adv id="audioNote">No track loaded. Set a tempo pulse to test reactivity without sound.</p>
-    </div>
-
     <div class="cat off" data-cat="view">
       <div class="cath"><span class="catn">Source &amp; view</span></div>
         <div class="btns">
@@ -1415,13 +1390,38 @@ body.easy .moreMenu .onlyCmp{display:flex}
       <p class="note">Roll changes the ticked effects on the ticked targets. Random amount caps how far each one can move from where it is now; at 100% anything goes.</p>
     </div>
 
+    <div class="cat off" data-cat="audio">
+      <div class="cath"><span class="catn">Sound</span></div>
+        <p class="note bsNote" data-adv>The picture reacts to sound through mappings. Pick a preset or add your own in Mod.</p>
+        <div class="btns">
+          <button class="btn" id="bAudio">Load audio</button>
+          <button class="btn" id="bPlay" disabled>Play</button>
+          <input type="file" id="fAudio" accept="audio/*" hidden>
+        </div>
+        <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
+        <div class="lbl" data-adv>Frequency bands</div>
+        <div class="bands" data-adv>
+          <div class="band"><span class="bn">Low</span><i class="bm"><b id="mB"></b><em id="gB"></em></i><span class="hz" id="hzB"></span><button class="ibtn solo" data-adv id="soloB" aria-pressed="false" aria-label="Solo the low band" title="Solo the low band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">Mid</span><i class="bm"><b id="mM"></b><em id="gM"></em></i><span class="hz" id="hzM"></span><button class="ibtn solo" data-adv id="soloM" aria-pressed="false" aria-label="Solo the mid band" title="Solo the mid band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+          <div class="band"><span class="bn">High</span><i class="bm"><b id="mH"></b><em id="gH"></em></i><span class="hz" id="hzH"></span><button class="ibtn solo" data-adv id="soloH" aria-pressed="false" aria-label="Solo the high band" title="Solo the high band"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-solo"/></svg></button></div>
+        </div>
+        <div class="btns" data-adv><button class="btn" id="bGateSolo" aria-pressed="false">Gate solo</button><span class="note">Hear only what the gates let through. The headphone button on a band listens to that band alone.</span></div>
+        <div id="g-aband" data-adv class="stack"></div>
+        <div class="btns" data-adv id="fxLine"><span class="note" id="fxCount"></span><button class="btn" id="bToMod">Edit in Mod</button></div>
+        <div class="lbl" data-adv>Tempo pulse</div>
+        <div id="g-audio" data-adv class="stack"></div>
+        <div class="btns"><button class="btn primary" id="bTap" title="Tap tempo (M)" aria-keyshortcuts="M">Tap tempo</button><span class="note" data-adv id="tapNote">Tap along with your music (or press M). Every tap also restarts the beat on that tap, so you can line it up.</span></div>
+        <div class="rctl easyOnly" id="reactRow"><label for="reactIn">Reactivity</label><input type="range" id="reactIn" min="0" max="150" step="1" value="100" aria-label="Reactivity, how strongly the picture reacts to sound"><output id="reactOut">100%</output></div>
+        <div id="g-apulse" data-adv class="stack"></div>
+        <p class="note" data-adv id="audioNote">No track loaded. Set a tempo pulse to test reactivity without sound.</p>
+    </div>
+
     <div class="cat off" data-adv data-cat="mod">
       <div class="cath"><span class="catn">Mod</span></div>
-      <p class="note">Every mapping in one place: what moves what, and how far. Click a target to jump to its slider.</p>
-      <div class="lbl" id="modAudioHead">Audio effects</div>
-      <p class="note">The built-in effects that react to sound. Each row reads band, then effect, then amount.</p>
-      <div id="g-afx" class="stack"></div>
-      <div class="lbl">Mappings</div>
+      <p class="note">Every mapping in one place: what moves what, and how far. Sound reacts through mappings from the Low, Mid and High bands. Click a target to jump to its slider.</p>
+      <div class="lbl" id="modMapHead">Mappings</div>
+      <div class="bsync"><label for="mPreset">Preset</label><select id="mPreset" aria-label="Mapping preset"></select></div>
+      <p class="note" id="mPresetNote">A preset adds ready-made mappings, gates and smoothing. Mappings you add yourself are never changed.</p>
       <div class="mtool">
         <select id="mFiltSrc" aria-label="Show mappings from"></select>
         <select id="mFiltLayer" aria-label="Show mappings on"></select>
@@ -1430,7 +1430,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
       </div>
       <div class="madd"><select id="mAddSrc" aria-label="Source for a new mapping"></select><button class="btn primary" id="bMapAdd">Add mapping</button></div>
       <div id="modList" class="mlist" role="list" aria-label="Mappings"></div>
-      <p class="note">Two sources on one slider add together, then stop at the slider's limits. Mappings save with Look presets and projects.</p>
+      <p class="note">Two sources on one slider add together, then stop at the slider's limits. A band mapping can follow Low, Mid and High together; it uses their average. Mappings save with Look presets and projects.</p>
     </div>
 
     <div class="cat off" data-cat="project">
@@ -1506,8 +1506,6 @@ body.easy .moreMenu .onlyCmp{display:flex}
     <div class="musSp" id="musSp" hidden><div class="musSpRow"><button class="btn" id="musSignIn" type="button">Sign in to Spotify</button><button class="btn" id="musReload" type="button">I've signed in, reload player</button></div><p class="note">Full tracks need Spotify Premium, signed in on this browser (desktop). Otherwise Spotify plays 30-second previews.</p></div>
     <div class="musListen" id="musListen" hidden><button class="btn" id="musListenBtn" type="button" title="Share this tab's audio so the picture reacts to the music">Listen</button><button class="btn" id="musStop" type="button" hidden>Stop</button><span class="live" id="musLive" hidden>Listening</span></div>
     <p class="note" id="musListenNote"></p>
-    <div class="bsync"><label for="bsSelM">Beat sync</label><select class="bsSel" id="bsSelM" aria-label="Beat sync"></select></div>
-    <p class="note bsNote"><span data-adv>Beat sync sets how the picture reacts to sound. Fine-tune it in Mod.</span><span class="easyOnly">Beat sync sets how the picture reacts to sound.</span></p>
     <div class="lv"><div class="btns"><button class="btn lvDev" type="button" hidden>Device audio</button><button class="btn lvMic" type="button">Microphone</button><button class="btn lvAbl" type="button" hidden>Ableton (Max for Live)</button><button class="btn lvStop" type="button" hidden>Stop</button><span class="live lvName" hidden></span></div><i class="bm lvMeter" hidden><b></b></i><label class="lvGain" hidden><span>Mic gain</span><input type="range" class="lvGainIn" min="0.5" max="4" step="0.1" value="1.5" aria-label="Microphone input gain"><span class="lvGv">1.5x</span></label><p class="note lvNote" hidden></p></div>
   </div>
 </section>
@@ -1746,11 +1744,9 @@ const P0 = {
   loop:12, drift:0, spin:0, symAngle:0, breathe:0, hueCycle:0,
   hue:0, depthHue:0, sat:1, fog:0, edges:0, ginv:0,
   wet:1, wetSwing:0, wetRate:1,
-  bassDepth:1, bassZoom:.3, highSpin:.5, midHue:.3, bpm:0,
+  bpm:0,
   xLowL:Math.log2(150), xHighL:Math.log2(3000), gateLow:0, gateMid:0, gateHigh:0, aSmooth:.35,
-  rDepth:'low', rZoom:'low', rSpin:'high', rHue:'mid', glide:0,
-  pCountAmt:0, pSizeAmt:0, rPCount:'low', rPSize:'low',
-  rbDepth:0, rbZoom:0, rbSpin:0, rbHue:0, rbPCount:0, rbPSize:0,
+  glide:0,
   pRateL:'1/4', pRateM:'1/2', pRateH:'1/8', pOffL:0, pOffM:.5, pOffH:.5, pRandL:0, pRandM:0, pRandH:0,
   brushSize:60, brushStrength:.25, q:.75, aspect:'image', exposure:1,
   snapRadius:12, snapEdge:.7, snapAuto:0,
@@ -1811,14 +1807,6 @@ const SPEC = {
     ['xHighL','Mid / high crossover',Math.log2(600),Math.log2(14000),.01,hzFmt,HZ],
     ['gateLow','Low gate',0,.95,.01,pctFmt], ['gateMid','Mid gate',0,.95,.01,pctFmt], ['gateHigh','High gate',0,.95,.01,pctFmt],
     ['aSmooth','Audio smoothing',0,1,.01,fx(2)],
-  ],
-  'g-afx':[
-    ['bassDepth','Depth amount',0,2,.01,fx(2)],
-    ['bassZoom','Zoom amount',0,1,.01,fx(2)],
-    ['highSpin','Spin speed amount',0,2,.01,fx(2)],
-    ['midHue','Hue amount',0,1,.01,fx(2)],
-    ['pCountAmt','Particle count amount',0,1,.01,fx(2)],
-    ['pSizeAmt','Particle size amount',0,2,.01,fx(2)],
   ],
   'g-audio':[
     ['bpm','Tempo pulse',0,240,1,v=>v==0?'off':v+' bpm'],
@@ -1981,19 +1969,6 @@ for (const s of SSPEC) lCtl.push(makeSlider($('#g-sprite'), s, () => getL(sel), 
 for (const s of ISPEC) lCtl.push(makeSlider($('#g-icon'), s, () => selOf('icon'), null, 'l:' + s[0], () => defLayers().icon[s[0]]));
 for (const s of OSPEC) lCtl.push(makeSlider($('#g-objx'), s, () => selOf('obj'), null, 'l:' + s[0], () => defLayers().obj[s[0]]));
 for (const s of PSPEC) lCtl.push(makeSlider($('#g-part'), s, () => selOf('part'), () => renderLayers(), 'l:' + s[0], () => defLayers().part[s[0]]));
-// which band drives each audio effect
-const ROUTES = [['bassDepth','rDepth','Depth'],['bassZoom','rZoom','Zoom'],['highSpin','rSpin','Spin speed'],['midHue','rHue','Hue'],['pCountAmt','rPCount','Particle count'],['pSizeAmt','rPSize','Particle size']];
-const routeSel = {};
-for (const [amt, key, name] of ROUTES){
-  const row = document.getElementById('g-afx-' + amt).closest('.ctl');
-  const se = document.createElement('select'); se.id = 'route-' + key; se.setAttribute('aria-label', name + ' follows');
-  se.innerHTML = ['low','mid','high'].map(b => `<option value="${b}">${b[0].toUpperCase() + b.slice(1)} band → ${name}</option>`).join('') + '<option value="off">Off (no band)</option>';
-  se.onchange = () => { P[key] = se.value; };
-  se.setAttribute('data-adv', ''); row.insertBefore(se, row.querySelector('input[type=range]')); routeSel[key] = se;
-  const rbKey = 'rb' + key.slice(1), lab = document.createElement('label'); lab.className = 'check';
-  lab.setAttribute('data-adv', ''); lab.innerHTML = `<input type="checkbox" id="${rbKey}"> Rubber band`; lab.title = 'Springs toward the band level, overshoots and settles';
-  row.after(lab); lab.querySelector('input').onchange = e => { P[rbKey] = e.target.checked ? 1 : 0; };
-}
 // layer hue drift range (same two-handle spectrum as the global one)
 function syncLayerHue(){
   if (!$('#lhMin')) return;   // the layer hue-drift range now lives in an oscillator mapping
@@ -2104,7 +2079,6 @@ hMin?.addEventListener('input', () => { P.hueMin = Math.min(+hMin.value, P.hueMa
 hMax?.addEventListener('input', () => { P.hueMax = Math.max(+hMax.value, P.hueMin); syncHue(); });
 function syncUI(){
   gCtl.forEach(c => c.sync()); mirrorBox.checked = !!P.mirror; snapAutoBox.checked = !!P.snapAuto; syncHue();
-  for (const [, key] of ROUTES){ routeSel[key].value = P[key]; $('#rb' + key.slice(1)).checked = !!P['rb' + key.slice(1)]; }
   syncPulseUI(); if (typeof syncSoundUI === 'function') syncSoundUI();
   document.querySelectorAll('#qSeg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.q === P.q));
   $('#aspectSel').value = P.aspect;
@@ -2410,7 +2384,7 @@ function maskDims(){ const s = Math.min(1, 1024/Math.max(imgW, imgH)); return [M
 var sceneBase = null;   // a sample scene's own starting layer values (set in makeSample); any other load clears it, and Reset all then falls back to the app defaults
 function imageReady(name, keepLayers = false){
   sceneBase = null; picVer++;
-  srcName = name; colorVer++; depthVer++; audioRot = 0;
+  srcName = name; colorVer++; depthVer++;
   [MW, MH] = maskDims();
   if (cal){ cal = null; showCal(false); }
   if (!keepLayers){ P.L.layers = []; masks.clear(); medians.clear(); ownCols.clear(); plateC = null; } selHist.clear(); sel = 'bg';
@@ -3933,7 +3907,9 @@ const BUILTIN = {
   'Slow float':   {g:{seg:6, zoom:2.2, srcOrbit:.3, drift:.9, steer:.5, breathe:.05, strength:.14, depthHue:.15, sat:1.1, edges:.15, fog:.3}},
   'Raw parallax': {g:{drift:.7, steer:.5, strength:.1, fog:.2}},
 };
-function globalsOf(s){ const o = clone(s); delete o.L; for (const k of TOOL_KEYS) delete o[k]; return o; }
+/* the built-in Audio effects were replaced by mappings: old saves carry these keys, which are simply unused */
+const REMOVED_FX = ['bassDepth','bassZoom','highSpin','midHue','rDepth','rZoom','rSpin','rHue','pCountAmt','pSizeAmt','rPCount','rPSize','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize'];
+function globalsOf(s){ const o = clone(s); delete o.L; for (const k of TOOL_KEYS) delete o[k]; for (const k of REMOVED_FX) delete o[k]; return o; }
 /* Twist speed (twSpeed, ltwSpeed) was removed: it only ever added to Spin. Old files fold it into spin (spin += twSpeed) so they look the same,
    and oscillator mappings and pins that pointed at it are re-pointed to Spin. Works on a preset, a project's P or a timeline scene's P. */
 const TW_ID = {'g-sym-twSpeed': 'g-motion-spin', 'g-lsym-ltwSpeed': 'g-lsym-spin'};
@@ -3986,7 +3962,7 @@ function applyState(s){
   if (P.L.obj.shape === 'custom' && !meshCache.custom) P.L.obj.shape = 'merkaba';
   if (mapReady){ remapLayerMaps(); convertSwings(); }
   uploadIcon(); syncUI(); resize(); depthVer++; scheduleMedians();
-  audioRot = 0; spinVel = 0; steer[0] = steer[1] = 0;
+  steer[0] = steer[1] = 0;
   if (s.pins) { try { setPins(s.pins); } catch(e){} }
   markDirty();
 }
@@ -4210,6 +4186,7 @@ async function restoreProject(st, urlOf, objTextIn){
   if (st.pins) { try { setPins(st.pins); } catch(e){} }
   const sP = migrateTw(st.P || {}), tools = {}; for (const k of TOOL_KEYS) tools[k] = P[k];
   P = {...clone(P0), ...clone(sP), ...tools};
+  for (const k of REMOVED_FX) delete P[k];   // old projects carry the removed Audio effects settings; they are unused
   const di = defLayers();
   P.L = {layers: (sP.L?.layers || []).map(l => ({...LD, ...l})), bg: {...di.bg, ...(sP.L?.bg || {})}, icon: {...di.icon, ...(sP.L?.icon || {})}, obj: {...di.obj, ...(sP.L?.obj || {})}, part: {...di.part, ...(sP.L?.part || {})}, xs: (sP.L?.xs || []).filter(l => l && ['icon','obj','part'].includes(l.kind)).map(l => ({...di[l.kind], ...l}))};
   layerSeq = Math.max(st.layerSeq || 0, ...P.L.layers.map(l => +String(l.id).slice(1) || 0), ...P.L.xs.map(l => +String(l.id).slice(1) || 0));
@@ -5233,8 +5210,8 @@ function ablBands(edges){
     return w ? s/w : 0;
   });
 }
-const bandSolo = [false,false,false]; let gateSolo = false, spinVel = 0;
-const BAND_IDS = ['B','M','H'], ROUTE_IDX = {low:0, mid:1, high:2};
+const bandSolo = [false,false,false]; let gateSolo = false;
+const BAND_IDS = ['B','M','H'];
 function ensureCtx(){
   if (!actx){
     actx = new (window.AudioContext||window.webkitAudioContext)();
@@ -5330,18 +5307,6 @@ function updateAudio(t, dt){
     $('#g' + BAND_IDS[k]).style.left = `calc(${th*100}% - 1px)`;
     $('#hz' + BAND_IDS[k]).textContent = edges[k].map(x => x >= 1000 ? (x/1000).toFixed(1) + 'k' : Math.round(x)).join('–');
   }
-  // rubber band: an effect springs toward its band level, overshoots and settles instead of following it exactly
-  for (const [, key] of ROUTES){
-    const tgt = P[key] === 'off' ? 0 : band[ROUTE_IDX[P[key]] ?? 0], st = springs[key] || (springs[key] = {x:0, v:0});
-    if (P['rb' + key.slice(1)]){
-      const n = Math.max(1, Math.ceil(dt/.004)), h = dt/n;
-      for (let i=0;i<n;i++){ const a = 140*(tgt - st.x) - 7*st.v; st.v += a*h; st.x += st.v*h; }
-      st.x = Math.max(-.6, Math.min(1.8, st.x));
-    } else { st.x = tgt; st.v = 0; }
-  }
-  // spin: the band sets how fast it turns, eased so it speeds up and slows down instead of jumping on each beat
-  const sb = routed('rSpin');
-  spinVel += (P.highSpin*reactMul()*sb*2.2 - spinVel)*(1 - Math.exp(-dt/(.35 + 1.6*sm)));
   if (mon){
     const now = actx.currentTime, anySolo = bandSolo.some(Boolean), listen = anySolo ? bandSolo : [true,true,true];
     const set = (node, v) => node.gain.setTargetAtTime(v, now, .012);
@@ -5354,8 +5319,6 @@ function updateAudio(t, dt){
     mon.hi.forEach(f => f.frequency.setTargetAtTime(hi[0], now, .02));
   }
 }
-const springs = {};
-const routed = key => springs[key] ? springs[key].x : (P[key] === 'off' ? 0 : band[ROUTE_IDX[P[key]] ?? 0]);
 
 /* ---------- output ---------- */
 let pendingPng = false, rec = null, recEnd = 0;
@@ -5388,7 +5351,7 @@ $('#bRec').onclick = () => {
     updateBadge(); $('#bRec').disabled = false;
     offer(`submersion-${P.seg}fold-${P.loop}s.${ext}`, new Blob(chunks, {type: mime}));
   };
-  t = 0; audioRot = 0; paused = false; $('#hPause').textContent = 'Pause';
+  t = 0; paused = false; $('#hPause').textContent = 'Pause';
   rec.start(); recEnd = performance.now() + P.loop*1000;
   $('#bRec').disabled = true; $('#badge').className = 'badge rec';
   setTimeout(() => rec && rec.state !== 'inactive' && rec.stop(), P.loop*1000 + 40);
@@ -5413,7 +5376,7 @@ $('#bResetUndo').onclick = () => histStep(-1);
 
 /* ---------- transport + keys ---------- */
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let paused = reduce, t = 0, audioRot = 0, lastNow = performance.now();
+let paused = reduce, t = 0, lastNow = performance.now();
 $('#hPause').textContent = paused ? 'Play' : 'Pause';
 $('#hPause').onclick = () => { paused = !paused; $('#hPause').textContent = paused ? 'Play' : 'Pause'; };
 $('#hFull').onclick = () => {
@@ -5496,7 +5459,7 @@ function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el
 const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
-const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','rbDepth','rbZoom','rbSpin','rbHue','rbPCount','rbPSize','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
+const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
 let frameDt = 1/60;
 function smooth(key, target){
   if (!(P.glide > 0)){ GLIDE.set(key, target); return target; }
@@ -5740,15 +5703,13 @@ function ensureTrace(x, l){
 }
 function draw(w, h){
   const Q = smoothObj('g:', P);
-  { const rm = reactMul(); if (rm !== 1) for (const k of AMT_KEYS) Q[k] *= rm; }
   const L = Q.loop, ph = (t % L)/L, phi = ph*TAU;
   steer[0] += (steerT[0]-steer[0])*.08; steer[1] += (steerT[1]-steer[1])*.08;
-  const bb = routed('rDepth'), zb = routed('rZoom'), mm = routed('rHue');
   const vMode = cal ? 3 : view==='paint' ? 2 : view==='depth' ? 1 : view==='3d' ? 4 : 0;
   const twG = Q.twist + Q.twBounce*Math.sin(Q.twBounceRate*phi);
   const list = (vMode === 0 || vMode === 4) ? activeLayers(phi, Q) : [];
   { const seen = new Set(); for (const x of list) if (x.type === 2 && !seen.has(x.orig)){ seen.add(x.orig); renderObj(phi, x.orig, x.idx); } }
-  { const seen = new Set(); for (const x of list) if (x.type === 3 && !seen.has(x.orig)){ seen.add(x.orig); renderParticles(phi, x.L, 1 + Q.pCountAmt*routed('rPCount')*2, 1 + Q.pSizeAmt*routed('rPSize')*1.5, x.idx); } }
+  { const seen = new Set(); for (const x of list) if (x.type === 3 && !seen.has(x.orig)){ seen.add(x.orig); renderParticles(phi, x.L, 1, 1, x.idx); } }
   list.forEach((x, i) => {
     const l = x.L, o = i*4;
     A[o]=x.type; A[o+1]=x.idx; A[o+2]=x.z; A[o+3]= l.seg ? l.seg : Q.seg;
@@ -5792,19 +5753,19 @@ function draw(w, h){
   gl.uniform1f(U.uPhi, phi);
   gl.uniform2f(U.uSteer, steer[0]*Q.steer, steer[1]*Q.steer);
   gl.uniform1f(U.uDrift, Q.drift);
-  gl.uniform1f(U.uStrength, Q.strength*(1 + Q.bassDepth*bb));
+  gl.uniform1f(U.uStrength, Q.strength);
   gl.uniform1f(U.uFocus, Q.focus);
   gl.uniform1f(U.uGamma, Q.gamma);
   gl.uniform1f(U.uMirror, Q.mirror);
   gl.uniform1f(U.uSpin, Q.spin);
   gl.uniform1f(U.uSymAng, (Q.symAngle || 0)*Math.PI/180);
-  gl.uniform1f(U.uAudioRot, audioRot);
+  gl.uniform1f(U.uAudioRot, 0);
   gl.uniform1f(U.uTwist, twG);
   gl.uniform1f(U.uZoom, Q.zoom);
   gl.uniform1f(U.uBreathe, Q.breathe);
-  gl.uniform1f(U.uZoomMod, 1 + Q.bassZoom*zb*.25);
+  gl.uniform1f(U.uZoomMod, 1);
   gl.uniform1f(U.uSrcOrbit, Q.srcOrbit);
-  gl.uniform1f(U.uHue, Q.hue/360 + Q.midHue*mm*.3);
+  gl.uniform1f(U.uHue, Q.hue/360);
   gl.uniform1f(U.uHueCycle, Q.hueCycle);
   gl.uniform1f(U.uDepthHue, Q.depthHue);
   gl.uniform1f(U.uSat, Q.sat);
@@ -5842,9 +5803,6 @@ function frame(now){
   if (TL && TL.run) tlTick(dt);
   if (oscReady) modTick(now, dt);
   updateAudio(t, dt);
-  const reactive = (analyser && (!audioEl.paused || liveIn)) || P.bpm > 0;
-  if (!paused) audioRot += spinVel*dt;
-  if (!reactive && audioRot){ audioRot *= Math.pow(.02, dt); if (Math.abs(audioRot) < 1e-4) audioRot = 0; }   // settle back upright when the sound stops
   if (depthDirty) uploadDepth();
   if (selDirty && cal && cal.id !== 'bg'){ uploadR8(texSel, 8, masks.get(cal.id), MW, MH); selDirty = false; }
   if (mapReady) applyMods(paused ? 0 : dt);   // oscillators move their sliders for this frame only; the saved values stay put
@@ -6205,8 +6163,8 @@ setDrawer(UI.get('drawerOpen', false));
 const CATS = [
   {id:'layer', name:'Layer', icon:'i-layers', c:'--c-layer'}, {id:'sym', name:'Symmetry', icon:'i-sym', c:'--c-sym'},
   {id:'color', name:'Colour', icon:'i-color', c:'--c-color'}, {id:'depth', name:'Depth', icon:'i-depth', c:'--c-depth', drawer:true},
-  {id:'motion', name:'Motion', icon:'i-motion', c:'--c-motion'}, {id:'audio', name:'Sound', icon:'i-audio', c:'--c-audio'},
-  {id:'view', name:'Source', icon:'i-image', c:'--c-out', drawer:true}, {id:'random', name:'Randomize', icon:'i-dice', c:'--c-fx'}, {id:'mod', name:'Mod', icon:'i-osc', c:'--c-motion'},
+  {id:'motion', name:'Motion', icon:'i-motion', c:'--c-motion'},
+  {id:'view', name:'Source', icon:'i-image', c:'--c-out', drawer:true}, {id:'random', name:'Randomize', icon:'i-dice', c:'--c-fx'}, {id:'audio', name:'Sound', icon:'i-audio', c:'--c-audio'}, {id:'mod', name:'Mod', icon:'i-osc', c:'--c-motion'},
   {id:'project', name:'Project & export', icon:'i-out', c:'--c-out'},
 ];
 const catEl = id => document.querySelector(`.cat[data-cat="${id}"]`);
@@ -6304,12 +6262,9 @@ function setPins(o){                                     // from a preset or pro
   PINS = o.list.filter(pinnable); AUTOPIN = new Set((o.auto || []).filter(i => PINS.includes(i))); LOCKED = new Set((o.locked || []).filter(i => PINS.includes(i)));
   savePins(); drawMacros();
 }
-// audio-driven sliders: the ones a band route is moving right now
-const AUDIO_DRIVEN = {'g-depth-strength':['bassDepth','rDepth'], 'g-sym-zoom':['bassZoom','rZoom'], 'g-sym-spin':['highSpin','rSpin'], 'g-color-hue':['midHue','rHue'], 'g-part-count':['pCountAmt','rPCount'], 'g-part-psize':['pSizeAmt','rPSize']};
-const audioDriven = id => { const a = AUDIO_DRIVEN[id]; return !!a && P[a[0]] > 0 && P[a[1]] !== 'off' && ((!!analyser && (!audioEl.paused || liveIn)) || P.bpm > 0); };  // only while sound or tempo is actually running
 let pinFullT = 0;
 function autoPin(id){
-  if (!AUTO_ON || PINS.includes(id) || audioDriven(id) || (mapReady && modDriven(id))) return;
+  if (!AUTO_ON || PINS.includes(id) || (mapReady && modDriven(id))) return;
   if (manualCount() >= SLOTS){                           // every slot is held by a pin you chose: say why nothing is being added (at most every 20 s)
     if (Date.now() - pinFullT > 20000){ pinFullT = Date.now(); toast('Auto pin is paused: your pins fill all ' + SLOTS + ' slots. Raise Pinned slots in Settings, or unpin one.', 3600); }
     return;
@@ -6375,14 +6330,21 @@ function layerFits(info, lid){
   return true;
 }
 const oscById = id => oscList().find(o => o.id === id);
-const BAND_SRC = ['Low band', 'Mid band', 'High band'];
-// a mapping's source: an oscillator id, or band:0 / band:1 / band:2 for the audio bands (level 0..1)
+const BAND_SRC = ['Low band', 'Mid band', 'High band'], BAND_SHORT = ['Low', 'Mid', 'High'];
+// a mapping's source: an oscillator id, or band:<digits> for the audio bands (level 0..1): band:0 is Low, band:12 is Mid + High together (their average).
+// Old saves only have band:0, band:1 and band:2, which are the single-band cases.
+const bandsOf = id => { const m = /^band:([012]+)$/.exec(id); return m ? [...new Set(m[1].split('').map(Number))].sort() : null; };
+const bandId = ks => 'band:' + [...new Set(ks)].sort().join('');
+const bandName = ks => ks.length === 1 ? BAND_SRC[ks[0]] : ks.map(k => BAND_SHORT[k]).join(' + ') + ' bands';
+const bandVal = ks => { let a = 0; for (const k of ks) a += band[k] || 0; return ks.length ? a/ks.length : 0; };
 function srcInfo(id){
   if (typeof id !== 'string') return null;
-  if (id.startsWith('band:')){ const k = +id.slice(5); return k >= 0 && k < 3 ? {id, name: BAND_SRC[k], col: 'var(--c-audio)', band: k} : null; }
+  if (id.startsWith('band:')){ const ks = bandsOf(id); return ks ? {id, name: bandName(ks), col: 'var(--c-audio)', bands: ks} : null; }
   const o = oscById(id); return o ? {id, name: o.name, col: OSC_COLS[o.c % OSC_COLS.length], osc: o} : null;
 }
-const srcVal = id => { const s = srcInfo(id); return !s ? null : s.osc ? rtOf(s.osc).v : band[s.band]; };
+const srcVal = id => { const s = srcInfo(id); return !s ? null : s.osc ? rtOf(s.osc).v : bandVal(s.bands); };
+// Easy mode's Reactivity slider scales every band mapping (oscillator mappings are not touched)
+const mapAmt = m => (+m.amt || 0)*(bandsOf(m.src) ? reactMul() : 1);
 const oscColor = id => (srcInfo(id) || {}).col || 'var(--accent)';
 const layerName = id => (layerDefs().find(d => d.id === id) || {}).name || id;
 function targetName(tgt, layer){
@@ -6402,20 +6364,20 @@ function nextMapId(ml = mapList()){ let n = 0; for (const m of ml) n = Math.max(
 
 /* ---- the movement itself ---- */
 const MAP_RT = new Map(), MAP_VAL = new Map(), OSC_VAL = new Map(), MAP_SAVE = [];
-const curveOf = (y, c) => { const a = Math.abs(y), s = Math.sign(y); return c === 'in' ? s*a*a : c === 'out' ? s*(1 - (1 - a)**2) : y; };
+const curveOf = (y, c) => { const a = Math.abs(y), s = Math.sign(y); return c === 'in' ? s*a*a : c === 'out' ? s*(1 - (1 - a)**2) : c === 'inout' ? s*(a < .5 ? 2*a*a : 1 - 2*(1 - a)**2) : y; };   // inout: a symmetric S-curve, slow at both ends
 function mapDelta(m, span, dt){
   const v0 = srcVal(m.src); if (v0 == null) return null;
   let y = curveOf(v0, m.curve);
   let r = MAP_RT.get(m.id); if (!r) MAP_RT.set(m.id, r = {y});
   if (m.smooth > 0){ if (dt) r.y += (y - r.y)*(1 - Math.exp(-dt/m.smooth)); y = r.y; } else r.y = y;
-  return (+m.amt || 0)*span*y;
+  return mapAmt(m)*span*y;
 }
 // a bipolar wave (−1..1) moves half the range each way, so Amount 100% spans the whole range once; converted swings (free) keep their old reach
 function mapGain(m){ if (m.free) return 1; const s = srcInfo(m.src); return s && s.osc && s.osc.bip ? .5 : 1; }
 // the lowest and highest offset a mapping can give (nominal source range, times its depth)
 function mapReach(m, span){
   const s = srcInfo(m.src), dep = s && s.osc ? clamp01(s.osc.depth ?? 1) : 1, lo = s && s.osc && s.osc.bip ? -dep : 0;
-  const k = (+m.amt || 0)*span*mapGain(m), a = k*lo, b = k*dep; return [Math.min(a, b), Math.max(a, b)];
+  const k = mapAmt(m)*span*mapGain(m), a = k*lo, b = k*dep; return [Math.min(a, b), Math.max(a, b)];
 }
 const NO_ROUND = new Set(['hue', 'phue', 'pangle']);      // step-1 sliders that are still continuous: no stair steps while moving
 function modClamp(e, x){ let v = Math.max(Math.min(e.lo, e.hi), Math.min(e.hi, x)); if (e.round) v = Math.round(v/e.step)*e.step; return v; }
@@ -6452,10 +6414,10 @@ function applyMods(dt){
   }
 }
 // a source's value `shift` seconds later (copies made with Instances run behind); audio bands have no future, so they read now
-function srcValAt(id, shift){ const s = srcInfo(id); if (!s) return null; if (s.band != null) return band[s.band]; return shift ? oscValueAt(s.osc, -shift) : rtOf(s.osc).v; }
+function srcValAt(id, shift){ const s = srcInfo(id); if (!s) return null; if (s.bands) return bandVal(s.bands); return shift ? oscValueAt(s.osc, -shift) : rtOf(s.osc).v; }
 function modAtShift(e, shift){
   let d = 0;
-  for (const m of e.maps){ const v = srcValAt(m.src, shift*(m.stag || 1)); if (v != null) d += (+m.amt || 0)*e.span*mapGain(m)*curveOf(v, m.curve); }
+  for (const m of e.maps){ const v = srcValAt(m.src, shift*(m.stag || 1)); if (v != null) d += mapAmt(m)*e.span*mapGain(m)*curveOf(v, m.curve); }
   return modClamp(e, (e.sb ?? e.base) + d);
 }
 function instL(L0, L, off){
@@ -6629,6 +6591,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && mapArmed){ e.preven
 /* ================= Mod: the matrix. One row per mapping, every column editable in place ================= */
 const MX = {src: UI.get('mxSrc', 'all'), layer: UI.get('mxLayer', 'all'), type: UI.get('mxType', 'all'), sort: UI.get('mxSort', 'added'), rows: []};
 const srcChoices = () => [...oscList().map(o => [o.id, o.name]), ...BAND_SRC.map((n, k) => ['band:' + k, n])];
+const rowSrcOptions = cur => [...oscList().map(o => [o.id, o.name]), ['bands', 'Audio bands']].map(([v, n]) => `<option value="${v}"${v === (bandsOf(cur) ? 'bands' : cur) ? ' selected' : ''}>${escH(n)}</option>`).join('');
 const srcOptions = cur => srcChoices().map(([v, n]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${escH(n)}</option>`).join('');
 const mapType = m => m.tgt.startsWith('osc:') ? 'osc' : (MAPT.get(m.tgt)?.cat.id || 'other');
 const typeName = t => t === 'osc' ? 'Oscillators' : t === 'layers' ? 'Layers panel' : (CATS.find(c => c.id === t) || {name: t}).name;
@@ -6644,64 +6607,80 @@ function fillMatrixFilters(){
 }
 for (const [id, key] of [['#mFiltSrc', 'src'], ['#mFiltLayer', 'layer'], ['#mFiltType', 'type'], ['#mSort', 'sort']]) $(id).addEventListener('change', e => { MX[key] = e.target.value; UI.set('mx' + key[0].toUpperCase() + key.slice(1), MX[key]); renderMatrix(); });
 $('#bMapAdd').onclick = e => { e.stopPropagation(); const v = $('#mAddSrc').value; if (!v){ toast('Add an oscillator first, or pick an audio band'); return; } if (mapArmed === v) disarmMap(); else armMap(v, $('#bMapAdd')); };
-$('#bToMod').onclick = () => { openCat('mod', true); requestAnimationFrame(() => { const h = $('#modAudioHead'); if (h && h.scrollIntoView) h.scrollIntoView({block:'start'}); }); };
-/* ---- Sound tab: Beat sync presets, effect count, Easy Reactivity ----
-   Beat sync only sets the built-in audio settings (the six amounts, their band routes, the gates and smoothing); nothing else. */
-var BS_READY = false, REACT = 1, AMT_KEYS = ROUTES.map(r => r[0]);
+$('#bToMod').onclick = () => { openCat('mod', true); requestAnimationFrame(() => { const h = $('#modMapHead'); if (h && h.scrollIntoView) h.scrollIntoView({block:'start'}); }); };
+/* ---- Mod presets, effect count, Easy Reactivity ----
+   A preset is a set of ready-made band mappings plus gates and smoothing. Picking one replaces the previous preset's mappings (tagged m.preset)
+   and adds its own as one undo step; mappings made by hand are never touched. Amounts are re-derived from the old multiplicative Audio effects:
+   Depth .267 = .08 strength / .3 range, Zoom .0676 = .25 / 3.7 range, Hue .3 = .3 of 360, Particle count .4 = 2 x 400 / 1990, Particle size .223 = 1.5 x 7 / 47.
+   Spin is capped near 4 turns per loop (the slider's end). They are starting points: tune the feel on a real device. */
+var BS_READY = false, REACT = 1;
 function reactMul(){ return easyOn() ? REACT : 1; }
-const BEAT = [
-  ['off','Off', {}, null, null],
-  ['kick','Kick Pulse', {bassZoom:[.45,'low'], bassDepth:[1,'low']}, {gateLow:.35}, .35],
-  ['hat','Hat Shimmer', {highSpin:[1.2,'high'], pSizeAmt:[.8,'high'], midHue:[.15,'high']}, {gateHigh:.3}, .3],
-  ['bass','Bass Breathe', {bassDepth:[1.4,'low'], bassZoom:[.2,'low']}, {}, .75],
-  ['spin','Full Spin', {highSpin:[1.8,'mid'], bassZoom:[.3,'low'], midHue:[.4,'mid']}, {}, .45],
-  ['storm','Particle Storm', {pCountAmt:[1,'low'], pSizeAmt:[1.6,'high'], bassZoom:[.25,'low']}, {}, .3],
-  ['chill','Chill Drift', {midHue:[.35,'mid'], highSpin:[.4,'mid'], bassDepth:[.5,'low']}, {}, .85],
+const PRESET_TGT = {depth:'g-depth-strength', zoom:'g-sym-zoom', spin:'g-motion-spin', hue:'g-color-hue', pcount:'g-part-count', psize:'g-part-psize'};
+// [id, name, [[bands (0 Low, 1 Mid, 2 High), target, amount, curve]], gates, smoothing]
+const MPRESETS = [
+  ['off','Off', [], null, null],
+  ['kick','Kick Pulse', [[[0],'zoom',.03], [[0],'depth',.27]], {gateLow:.35}, .35],
+  ['hat','Hat Shimmer', [[[2],'spin',.34], [[2],'psize',.18], [[2],'hue',.045]], {gateHigh:.3}, .3],
+  ['bass','Bass Breathe', [[[0],'depth',.37], [[0],'zoom',.014]], {}, .75],
+  ['spin','Full Spin', [[[1],'spin',.5], [[0],'zoom',.02], [[1],'hue',.12]], {}, .45],
+  ['storm','Particle Storm', [[[0],'pcount',.4], [[2],'psize',.36], [[0],'zoom',.017]], {}, .3],
+  ['chill','Chill Drift', [[[1],'hue',.105], [[1],'spin',.11], [[0],'depth',.13]], {}, .85],
+  ['swell','Slow Swell', [[[0,1],'zoom',.05,'inout'], [[0,1,2],'depth',.16,'inout']], {}, .8],
+  ['wide','Wide Pulse', [[[0,1,2],'zoom',.035], [[0,1],'depth',.2,'in']], {gateLow:.25}, .3],
+  ['sparkle','Treble Sparkle', [[[1,2],'psize',.22,'in'], [[2],'hue',.08,'out']], {gateHigh:.25}, .25],
+  ['bloom','Warm Bloom', [[[0,1],'hue',.1,'inout'], [[0],'pcount',.3,'out'], [[1,2],'spin',.18]], {}, .6],
 ];
-const BS_GATES = ['gateLow','gateMid','gateHigh'], BS_ROUTE = Object.fromEntries(ROUTES.map(r => [r[0], r[1]]));
-const BS_KEYS = [...AMT_KEYS, ...ROUTES.map(r => r[1]), ...BS_GATES, 'aSmooth'];
+const mpOf = id => MPRESETS.find(p => p[0] === id);
+const BS_GATES = ['gateLow','gateMid','gateHigh'], BS_KEYS = [...BS_GATES, 'aSmooth'];
 const bsSnap = () => Object.fromEntries(BS_KEYS.map(k => [k, P[k]]));
-const bsRestore = o => { for (const k of BS_KEYS) P[k] = o[k]; syncUI(); markDirty(); };
-function bsTarget(pr){   // the values a preset sets, from the current state (a route that cannot be set keeps its band)
-  const t = bsSnap(), [, , fx, gates, sm] = pr;
-  for (const k of AMT_KEYS) t[k] = fx[k] ? fx[k][0] : 0;
-  if (gates){ for (const g of BS_GATES) t[g] = gates[g] || 0; t.aSmooth = sm; }
-  for (const k of AMT_KEYS) if (fx[k] && BS_ROUTE[k] in P) t[BS_ROUTE[k]] = fx[k][1];
-  return t;
-}
+const MSIG = ['src','tgt','layer','on','amt','lo','hi','smooth','curve'];
+const mapSig = m => JSON.stringify(MSIG.map(k => m[k] ?? null));
+// the preset showing in the menu: Off with no preset mappings, Custom once one was edited, deleted or its gates and smoothing changed
 function bsCurrent(){
-  const near = (a, b) => Math.abs((+a) - (+b)) < .005;
-  for (const pr of BEAT){
-    const [, , fx, gates, sm] = pr;
-    if (!AMT_KEYS.every(k => near(P[k], fx[k] ? fx[k][0] : 0))) continue;
-    if (gates && !(BS_GATES.every(g => near(P[g], gates[g] || 0)) && near(P.aSmooth, sm))) continue;
-    if (!AMT_KEYS.every(k => !fx[k] || P[BS_ROUTE[k]] === fx[k][1])) continue;
-    return pr[0];
-  }
-  return 'custom';
+  const pm = mapList().filter(m => m.preset && mpOf(m.preset));
+  if (!pm.length) return 'off';
+  const id = pm[0].preset, pr = mpOf(id), near = (a, b) => Math.abs((+a) - (+b)) < .005;
+  if (pm.some(m => m.preset !== id || m.sig !== mapSig(m) || m.pn !== pm.length)) return 'custom';
+  if (pr[3] && !(BS_GATES.every(g => near(P[g], pr[3][g] || 0)) && near(P.aSmooth, pr[4]))) return 'custom';
+  return id;
+}
+function mpRestore(o){
+  oscList(); P.mod.maps = clone(o.maps); for (const k of BS_KEYS) P[k] = o.gates[k];
+  MAP_RT.clear(); MOD.lastMark = 0; syncUI(); renderMatrix(); markDirty();
 }
 function applyBeat(id){
-  const pr = BEAT.find(b => b[0] === id); if (!pr) return;
-  const before = bsSnap(), rb = rangeSnap(), after = bsTarget(pr);
-  if (BS_KEYS.every(k => before[k] === after[k])){ syncSoundUI(); return; }
-  for (const k of BS_KEYS) P[k] = after[k];
-  syncUI(); markDirty(); flashApplied(rb);
-  const nm = 'Beat sync: ' + pr[1];
-  histPush('beat sync', nm, () => bsRestore(before), () => bsRestore(after));
-  toast(nm);
+  const pr = mpOf(id); if (!pr || !mapReady) return;
+  const before = {maps: clone(mapList()), gates: bsSnap()}, ml = mapList();
+  for (let i = ml.length - 1; i >= 0; i--) if (ml[i].preset) ml.splice(i, 1);      // the previous preset's mappings go; yours stay
+  const made = []; let noLayer = false;
+  for (const [bands, key, amt, curve] of pr[2]){
+    const tgt = PRESET_TGT[key], info = MAPT.get(tgt); if (!info) continue;
+    // layer targets (particles): every layer the slider fits, now; a layer added later needs the preset applied again
+    const layers = info.scope === 'g' ? [null] : layerDefs().filter(d => !getL(d.id).gone && layerFits(info, d.id)).map(d => d.id);
+    if (!layers.length) noLayer = true;
+    for (const layer of layers){ const m = {id: nextMapId(ml), src: bandId(bands), tgt, layer, on: 1, amt, lo: null, hi: null, smooth: 0, curve: curve || 'lin', preset: pr[0]}; ml.push(m); made.push(m); }
+  }
+  for (const m of made){ m.pn = made.length; m.sig = mapSig(m); }
+  if (pr[3]){ for (const g of BS_GATES) P[g] = pr[3][g] || 0; P.aSmooth = pr[4]; }
+  const after = {maps: clone(ml), gates: bsSnap()};
+  if (JSON.stringify(before) === JSON.stringify(after)){ syncSoundUI(); return; }
+  MAP_RT.clear(); MOD.lastMark = 0; syncUI(); renderMatrix(); markDirty();
+  const nm = pr[0] === 'off' ? 'Mod preset off' : 'Mod preset: ' + pr[1];
+  histPush('preset', nm, () => mpRestore(before), () => mpRestore(after));
+  toast(nm + (noLayer ? '. Add a particle layer to use its particle mappings.' : ''));
 }
-for (const sel of document.querySelectorAll('.bsSel')){
-  sel.innerHTML = BEAT.map(b => `<option value="${b[0]}">${b[1]}</option>`).join('') + '<option value="custom">Custom</option>';
+{
+  const sel = $('#mPreset');
+  sel.innerHTML = MPRESETS.map(b => `<option value="${b[0]}">${b[1]}</option>`).join('') + '<option value="custom">Custom</option>';
   sel.onchange = () => { if (sel.value === 'custom'){ syncSoundUI(); return; } applyBeat(sel.value); };
 }
-for (const [, key] of ROUTES) routeSel[key].addEventListener('change', () => syncSoundUI());
 function syncSoundUI(){
   if (!BS_READY) return;
-  const cur = bsCurrent();
-  for (const sel of document.querySelectorAll('.bsSel')) if (sel.value !== cur) sel.value = cur;
-  let n = AMT_KEYS.filter(k => P[k] > 0).length;
-  if (mapReady){ try { n += mapList().filter(m => { const si = srcInfo(m.src); return si && si.band != null; }).length; } catch(e){} }
-  const fc = $('#fxCount'); if (fc) fc.textContent = n === 1 ? '1 effect reacts to sound' : n + ' effects react to sound';
+  const sel = $('#mPreset'), cur = mapReady ? bsCurrent() : 'off';
+  if (sel && sel.value !== cur) sel.value = cur;
+  let n = 0;
+  if (mapReady){ try { n += mapList().filter(m => { const si = srcInfo(m.src); return si && si.bands; }).length; } catch(e){} }
+  const fc = $('#fxCount'); if (fc) fc.textContent = n === 1 ? '1 mapping reacts to sound' : n + ' mappings react to sound';
 }
 {
   const ri = $('#reactIn'), ro = $('#reactOut');
@@ -6715,10 +6694,10 @@ function renderMatrix(){
   if (!mapReady) return;
   fillMatrixFilters();
   const host = $('#modList'), all = mapList(); host.innerHTML = ''; MX.rows = [];
-  let ms = all.filter(m => (MX.src === 'all' || m.src === MX.src) && (MX.layer === 'all' || (MX.layer === 'global' ? !m.layer : m.layer === MX.layer)) && (MX.type === 'all' || mapType(m) === MX.type));
+  let ms = all.filter(m => (MX.src === 'all' || m.src === MX.src || (MX.src.startsWith('band:') && (bandsOf(m.src) || []).includes(+MX.src.slice(5)))) && (MX.layer === 'all' || (MX.layer === 'global' ? !m.layer : m.layer === MX.layer)) && (MX.type === 'all' || mapType(m) === MX.type));
   const by = {src: m => (srcInfo(m.src) || {name: '~'}).name, tgt: m => targetName(m.tgt, m.layer), layer: m => m.layer ? layerName(m.layer) : ''}[MX.sort];
   if (by) ms = [...ms].sort((a, b) => by(a).localeCompare(by(b), undefined, {numeric: true}));
-  if (!all.length) host.innerHTML = '<p class="note">No mappings yet. Click an oscillator\'s node, then a slider\'s icon, or use Add mapping.</p>';
+  if (!all.length) host.innerHTML = '<p class="note">No mappings yet. Pick a preset, click an oscillator\'s node then a slider\'s icon, or use Add mapping.</p>';
   else if (!ms.length) host.innerHTML = '<p class="note">No mappings match these filters.</p>';
   for (const m of ms) host.appendChild(matrixRow(m));
   syncSoundUI(); drawMatrixWaves();
@@ -6730,17 +6709,22 @@ function matrixRow(m){
   const el = document.createElement('div'); el.className = 'mrow'; el.setAttribute('role', 'listitem'); el.style.setProperty('--mc', si ? si.col : 'var(--dim)');
   el.classList.toggle('off', !m.on);
   el.innerHTML = `<div class="mr1"><input type="checkbox" class="mon" aria-label="Mapping on"${m.on ? ' checked' : ''}>
-      <span class="msrc"><span class="dot"></span><select aria-label="Source">${si ? '' : '<option value="" selected>Missing source</option>'}${srcOptions(m.src)}</select><canvas class="mwave" aria-hidden="true"></canvas></span>
+      <span class="msrc"><span class="dot"></span><select aria-label="Source">${si ? '' : '<option value="" selected>Missing source</option>'}${rowSrcOptions(m.src)}</select><canvas class="mwave" aria-hidden="true"></canvas></span>
       <button type="button" class="mtgt" title="Show this slider">${escH(targetName(m.tgt, m.layer))}${gone ? ' <i>(removed)</i>' : ''}</button>
       <button type="button" class="ib mdel" aria-label="Delete mapping" title="Delete mapping">${use('i-trash')}</button></div>
     <div class="mr2"><span class="ml">Amount</span><input type="range" class="mamt" min="-200" max="200" step="1" aria-label="Amount, percent of the slider's range"><output class="mo"></output>
       <span class="ml">Smooth</span><span class="msmw"><input type="text" class="msm" inputmode="decimal" data-typing aria-label="Smooth, in seconds"><span class="mu">s</span></span></div>
     <div class="mr3"><span class="ml">Range</span><div class="rng2"><span class="rfill"></span><input type="range" class="rlo" aria-label="Lowest value it can reach"><input type="range" class="rhi" aria-label="Highest value it can reach"></div><output class="mo mro"></output>
-      <select class="mcurve" aria-label="Curve"><option value="lin">Linear</option><option value="in">Ease in</option><option value="out">Ease out</option></select></div>`;
+      <select class="mcurve" aria-label="Curve"><option value="lin">Linear</option><option value="in">Ease in</option><option value="out">Ease out</option><option value="inout">Ease in + out</option></select></div>
+    ${bandsOf(m.src) ? '<div class="mr4"><span class="ml">Bands</span><span class="mbands" role="group" aria-label="Bands this mapping follows (their average)">' + BAND_SHORT.map((n, k) => `<button type="button" class="btn mband" data-k="${k}" aria-pressed="${bandsOf(m.src).includes(k)}">${n}</button>`).join(' ') + '</span></div>' : ''}`;
   const q = s => el.querySelector(s), amt = q('.mamt'), amtO = q('.mr2 .mo'), sm = q('.msm'), rlo = q('.rlo'), rhi = q('.rhi'), rfill = q('.rfill'), rO = q('.mro'), cur = q('.mcurve');
   const save = () => { changed(); MOD.lastMark = 0; };
   q('.mon').onchange = e => { m.on = e.target.checked ? 1 : 0; el.classList.toggle('off', !m.on); save(); };
-  q('.msrc select').onchange = e => { if (!e.target.value) return; m.src = e.target.value; MAP_RT.delete(m.id); save(); renderMatrix(); };
+  q('.msrc select').onchange = e => { if (!e.target.value) return; m.src = e.target.value === 'bands' ? (bandsOf(m.src) ? m.src : 'band:0') : e.target.value; MAP_RT.delete(m.id); save(); renderMatrix(); };
+  el.querySelectorAll('.mband').forEach(b => b.onclick = () => {   // Low / Mid / High chips: any mix, at least one stays on
+    const ks = bandsOf(m.src) || [], k = +b.dataset.k, on = ks.includes(k);
+    if (on && ks.length === 1){ toast('Keep at least one band on'); return; }
+    m.src = bandId(on ? ks.filter(x => x !== k) : [...ks, k]); MAP_RT.delete(m.id); save(); renderMatrix(); });
   q('.mtgt').onclick = () => jumpToMap(m);
   q('.mdel').onclick = () => { const ml = mapList(), i = ml.indexOf(m); if (i < 0) return; ml.splice(i, 1); save(); renderMatrix();
     actionToast(`Mapping removed: ${si ? si.name : 'source'} → ${targetName(m.tgt, m.layer)}`, 'Undo', () => { if (!mapList().includes(m)){ mapList().splice(Math.min(i, mapList().length), 0, m); save(); renderMatrix(); } }); };
@@ -6780,7 +6764,7 @@ function drawMatrixWaves(){
     if (cv.width !== Math.round(W*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
     const g = cv.getContext('2d'), si = srcInfo(m.src); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); if (!si) continue;
     const col = si.osc ? OSC_COLS[si.osc.c % OSC_COLS.length] : getComputedStyle(cv).getPropertyValue('--c-audio').trim() || '#b8a233';
-    if (si.band != null){ const v = band[si.band] || 0; g.fillStyle = oscGuide; g.fillRect(0, H - 3, W, 2); g.fillStyle = col; g.fillRect(0, H*(1 - v), W*.18, H*v); g.fillRect(W*.24, H - 3, W*.76*v, 2); continue; }
+    if (si.bands){ const v = bandVal(si.bands); g.fillStyle = oscGuide; g.fillRect(0, H - 3, W, 2); g.fillStyle = col; g.fillRect(0, H*(1 - v), W*.18, H*v); g.fillRect(W*.24, H - 3, W*.76*v, 2); continue; }
     const o = si.osc, yOf = v => o.bip ? H/2 - v*(H/2 - 2) : H - 2 - v*(H - 4);
     g.strokeStyle = col; g.lineWidth = 1.3; g.beginPath();
     for (let i = 0; i <= 30; i++){ const f = i/30, y = yOf(oscValueAt(o, (1 - f)*2)); i ? g.lineTo(f*W, y) : g.moveTo(0, y); }
@@ -7248,7 +7232,7 @@ window.addEventListener('keydown', e => {
 var fltBuilt = false;
 const FGROUPS = [
   ['Symmetry','g',['g-sym']], ['Colour','g',['g-color']], ['Depth & parallax','g',['g-depth']], ['Motion','g',['g-motion']],
-  ['All-layer dry/wet','g',['g-layers']], ['Sound','g',['g-aband','g-afx','g-audio','g-apulse']],
+  ['All-layer dry/wet','g',['g-layers']], ['Sound','g',['g-aband','g-audio','g-apulse']],
   ['Layer depth','l',['g-lpos']], ['Layer dry/wet & blend','l',['g-lmix']], ['Layer symmetry & twist','l',['g-lsym']], ['Layer fractal','l',['g-lfr']],
   ['Layer colour','l',['g-lcol','g-lrc']], ['Layer effects','l',['g-lfx']], ['Layer outline','l',['g-lol']], ['Layer instances','l',['g-linst']], ['Icon & 3D object placement','l',['g-sprite','g-icon','g-objx']],
   ['Particles','l',['g-part']],
@@ -7901,8 +7885,6 @@ const itut = (() => {
        x:'Add oscillator makes a new wave. Its card sets the shape, rate and amount.', tr:'Tap Add oscillator.'},
       {t:'Map it to a slider', sel:['#pOsc .onode', '#pOsc .oadd'], allow:['#pOsc', '#pInsp', '#dInsp', '.pinMenu'], open:{panel:'O'}, easyHidden:1,
        x:'Tap an oscillator’s node, then tap any slider. That slider now moves with the wave, across its full range to start.', tr:'Tap a node, then a slider in the Inspector.'},
-      {t:'Audio effects', sel:['#modAudioHead', '#g-afx'], open:{cat:'mod'}, easyHidden:1,
-       x:'The built-in effects that react to sound. Each row reads band, then effect, then amount. Zero turns an effect off.', tr:'Raise Zoom amount.'},
       {t:'Mod tab', sel:[chip('mod'), catSel('mod') + ' > .note'], open:{cat:'mod'}, easyHidden:1,
        x:'Mod lists every mapping: what moves what, and how far. Click a target to jump to its slider.', tr:'Read the list of mappings below.'},
       {t:'Filter and sort', sel:[catSel('mod') + ' .mtool'], open:{cat:'mod'}, easyHidden:1,
@@ -7924,11 +7906,10 @@ const itut = (() => {
       {t:'Bands and gates', sel:[catSel('audio') + ' .bands', '#bGateSolo', '#g-aband'], open:{cat:'audio'}, list:1,
        x:'Low, Mid and High split the sound. Crossovers set where they split; each gate sets how loud a band must be to move the picture.',
        tr:'With sound playing, watch the three meters.', easyHidden:1},
-      {t:'Beat sync', sel:['#bsSel', '#fxLine'], open:{cat:'audio'},
-       x:'Beat sync sets how the picture reacts to sound. Pick a style here; Edit in Mod shows every effect it set, so you can fine-tune them.', tr:'Pick Kick Pulse.',
-       e:{sel:['#bsSel'], x:'Beat sync sets how the picture reacts to sound. Pick a style and play something.'}},
+      {t:'Sound mappings', sel:['#fxLine'], open:{cat:'audio'}, easyHidden:1,
+       x:'The picture reacts to sound through mappings from the Low, Mid and High bands. Edit in Mod opens the list, where a preset gives you a start.', tr:'Press Edit in Mod.'},
       {t:'Reactivity', sel:['#reactRow'], open:{cat:'audio'},
-       x:'Reactivity makes every sound effect stronger or gentler at once.', tr:'Nudge Reactivity up or down.'},
+       x:'Reactivity makes every sound mapping stronger or gentler at once.', tr:'Nudge Reactivity up or down.'},
       {t:'Tempo pulse and tap tempo', sel:['#g-audio', '#bTap', '#g-apulse'], open:{cat:'audio'}, key:['Tap tempo'], list:1,
        x:'Tempo pulse beats the picture without any sound. Tap tempo along with your music to set the speed.', tr:'Tap Tap tempo four times in a steady rhythm.',
        e:{sel:['#bTap'], x:'Tap tempo along with your music to set the speed.'}},
@@ -8490,8 +8471,8 @@ const testMode = (() => {
     S('au4', B, aAU, '', 'More › Streaming.', 'The Streaming panel opens with a link box.', '#mMusic', {more: 1}),
     S('au5', B, aAU, '', 'Paste a SoundCloud or Spotify link in Streaming.', 'It loads (needs internet); on desktop Listen lets the picture react.'),
     S('au6', B, aAU, 'adv', 'With sound playing, watch the Low, Mid and High meters, move a crossover and try Gate solo.', 'Each band follows its part of the sound; crossovers move the split; solo isolates a band.', '.cat[data-cat="audio"] .bands', {cat: 'audio'}),
-    S('au7', B, aAU, '', 'Pick the Kick Pulse Beat sync style.', 'The picture pulses on the kick; Edit in Mod lists the effects it set.', '#bsSel', {cat: 'audio'}),
-    S('au8', B, aAU, '', 'Move Reactivity up and down.', 'Every sound effect gets stronger or gentler together.', '#reactRow', {cat: 'audio'}),
+    S('au7', B, aAU, 'adv', 'In Mod, pick the Kick Pulse preset.', 'The picture pulses on the kick; the Mappings list shows the band mappings it added.', '#mPreset', {cat: 'mod'}),
+    S('au8', B, aAU, '', 'Move Reactivity up and down.', 'Every sound mapping gets stronger or gentler together.', '#reactRow', {cat: 'audio'}),
     S('au9', B, aAU, '', 'With no sound, raise Tempo pulse.', 'The picture beats at the tempo in silence.', '#g-apulse', {cat: 'audio'}),
     S('au10', B, aAU, '', 'Tap Tap tempo four times in rhythm (desktop: M).', 'The tempo follows your taps and the pulse matches.', '#bTap', {cat: 'audio'}),
     S('au11', B, aAU, '', 'Stop everything you started: audio, microphone, device audio, stream.', 'Meters drop to zero, no sound plays, and the browser shows no capture indicator.'),
