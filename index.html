@@ -204,6 +204,33 @@ body{background:var(--stage)}
 .fp[hidden]{display:none}
 #pLayers{left:16px;top:16px;width:372px}
 #pInsp{right:16px;top:16px;width:404px}
+/* Mod panel (desktop): docked beside the Inspector; its place and width are set in placeMod() */
+#pMod{top:16px;left:auto;width:360px}
+#pMod .fph{cursor:default;touch-action:auto}
+#pMod .fpb{padding-top:8px}
+.mctl{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 10px;border-radius:10px;background:var(--accent-soft);font:500 11.5px var(--f-ui)}
+.mctl[hidden]{display:none}
+.mctl span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mctl b{font-weight:600}
+/* Mod mapping sheet (phone): the mappings on one tapped slider */
+.msBk{position:fixed;inset:0;z-index:61;background:rgba(0,0,0,.28)}
+.msBk[hidden],.msSheet[hidden]{display:none}
+.msSheet{position:fixed;left:0;right:0;bottom:0;z-index:62;max-height:60vh;overflow-y:auto;overscroll-behavior:contain;display:grid;gap:8px;align-content:start;padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+  border-radius:16px 16px 0 0;background:var(--menu-surface);border:1px solid var(--glass-border);border-bottom:0;box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-rim-top);color:var(--ink)}
+.msSheet .mshead{display:flex;align-items:center;gap:8px;min-width:0}
+.msSheet .mshead b{flex:1;min-width:0;font:600 13.5px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msSheet .ib{width:44px;height:44px}
+.msSheet .msrow{--mc:var(--accent);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:8px 10px;border-radius:10px;background:var(--wash);box-shadow:inset 3px 0 0 var(--mc)}
+.msSheet .msrow.off{opacity:.6}
+.msSheet .msrow .mson{accent-color:var(--mc);width:22px;height:22px;margin:0}
+.msSheet .msrow .mssrc{display:flex;align-items:center;gap:6px;min-width:0;font:500 13px var(--f-ui)}
+.msSheet .msrow .mssrc .dot{width:9px;height:9px;border-radius:50%;background:var(--mc);flex:0 0 auto}
+.msSheet .msrow .mssrc span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msSheet .msrow .msdel{min-height:40px}
+.msSheet .msrow .msd{grid-column:1/-1;display:grid;grid-template-columns:52px minmax(0,1fr) 44px;align-items:center;gap:8px;font-size:12px}
+.msSheet .msadd{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.msSheet .msadd select{width:100%;min-height:40px;padding:5px 10px;font-size:13px}
+.msSheet .msadd .btn{min-height:40px}
 /* Music panel: docked bottom right, hidden until opened from the dock "more" menu */
 #pMusic{right:16px;bottom:84px;width:340px;z-index:21;max-height:min(680px,calc(100% - 110px))}
 #pMusic .musBody{padding:10px;display:grid;gap:8px;overflow:auto;min-height:0}
@@ -1462,6 +1489,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
       <div class="cath"><span class="catn">Mod</span></div>
       <p class="note">Every mapping in one place: what moves what, and how far. Sound reacts through mappings from the Low, Mid and High bands. Click a target to jump to its slider.</p>
       <div class="lbl" id="modMapHead">Mappings</div>
+      <div class="mctl" id="mCtl" hidden><span>Selected control: <b id="mCtlName"></b></span><button type="button" class="btn" id="mCtlClear" aria-label="Clear the Selected control filter">Clear</button></div>
       <div class="bsync"><label for="mPreset">Preset</label><select id="mPreset" aria-label="Mapping preset"></select></div>
       <div id="mpKit"></div>
       <p class="note" id="mPresetNote">A preset adds ready-made mappings, gates and smoothing. Built-in presets never change mappings you add yourself. Save preset keeps every mapping you have now, and picking a different preset replaces them.</p>
@@ -1519,6 +1547,15 @@ body.easy .moreMenu .onlyCmp{display:flex}
     </div>
   </div>
 </section>
+
+<section class="fp" id="pMod" data-adv aria-label="Mod panel" hidden>
+  <div class="fph"><h2><span class="hic" style="color:var(--c-motion)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-osc"/></svg></span>Mod</h2>
+    <button class="ib" id="modClose" aria-label="Close the Mod panel" title="Close the Mod panel"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+  <div class="fpb" id="modBody"></div>
+</section>
+
+<div class="msBk" id="msBk" hidden></div>
+<div class="msSheet" id="msSheet" role="dialog" aria-label="Mappings on this slider" hidden></div>
 
 <section class="fp" id="pOsc" aria-label="Oscillators panel" hidden>
   <div class="fph"><span class="grip" aria-hidden="true"></span><h2><span class="hic" style="color:var(--c-motion)"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-osc"/></svg></span>Oscillators</h2><span class="meta" id="oscClock"></span>
@@ -6580,7 +6617,7 @@ const UI = {
 const use = (k, cls = 'gi-svg') => `<svg class="${cls}" viewBox="0 0 16 16" aria-hidden="true"><use href="#${k}"/></svg>`;
 const phone = matchMedia('(max-width:760px)');
 const landscape = matchMedia('(orientation:landscape) and (max-height:520px) and (min-width:761px)');   // a phone held sideways
-const pL = $('#pLayers'), pI = $('#pInsp'), pO = $('#pOsc'), pM = $('#pMusic'), pT = $('#pTime');
+const pL = $('#pLayers'), pI = $('#pInsp'), pO = $('#pOsc'), pM = $('#pMusic'), pT = $('#pTime'), pMod = $('#pMod');   // pMod (the Mod panel) is not in the lists below: it has no fold, drag or dock button
 
 /* ---- panels: drag by the header, fold, hide; positions remembered per browser ---- */
 function clampPanel(p){
@@ -6597,11 +6634,11 @@ for (const p of [pL, pI, pO, pM, pT]){
   h.addEventListener('pointerdown', e => {
     if (e.target.closest('button') || phone.matches || landscape.matches || e.button !== 0) return;
     const r = p.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top; h.setPointerCapture(e.pointerId);
-    const mv = ev => { p.style.left = Math.max(0, Math.min(innerWidth - 120, ev.clientX - dx)) + 'px'; p.style.top = Math.max(0, Math.min(innerHeight - 60, ev.clientY - dy)) + 'px'; p.style.right = p.style.bottom = 'auto'; };
+    const mv = ev => { p.style.left = Math.max(0, Math.min(innerWidth - 120, ev.clientX - dx)) + 'px'; p.style.top = Math.max(0, Math.min(innerHeight - 60, ev.clientY - dy)) + 'px'; p.style.right = p.style.bottom = 'auto'; if (p === pI || p === pL) placeMod(); };
     const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); const q = p.getBoundingClientRect(); UI.set('pos.' + p.id, [Math.round(q.left), Math.round(q.top)]); };
     h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
   });
-  h.addEventListener('dblclick', e => { if (e.target.closest('button')) return; p.style.left = p.style.top = p.style.right = p.style.bottom = ''; UI.set('pos.' + p.id, null); if (p === pO) placeOsc(); if (p === pT) placeTime(); });
+  h.addEventListener('dblclick', e => { if (e.target.closest('button')) return; p.style.left = p.style.top = p.style.right = p.style.bottom = ''; UI.set('pos.' + p.id, null); if (p === pO) placeOsc(); if (p === pT) placeTime(); placeMod(); });
   const fb = p.querySelector('[data-fold]');
   const setFold = f => { p.classList.toggle('folded', f); fb.innerHTML = use(f ? 'i-unfold' : 'i-fold'); fb.setAttribute('aria-label', (f ? 'Unfold ' : 'Fold ') + PANEL_NAMES[p.id]); fb.title = fb.getAttribute('aria-label'); UI.set('fold.' + p.id, f); };
   fb.onclick = () => setFold(!p.classList.contains('folded'));
@@ -6622,7 +6659,7 @@ function placeTime(){                      // default place: centred over the Ti
   if (!b.width){ pT.style.removeProperty('--tlL'); return; }
   pT.style.setProperty('--tlL', Math.max(8, Math.min(innerWidth - w - 8, b.left + b.width/2 - w/2)) + 'px');
 }
-addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); clampPanel(pT); });
+addEventListener('resize', () => { clampPanel(pL); clampPanel(pI); clampPanel(pO); clampPanel(pM); clampPanel(pT); placeMod(); });
 /* one shared way to open a phone sheet: its state is set from defaults, nothing animates from a stale size, and the same tap cannot toggle twice */
 let shOpenT = 0;
 function sheetNoAnim(){
@@ -6642,6 +6679,7 @@ function showPanel(p, on){
   if (on && phone.matches) requestAnimationFrame(() => { try { applySheet(); } catch(e){} });   // settle once layout is final
   if (p === pO){ UI.set('oscOpen', !!on); if (on) placeOsc(); if (on && oscReady) oscDrawSoon(); }
   if (p === pT && on){ placeTime(); if (TL) renderTL(); }
+  if (p === pI || p === pL) placeMod();
 }
 $('#dLayers').onclick = tapOnce(() => showPanel(pL, pL.hidden));
 $('#dInsp').onclick = tapOnce(() => showPanel(pI, pI.hidden));
@@ -6715,7 +6753,7 @@ function modTick(now, dt){
     if (e.mode === 'hz' && d){ r.ph = (r.ph + (+e.hz || .5)*d) % 16; }
     r.v = oscValueAt(o, 0);
   }
-  if (mapReady && now - MOD.lastMark >= 1000/15){ MOD.lastMark = now; updateMapMarks(); if (!pI.hidden && shownCats.has('mod')) drawMatrixWaves(); }
+  if (mapReady && now - MOD.lastMark >= 1000/15){ MOD.lastMark = now; updateMapMarks(); if (modVisible()) drawMatrixWaves(); }
   if (!pO.hidden && !pO.classList.contains('folded') && now - MOD.lastDraw >= 1000/15){ MOD.lastDraw = now; drawOscPreviews(); }
 }
 const oscCards = new Map();
@@ -6853,7 +6891,7 @@ function renderOsc(){
   const host = $('#oscRow'), list = oscList(), one = OSC_UI.compact; host.innerHTML = ''; oscCards.clear();
   pO.classList.toggle('compact', one); syncOscModeBtn(); oscApplyWidth(); placeOsc();
   for (const id of [...OSC_RT.keys()]) if (!list.some(o => o.id === id)) OSC_RT.delete(id);
-  if (mapReady && shownCats.has('mod')) renderMatrix();
+  if (mapReady && modWants()) renderMatrix();
   if (!list.length) host.insertAdjacentHTML('beforeend', '<p class="note ointro">Each oscillator is a wave that can drive any slider, locked to the tempo or running free in Hz. Add one to start.</p>');
   if (one && list.length){
     OSC_UI.idx = Math.max(0, Math.min(list.length - 1, OSC_UI.idx)); const o = list[OSC_UI.idx], many = list.length > 1;
@@ -7024,6 +7062,11 @@ $('#dwTabs').addEventListener('click', e => { const b = e.target.closest('[data-
 setDrawer(UI.get('drawerOpen', false));
 
 /* ---- inspector: chips choose which categories are listed ---- */
+/* Mod panel state. On desktop the Mod tab is a panel beside the Inspector; on a phone it stays a tab inside the Inspector. */
+var MODP = {open: !!UI.get('modOpen', false)};
+const modDocked = () => !phone.matches && !landscape.matches;
+const modWants = () => modDocked() ? MODP.open : shownCats.has('mod');                                    // is the Mod list on screen (or about to be)?
+const modVisible = () => modDocked() ? (MODP.open && !pMod.hidden && !easyOn()) : (!pI.hidden && shownCats.has('mod'));
 const CATS = [
   {id:'layer', name:'Layer', icon:'i-layers', c:'--c-layer'}, {id:'sym', name:'Symmetry', icon:'i-sym', c:'--c-sym'},
   {id:'color', name:'Colour', icon:'i-color', c:'--c-color'}, {id:'depth', name:'Depth', icon:'i-depth', c:'--c-depth', drawer:true},
@@ -7040,6 +7083,7 @@ for (const c of CATS){
   const b = document.createElement('button'); b.className = 'cchip'; b.dataset.cat = c.id; if (c.id === 'random' || c.id === 'mod') b.setAttribute('data-adv', ''); b.style.setProperty('--cc', `var(${c.c})`);
   b.innerHTML = use(c.icon) + c.name; b.title = c.name + ' · shift-click to show it alongside the others';
   b.onclick = e => {
+    if (c.id === 'mod' && modDocked()){ setModPanel(!MODP.open); return; }   // desktop: the Mod chip opens or closes the panel; the Inspector stays on its tab
     if (e.shiftKey || e.metaKey || e.ctrlKey){ if (shownCats.has(c.id) && shownCats.size > 1) shownCats.delete(c.id); else shownCats.add(c.id); }
     else { shownCats.clear(); shownCats.add(c.id); }
     drawInsp(); $('#inspBody').scrollTop = 0;
@@ -7049,19 +7093,21 @@ for (const c of CATS){
 $('#cchips').title = 'Click a category to show it. Shift-click to show several at once.';
 function drawInsp(){
   // in Easy the Randomize and Mod tabs are hidden: show the remaining chosen tabs (or Layer), and keep the saved choice untouched
-  const eff = new Set([...shownCats].filter(id => !(easyOn() && (id === 'random' || id === 'mod'))));
+  const dock = modDocked();   // on desktop the Mod list lives in its own panel, so the Inspector never lists it
+  const eff = new Set([...shownCats].filter(id => !(easyOn() && (id === 'random' || id === 'mod')) && !(dock && id === 'mod')));
   if (!eff.size) eff.add('layer');
-  for (const c of CATS) if (!c.drawer) catEl(c.id).classList.toggle('off', !eff.has(c.id));
-  document.querySelectorAll('.cchip').forEach(b => b.setAttribute('aria-pressed', eff.has(b.dataset.cat)));
+  for (const c of CATS) if (!c.drawer) catEl(c.id).classList.toggle('off', c.id === 'mod' && dock ? false : !eff.has(c.id));
+  document.querySelectorAll('.cchip').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === 'mod' && dock ? MODP.open : eff.has(b.dataset.cat)));
   $('#inspBody').classList.toggle('multi', eff.size > 1);
   const one = eff.size === 1 ? CATS.find(c => eff.has(c.id)) : null;
   $('#inspTitle').innerHTML = one
     ? `<span class="hic" style="color:var(${one.c})">${use(one.icon)}</span>${one.id === 'layer' ? 'Layer · ' + escH($('#layerCtlName').textContent || '') : one.name}`
     : 'Inspector';
   UI.set('cats', [...shownCats]);
-  if (mapReady && shownCats.has('mod')) renderMatrix();
+  if (mapReady && modWants()) renderMatrix();
 }
 function openCat(id, add){
+  if (id === 'mod' && modDocked()){ if (!MODP.open) setModPanel(true); return; }
   if (CATS.some(c => c.id === id && c.drawer)){ setDrawer(true, id); showPanel(pL, true); pL.classList.remove('folded'); drawerFit(); return; }
   if (add) shownCats.add(id); else if (!shownCats.has(id)){ shownCats.clear(); shownCats.add(id); }
   drawInsp(); if (pI.hidden) showPanel(pI, true); pI.classList.remove('folded');
@@ -7412,8 +7458,8 @@ function openMapSearch(o, node){
   if (!phone.matches){ box.style.left = Math.max(8, Math.min(innerWidth - bw - 8, r.left - 12)) + 'px'; box.style.bottom = Math.max(8, innerHeight - r.top + 10) + 'px'; }
   if (!(matchMedia('(hover:none)').matches)) q.focus();
 }
-function mapTo(tgt, layer){
-  const o = srcInfo(mapArmed); if (!o){ disarmMap(); return; }
+function mapTo(tgt, layer, srcId){
+  const o = srcInfo(srcId || mapArmed); if (!o){ disarmMap(); return; }
   if (tgt.startsWith('osc:')){
     const id = tgt.split(':')[1]; if (id === o.id){ toast(`${o.name} can't move its own rate or depth`); return; }
     layer = null;
@@ -7450,7 +7496,8 @@ function openMapMenu(gi, x, y){
 document.addEventListener('click', e => {
   const gi = e.target.closest && e.target.closest('.gi.mappable');
   if (mapArmed){ if (gi && !gi.closest('.oc.armSelf')){ e.preventDefault(); e.stopPropagation(); mapTo(gi.dataset.mt); } return; }
-  if (gi && gi.classList.contains('mapped')){ e.preventDefault(); e.stopPropagation(); openMapMenu(gi, e.clientX, e.clientY); }
+  if (gi && gi.classList.contains('mapped')){ e.preventDefault(); e.stopPropagation();
+    if (!modDocked()) openMapSheet(gi); else if (MODP.open && !pMod.hidden) selectModControl(gi); else openMapMenu(gi, e.clientX, e.clientY); }
 }, true);
 document.addEventListener('pointerdown', e => {
   if (!mapArmed) return;
@@ -7460,7 +7507,7 @@ document.addEventListener('pointerdown', e => {
 addEventListener('keydown', e => { if (e.key === 'Escape' && mapArmed){ e.preventDefault(); disarmMap(); } }, true);
 
 /* ================= Mod: the matrix. One row per mapping, every column editable in place ================= */
-const MX = {src: UI.get('mxSrc', 'all'), layer: UI.get('mxLayer', 'all'), type: UI.get('mxType', 'all'), sort: UI.get('mxSort', 'added'), rows: []};
+const MX = {src: UI.get('mxSrc', 'all'), layer: UI.get('mxLayer', 'all'), type: UI.get('mxType', 'all'), sort: UI.get('mxSort', 'added'), rows: [], ctl: null};   // ctl = {tgt, layer}: the Selected control filter, never saved
 const srcChoices = () => [...oscList().map(o => [o.id, o.name]), ...BAND_SRC.map((n, k) => ['band:' + k, n]), ...BAND_SHORT.map((n, k) => ['hit:' + k, n + ' hits'])];
 const rowSrcOptions = cur => [...oscList().map(o => [o.id, o.name]), ['bands', 'Audio bands'], ['hits', 'Percussion hits']].map(([v, n]) => `<option value="${v}"${v === (bandsOf(cur) ? 'bands' : hitsOf(cur) ? 'hits' : cur) ? ' selected' : ''}>${escH(n)}</option>`).join('');
 const srcOptions = cur => srcChoices().map(([v, n]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${escH(n)}</option>`).join('');
@@ -7479,6 +7526,92 @@ function fillMatrixFilters(){
 for (const [id, key] of [['#mFiltSrc', 'src'], ['#mFiltLayer', 'layer'], ['#mFiltType', 'type'], ['#mSort', 'sort']]) $(id).addEventListener('change', e => { MX[key] = e.target.value; UI.set('mx' + key[0].toUpperCase() + key.slice(1), MX[key]); renderMatrix(); });
 $('#bMapAdd').onclick = e => { e.stopPropagation(); const v = $('#mAddSrc').value; if (!v){ toast('Add an oscillator first, or pick an audio band'); return; } if (mapArmed === v) disarmMap(); else armMap(v, $('#bMapAdd')); };
 $('#bToMod').onclick = () => { openCat('mod', true); requestAnimationFrame(() => { const h = $('#modMapHead'); if (h && h.scrollIntoView) h.scrollIntoView({block:'start'}); }); };
+/* ---- Mod panel (desktop): the Mod tab opens a panel docked beside the Inspector ----
+   The Mod tab's own markup (.cat[data-cat=mod], with #modList and the rest) is moved into the panel, not copied, so every id stays unique.
+   It closes only with its own button: Esc is kept for leaving fullscreen, and nothing here listens for it. */
+const modCat = catEl('mod');
+function placeModDom(){                              // desktop: the tab's content lives in the panel; a phone keeps it in the Inspector, before Project
+  const home = modDocked() ? $('#modBody') : $('#inspBody');
+  if (modCat.parentElement === home) return;
+  if (home === $('#modBody')) home.appendChild(modCat); else home.insertBefore(modCat, catEl('project'));
+}
+function placeMod(){                                 // next to the Inspector, on the side with more room, clear of the Layers panel
+  if (pMod.hidden || !modDocked()) return;
+  const gap = 8, MIN = 280, MAXW = 360;
+  let l, r, top;
+  if (pI.hidden){ r = innerWidth - 16; l = r - 404; top = 16; }
+  else { const b = pI.getBoundingClientRect(); l = b.left; r = b.right; top = Math.max(8, Math.round(b.top)); }
+  let lo = 8; if (!pL.hidden){ const lb = pL.getBoundingClientRect(); if (lb.right <= l) lo = lb.right + gap; }
+  const roomL = l - gap - lo, roomR = innerWidth - 8 - (r + gap);
+  const w = Math.round(Math.max(MIN, Math.min(MAXW, Math.max(roomL, roomR))));
+  const left = roomL >= roomR ? Math.max(8, l - gap - w) : Math.min(innerWidth - 8 - w, r + gap);
+  pMod.style.width = w + 'px'; pMod.style.left = Math.round(left) + 'px'; pMod.style.top = top + 'px';
+}
+new ResizeObserver(() => placeMod()).observe(pI);
+function syncModPanel(){
+  placeModDom();
+  pMod.hidden = !(modDocked() && MODP.open);
+  placeMod();
+  drawInsp();                                        // chips, title, and the list itself
+}
+function setModPanel(on){
+  on = !!on; if (on === MODP.open && !pMod.hidden === on) return;
+  MODP.open = on; UI.set('modOpen', on); syncModPanel();
+  if (on) requestAnimationFrame(placeMod);
+}
+$('#modClose').onclick = () => { setModPanel(false); const c = document.querySelector('#cchips [data-cat="mod"]'); if (c) c.focus(); };
+phone.addEventListener('change', syncModPanel); landscape.addEventListener('change', syncModPanel);
+placeModDom();
+// a mapped icon clicked while the panel is open: list just that control's mappings, scroll to them and flash them
+function ctlMaps(tgt, layer){ return mapList().filter(m => m.tgt === tgt && (m.layer || null) === (layer || null)); }
+function ctlOf(gi){ const mt = gi.dataset.mt, info = MAPT.get(mt); return {tgt: mt, layer: info && info.scope === 'l' ? layerFor(info) : null}; }
+function selectModControl(gi){
+  const c = ctlOf(gi); if (!ctlMaps(c.tgt, c.layer).length) return;
+  MX.ctl = c; renderMatrix();
+  requestAnimationFrame(() => {
+    const rows = [...$('#modList').querySelectorAll('.mrow')];
+    for (const r of rows){ r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash'); }
+    if (rows[0]) rows[0].scrollIntoView({block:'nearest'}); else $('#mCtl').scrollIntoView({block:'nearest'});
+  });
+}
+$('#mCtlClear').onclick = () => { MX.ctl = null; renderMatrix(); };
+
+/* ---- Mod sheet (phone): tap a mapped slider icon to see just that slider's mappings, without leaving the Inspector tab ---- */
+const msSheet = $('#msSheet'), msBk = $('#msBk');
+let msCtl = null;
+function closeMapSheet(){ msCtl = null; msSheet.hidden = true; msBk.hidden = true; msSheet.innerHTML = ''; }
+function openMapSheet(gi){
+  closePinMenu(); const c = ctlOf(gi); if (!ctlMaps(c.tgt, c.layer).length) return;
+  msCtl = c; drawMapSheet(); msBk.hidden = false; msSheet.hidden = false;
+}
+function drawMapSheet(){
+  if (!msCtl) return;
+  const {tgt, layer} = msCtl, ms = ctlMaps(tgt, layer), save = () => { changed(); MOD.lastMark = 0; };
+  const used = new Set(ms.map(m => m.src)), own = tgt.startsWith('osc:') ? tgt.split(':')[1] : null;
+  const opts = srcChoices().filter(([v]) => !used.has(v) && v !== own);
+  msSheet.innerHTML = `<div class="mshead"><b>${escH(targetName(tgt, layer))}</b><button type="button" class="ib" id="msClose" aria-label="Close" title="Close">${use('i-close')}</button></div>
+    <div class="msrows"></div>
+    <div class="msadd"><select id="msSrc" aria-label="Source to add">${opts.map(([v, n]) => `<option value="${v}">${escH(n)}</option>`).join('')}</select><button type="button" class="btn primary" id="msAdd"${opts.length ? '' : ' disabled'}>Add source</button></div>`;
+  const host = msSheet.querySelector('.msrows');
+  if (!ms.length) host.innerHTML = '<p class="note">Nothing moves this slider now. Add a source below.</p>';
+  for (const m of ms){
+    const si = srcInfo(m.src), el = document.createElement('div'); el.className = 'msrow'; el.style.setProperty('--mc', si ? si.col : 'var(--dim)'); el.classList.toggle('off', !m.on);
+    el.innerHTML = `<input type="checkbox" class="mson" aria-label="Mapping on"${m.on ? ' checked' : ''}><span class="mssrc"><span class="dot"></span><span>${escH(si ? si.name : 'Missing source')}</span></span><button type="button" class="btn msdel" aria-label="Remove ${escH(si ? si.name : 'source')}">Remove</button>
+      <div class="msd"><span class="ml">Depth</span><input type="range" class="msamt" min="-200" max="200" step="1" aria-label="Depth, percent of the slider's range"><output class="mo"></output></div>`;
+    const amt = el.querySelector('.msamt'), out = el.querySelector('.mo');
+    const sync = () => { const v = Math.round((+m.amt || 0)*100); amt.value = v; out.textContent = (v > 0 ? '+' : '') + v + '%'; amt.style.setProperty('--fill', Math.max(0, Math.min(100, (v + 200)/4)) + '%'); };
+    sync();
+    amt.addEventListener('input', () => { m.amt = +amt.value/100; sync(); save(); }); amt.addEventListener('change', () => { if (modWants()) renderMatrix(); }); amt._def = () => 100;
+    el.querySelector('.mson').onchange = e => { m.on = e.target.checked ? 1 : 0; el.classList.toggle('off', !m.on); save(); if (modWants()) renderMatrix(); };
+    el.querySelector('.msdel').onclick = () => { const ml = mapList(), i = ml.indexOf(m); if (i < 0) return; ml.splice(i, 1); save(); renderMatrix(); drawMapSheet();
+      actionToast(`${si ? si.name : 'Source'} no longer moves ${targetName(m.tgt, m.layer)}`, 'Undo', () => { if (!mapList().includes(m)){ mapList().splice(Math.min(i, mapList().length), 0, m); save(); renderMatrix(); drawMapSheet(); } }); };
+    host.appendChild(el);
+  }
+  msSheet.querySelector('#msClose').onclick = closeMapSheet;
+  msSheet.querySelector('#msAdd').onclick = () => { const v = msSheet.querySelector('#msSrc').value; if (!v) return; mapTo(tgt, layer, v); drawMapSheet(); };
+}
+msBk.addEventListener('pointerdown', e => { e.preventDefault(); closeMapSheet(); });
+phone.addEventListener('change', () => { if (!phone.matches && !landscape.matches) closeMapSheet(); });
 /* ---- Mod presets, effect count, Easy Reactivity ----
    A preset is a set of ready-made band mappings plus gates and smoothing. Picking one replaces the previous preset's mappings (tagged m.preset)
    and adds its own as one undo step; mappings made by hand are never touched. Amounts are re-derived from the old multiplicative Audio effects:
@@ -7620,12 +7753,13 @@ function renderMatrix(){
   if (!mapReady) return;
   fillMatrixFilters();
   const host = $('#modList'), all = mapList(); host.innerHTML = ''; MX.rows = [];
-  let ms = all.filter(m => (MX.src === 'all' || m.src === MX.src || (MX.src.startsWith('band:') && (bandsOf(m.src) || []).includes(+MX.src.slice(5))) || (MX.src.startsWith('hit:') && (hitsOf(m.src) || []).includes(+MX.src.slice(4)))) && (MX.layer === 'all' || (MX.layer === 'global' ? !m.layer : m.layer === MX.layer)) && (MX.type === 'all' || mapType(m) === MX.type));
+  let ms = all.filter(m => (MX.src === 'all' || m.src === MX.src || (MX.src.startsWith('band:') && (bandsOf(m.src) || []).includes(+MX.src.slice(5))) || (MX.src.startsWith('hit:') && (hitsOf(m.src) || []).includes(+MX.src.slice(4)))) && (MX.layer === 'all' || (MX.layer === 'global' ? !m.layer : m.layer === MX.layer)) && (MX.type === 'all' || mapType(m) === MX.type) && (!MX.ctl || (m.tgt === MX.ctl.tgt && (m.layer || null) === MX.ctl.layer)));
   const by = {src: m => (srcInfo(m.src) || {name: '~'}).name, tgt: m => targetName(m.tgt, m.layer), layer: m => m.layer ? layerName(m.layer) : ''}[MX.sort];
   if (by) ms = [...ms].sort((a, b) => by(a).localeCompare(by(b), undefined, {numeric: true}));
   if (!all.length) host.innerHTML = '<p class="note">No mappings yet. Pick a preset, click an oscillator\'s node then a slider\'s icon, or use Add mapping.</p>';
   else if (!ms.length) host.innerHTML = '<p class="note">No mappings match these filters.</p>';
   for (const m of ms) host.appendChild(matrixRow(m));
+  $('#mCtl').hidden = !MX.ctl; if (MX.ctl) $('#mCtlName').textContent = targetName(MX.ctl.tgt, MX.ctl.layer);
   syncSoundUI(); drawMatrixWaves();
 }
 function matrixRow(m){
@@ -7679,6 +7813,8 @@ function jumpToMap(m){
   }
   const info = MAPT.get(m.tgt); if (!info) return;
   if (info.scope === 'l'){ if (!layerExists(m.layer)){ toast('That layer has been removed'); return; } if (sel !== m.layer) selectLayer(m.layer); }
+  const ct = CATS.find(c => c.id === info.cat.id);
+  if (modDocked() && ct && !ct.drawer && !shownCats.has(ct.id)) openCat(ct.id);   // Mod sits beside the Inspector now, so switch its tab rather than stack a second one
   jumpTo({el: info.row, cat: info.cat});
 }
 // a tiny live picture of each row's source: the last 2 s of an oscillator, or a band's level
@@ -7951,7 +8087,7 @@ function groupOf(el){
 }
 const INDEX = [];
 for (const row of RANGE_ROWS){ const i = row.querySelector('input[type=range]'), c = catOf(i); INDEX.push({kind:'range', id:i.id, text:row.querySelector('label').textContent, cat:c, el:row}); }
-for (const el of document.querySelectorAll('#pLayers .btn, #pInsp .btn, #pLayers label.check, #pInsp label.check, #pInsp .ctl, #pLayers .seg button, #pInsp .seg button')){
+for (const el of document.querySelectorAll('#pLayers .btn, #pInsp .btn, #pMod .btn, #pLayers label.check, #pInsp label.check, #pMod label.check, #pInsp .ctl, #pMod .ctl, #pLayers .seg button, #pInsp .seg button, #pMod .seg button')){   // #pMod holds the Mod tab on desktop
   if (el.matches('.ctl') && el.querySelector('input[type=range]')) continue;
   const text = (el.matches('.ctl') ? el.querySelector('label')?.textContent : el.textContent || '').trim(); if (!text) continue;
   INDEX.push({kind:'jump', text, cat:catOf(el), el, group:groupOf(el)});
@@ -8337,7 +8473,7 @@ $('#fltFx').insertAdjacentHTML('beforebegin', '<label class="check"><input type=
 const setDiceEdit = on => { document.body.classList.toggle('diceEdit', on); $('#diceEditChk').checked = on; UI.set('diceEdit', on); };
 $('#diceEditChk').addEventListener('change', e => setDiceEdit(e.target.checked));
 setDiceEdit(UI.get('diceEdit', false));
-drawInsp(); drawMacros();
+syncModPanel(); drawMacros();
 
 /* ================= Look: theme, backdrop, accents, global colour, frost; liquid glass refraction ================= */
 /*!
@@ -8898,7 +9034,7 @@ const itut = (() => {
        x:'Mod lists every mapping: what moves what, and how far. Click a target to jump to its slider.', tr:'Read the list of mappings below.'},
       {t:'Filter and sort', sel:[catSel('mod') + ' .mtool'], open:{cat:'mod'}, easyHidden:1,
        x:'Show only mappings from one source, on one layer or of one kind, and sort the list.', tr:'Sort by target.'},
-      {t:'Add mapping', sel:[catSel('mod') + ' .madd'], allow:['#pInsp', '.pinMenu'], open:{cat:'mod'}, easyHidden:1,
+      {t:'Add mapping', sel:[catSel('mod') + ' .madd'], allow:['#pInsp', '#pMod', '.pinMenu'], open:{cat:'mod'}, easyHidden:1,
        x:'Pick a source here and press Add mapping, then choose the slider it should move.', tr:'Add a mapping from an oscillator.'},
       {t:'Mappings', sel:['#modList'], open:{cat:'mod'}, easyHidden:1,
        x:'Each row is one mapping: source, target and amount. Change the amount or remove it here.', tr:'Lower the amount of a mapping.'},
@@ -9002,7 +9138,7 @@ const itut = (() => {
     if (!cap){ toast(free ? 'Test mode could not start here' : 'The interactive tutorial could not start here'); return false; }
     const lkg = {}; document.querySelectorAll('#lookPop .lkg').forEach(d => { lkg[d.dataset.lkg] = d.open; });
     SB = {free: !!free, cap, dirty: DIRTY, hu: HIST.u, hr: HIST.r, cats: [...shownCats], drOpen: drawer.dataset.open === 'true', drTab: UI.get('drawerTab', 'view'),
-      slots: SLOTS, auto: AUTO_ON, sheet: sheetMode, lkg, det: new Map(), chip: easyChip.hidden, clean: document.body.classList.contains('clean'),
+      slots: SLOTS, auto: AUTO_ON, sheet: sheetMode, lkg, det: new Map(), chip: easyChip.hidden, clean: document.body.classList.contains('clean'), mod: MODP.open,
       ps: [pL, pI, pO, pM, pT].map(p => [p, p.hidden, p.classList.contains('folded')])};
     HIST.u = []; HIST.r = []; syncHist();       // the tour has its own undo history; yours comes back on exit
     TUT_SB = true;
@@ -9024,6 +9160,7 @@ const itut = (() => {
     HIST.u = s.hu; HIST.r = s.hr; syncHist();
     try { shownCats.clear(); for (const c of s.cats) shownCats.add(c); if (!shownCats.size) shownCats.add('layer'); drawInsp(); } catch(e){}
     try { setDrawer(s.drOpen, s.drTab); } catch(e){}
+    try { if (s.mod !== MODP.open) setModPanel(s.mod); } catch(e){}
     try { document.querySelectorAll('#lookPop .lkg').forEach(d => { const o = s.lkg[d.dataset.lkg]; if (o != null && d.open !== o) d.open = o; }); } catch(e){}
     try { for (const [d, o] of s.det) if (d.isConnected && d.open !== o) d.open = o; } catch(e){}
     try { if (sheetMode !== s.sheet) setSheetMode(s.sheet); } catch(e){}
@@ -9395,15 +9532,15 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins', 'layer-fractal', 'layer-thickness', 'layer-copy-paste'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins', FC = 'layer-fractal', TH = 'layer-thickness', CP = 'layer-copy-paste';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins', 'layer-fractal', 'layer-thickness', 'layer-copy-paste', 'mod-panel'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins', FC = 'layer-fractal', TH = 'layer-thickness', CP = 'layer-copy-paste', MS = 'mod-panel';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
   const aFR = 'First run and Easy / Full', aLY = 'Layers', aIM = 'Image import', aSC = 'Sample scenes', aDP = 'Depth and parallax', aSY = 'Symmetry', aCO = 'Colour and Recolour',
     aFX = 'Effects', aMO = 'Motion and loop', aOS = 'Oscillators and Mod', aAU = 'Audio', aRL = 'Randomize and Roll', aLC = 'Layer colours', aPN = 'Pins and phone pin bar',
     aUD = 'Undo and redo', aPJ = 'Projects and presets', aOU = 'Output', aLF = 'Lite vs Full', aLK = 'Look settings', aHU = 'Hide UI and mini menu', aPS = 'Phone sheets',
-    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode', aFC = 'Layer fractal', aTH = 'Layer thickness', aCP = 'Layer copy and paste';
+    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode', aFC = 'Layer fractal', aTH = 'Layer thickness', aCP = 'Layer copy and paste', aMS = 'Mod panel';
   const LK = {look: 1, lkg: ['iface']};
   /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
   const STEPS = [
@@ -9595,6 +9732,13 @@ const testMode = (() => {
     S('th6', TH, aTH, 'adv lite', 'Switch to Lite with Inflate and Wall thickness raised.', 'The sliders say Lite ignores thickness, the layer draws flat with no walls, and the frame rate holds.', '#g-lth', {cat: 'layer', top: 1}),
     S('cp1', CP, aCP, 'adv desktop', 'Give a picture layer a clear look (a fractal, a colour shift, an outline, a different depth). With it selected press Ctrl+Shift+C, select another picture layer and press Ctrl+Shift+V.', 'A note says the settings were copied. After the paste the second layer takes every setting of the first, depth and position included, but keeps its own picture, mask, name, visibility and lock. A note offers Undo, and Undo (or Ctrl+Z) puts the second layer back exactly.', '#layerList', {cat: 'layer', top: 1}),
     S('cp2', CP, aCP, 'adv desktop', 'Paste the same copied settings onto an Icon layer, a Shape layer and the 3D object. Then press Ctrl+Shift+V in Easy, and once in a fresh session before copying anything.', 'Each one takes the settings it also has (colour, effects, fractal, depth) and keeps its own icon, shape type and 3D shape, plus its position and size, which a picture layer has none of to give. Nothing happens in Easy. With nothing copied a note says to copy a layer first.', '#layerList', {cat: 'layer', top: 1}),
+    S('ms1', MS, aMS, 'adv desktop', 'In the Inspector open the Colour tab, then click the Mod tab.', 'A Mod panel opens beside the Inspector with the preset, filters and mappings list. The Inspector stays on Colour and the Mod chip shows as pressed.', '#pMod'),
+    S('ms2', MS, aMS, 'adv desktop', 'Press Esc, then click Mod again.', 'Esc does not close the panel. Clicking the Mod tab again closes it; the close button in its header closes it too. Reload the page with it open and it comes back open.', '#modClose', {cat: 'mod'}),
+    S('ms3', MS, aMS, 'adv desktop', 'Add a mapping (pick a source in Add mapping, then click a slider icon in the Inspector). With the panel open, click that slider icon again.', 'The panel lists only that control\'s mappings, flashes them, and shows a Selected control bar with Clear. Clear brings the full list back. With the panel closed, the same click opens the small Remove menu.', '#mCtl', {cat: 'mod'}),
+    S('ms4', MS, aMS, 'adv desktop', 'Click a target name in the Mod list; then use Edit in Mod on the Sound tab.', 'The Inspector switches to that slider\'s tab and the slider flashes. Edit in Mod opens the panel and scrolls to the mappings.', '#modList', {cat: 'mod'}),
+    S('ms5', MS, aMS, 'adv desktop', 'With the panel open, open Layers, Oscillators and Timeline, drag the Inspector to the left side, and press Shift+F.', 'Nothing breaks. The panel moves to the side with more room, stays clear of Layers, and fullscreen still opens. Esc leaves fullscreen and the panel stays open.', '#pMod', {cat: 'mod'}),
+    S('ms6', MS, aMS, 'touch adv', 'On the phone map a slider, then tap its mapped icon.', 'A bottom sheet lists just that slider\'s mappings, each with on/off, Depth and Remove, plus Add source. The Inspector stays on its tab. The close button or a tap outside closes it.'),
+    S('ms7', MS, aMS, 'touch adv', 'In the sheet change Depth, switch one mapping off, add another source, then Remove one and tap Undo.', 'The picture follows each change; the Mod tab list matches the sheet afterwards.'),
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
     S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
