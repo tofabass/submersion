@@ -1250,6 +1250,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
             <p class="note">Particles live in the image's space, so this layer's Symmetry folds them into the kaleidoscope like any other layer. Emitter symmetry copies the particles themselves around the emitter center. Flow and turbulence speeds are whole numbers per loop, so exports stay seamless.</p>
           </div>
           <div id="g-sprite" data-adv class="stack" hidden></div>
+          <div id="g-zpos" class="stack" hidden></div>
           <div id="g-icon" data-adv class="stack" hidden></div>
           <div id="g-objx" data-adv class="stack" hidden></div>
           <div class="lbl">Depth</div>
@@ -1888,7 +1889,7 @@ const SPEC = {
 };
 const LSPECS = {
   'g-lpos':[
-    ['z','Depth offset',-1,1,.01,sgn],
+    ['z','Z position',-1,1,.01,sgn],
     ['relief','Inner depth',0,2,.01,fx(2)],
   ],
   'g-linst':[
@@ -4136,6 +4137,7 @@ function syncLayerEd(){
   $('#olOnly').checked = !!L.olOnly; $('#trOn').checked = !!L.trOn; $('#trOnly').checked = !!L.trOnly; $('#trGrad').checked = !!L.trGrad; $('#trOuter').checked = !!L.trOuter; syncTrUI();
   $('#rcBox').hidden = !(img || isI || isS); $('#rcOn').checked = !!L.rcOn; $('#rcKeep').checked = !!L.rcKeep; $('#rcCol').value = L.rcCol || '#00e5ff'; $('#rcColOut').textContent = $('#rcCol').value.toUpperCase();
   $('#iconBox').hidden = !isI; $('#objBox').hidden = !isO; $('#partBox').hidden = !isPt; $('#g-sprite').hidden = img || isPt; syncPart();
+  { const zr = $('#g-lpos-z')?.closest('.ctl'), sp = !(img || isPt); if (zr){ const to = sp ? $('#g-zpos') : $('#g-lpos'); if (zr.parentNode !== to) to.insertBefore(zr, sp ? null : to.firstChild); $('#g-zpos').hidden = !sp; } }   // icons, shapes and 3D objects: Z position sits right under X and Y; pictures keep it in the Depth group
   $('#g-icon').hidden = !(isI || isS); $('#g-objx').hidden = !isO; $('#shapeBox').hidden = !isS; if (isS) syncShapeBox();
   document.getElementById('g-lpos-relief').closest('.ctl').hidden = !img;
   { const th = $('#g-lth'); th.hidden = !(img && sel !== 'bg'); th.previousElementSibling.hidden = th.hidden; }   // Thickness: picture and mask layers only
@@ -8845,7 +8847,7 @@ const itut = (() => {
       {t:'Layer tab', sel:[chip('layer'), '#inspTitle'], open:{cat:'layer', top:1}, key:['Inspector'],
        x:'The Layer tab holds the controls for the layer selected in Layers. The top layer is selected for you.', tr:'Read the layer name at the top of the Inspector.'},
       {t:'Depth', sel:[lblOf('g-lpos'), '#g-lpos'], open:{cat:'layer', top:1}, list:1,
-       x:'Places this layer nearer or farther, and gives it relief of its own.', tr:'Drag Depth offset and watch the layer move.'},
+       x:'Places this layer nearer or farther, and gives it relief of its own.', tr:'Drag Z position and watch the layer move.'},
       {t:'Instances', sel:['#instBox'], open:{cat:'layer', top:1}, list:1,
        x:'Stacks copies of this layer in depth. Offset delays every timed effect on each copy.', tr:'Raise Instances to 3.'},
       {t:'Dry / wet and blend', sel:[lblOf('g-lmix'), '#g-lmix', '.ctl:has(#layerBlend)'], open:{cat:'layer', top:1}, list:1,
@@ -9437,7 +9439,7 @@ const testMode = (() => {
     S('sc3', B, aSC, '', 'Press Undo right after loading a sample.', 'The previous scene returns. If no Undo is offered, mark Fail and say so.'),
 
     S('dp1', B, aDP, '', 'Open the Motion tab and drag the Depth & parallax sliders one at a time.', 'Nearer layers move more than farther ones; nothing flickers.', '#g-depth', {cat: 'motion'}),
-    S('dp2', B, aDP, '', 'Layer tab › Depth offset: drag it.', 'That layer moves nearer or farther against the others.', '#g-lpos', {cat: 'layer', top: 1}),
+    S('dp2', B, aDP, '', 'Layer tab › Z position: drag it.', 'That layer moves nearer or farther against the others.', '#g-lpos', {cat: 'layer', top: 1}),
     S('dp3', B, aDP, '', 'Layer tab › Instances: raise it to 3.', 'Three copies stack in depth; Offset delays timed effects on each copy.', '#instBox', {cat: 'layer', top: 1}),
     S('dp4', D3, aDP, '', 'Open Layers, choose 3D view, then drag the picture (one finger or the mouse).', 'The stack turns and tilts, the pad dot follows, and the angle stays when you let go. Pinch or scroll changes Layer spacing; double-tap or double-click centres it.', '#viewSeg', {panel: 'L'}),
 
