@@ -2455,6 +2455,7 @@ function maskDims(){ const s = Math.min(1, 1024/Math.max(imgW, imgH)); return [M
 var sceneBase = null;   // a sample scene's own starting layer values (set in makeSample); any other load clears it, and Reset all then falls back to the app defaults
 function imageReady(name, keepLayers = false){
   sceneBase = null; picVer++;
+  if (P.L.bg.gone){ P.L.bg.gone = 0; P.L.bg.solid = 0; }   // a new picture is a new Background
   srcName = name; colorVer++; depthVer++;
   [MW, MH] = maskDims();
   if (cal){ cal = null; showCal(false); }
@@ -3746,6 +3747,7 @@ function finalizeCal(exit){
   if (exit){ cal = null; showCal(false); }
   uploadMasks(); rebuildBg(); computeMedians(); renderLayers(); syncLayerEd(); status();
 }
+const homeSel = () => P.L.bg.gone ? (P.L.layers[0]?.id || 'icon') : 'bg';   // where the selection lands when the current layer goes
 function removeLayer(id){ P.L.layers = P.L.layers.filter(l => l.id !== id); masks.delete(id); medians.delete(id); ownCols.delete(id); if (sel === id) sel = 'bg'; }
 function addLayer(){
   if (P.L.layers.length >= MAX_OBJ){ toast(`You can have up to ${MAX_OBJ} layers plus Background`); return; }
@@ -3872,7 +3874,7 @@ $('#bCalibrate').onclick = () => { if (isImageLayer(sel)) startCal(sel); };
 let delArmedL = false, delTL;
 function resetLayerDelete(){ delArmedL = false; clearTimeout(delTL); $('#bLayerDelete').textContent = 'Delete'; }
 $('#bLayerDelete').onclick = () => {
-  if (!P.L.layers.some(l => l.id === sel)) return;
+  if (!P.L.layers.some(l => l.id === sel) && sel !== 'bg') return;
   if (!delArmedL){ delArmedL = true; $('#bLayerDelete').textContent = 'Confirm delete'; delTL = setTimeout(resetLayerDelete, 3000); return; }
   resetLayerDelete(); deleteLayerById(sel);
 };
@@ -3933,7 +3935,7 @@ function syncHist(){
 }
 function deleteLayerById(id, fromHist){
   if (cal){ toast('Finish calibrating first'); return; }
-  if (id === 'bg') return;
+  if (id === 'bg'){ deleteBackground(fromHist); return; }
   const L = getL(id);
   if (['part','icon','obj'].includes(id)) return;   // built-in overlays stay; they are hidden until switched on
   const xi = P.L.xs.findIndex(l => l.id === id);
@@ -3995,7 +3997,7 @@ const layerDefsAll = id => getL(id).name || KIND_NAMES[id] || id;
 /* ---------- layer list ---------- */
 $('#bShowHidden').onclick = () => { layerUI.showHidden = !layerUI.showHidden; try { localStorage.setItem('depthscope.ui.showHidden', layerUI.showHidden ? '1' : '0'); } catch(e){} renderLayers(); };
 function layerDefs(){
-  const list = [{id:'part', name:P.L.part.name || 'Particles'}, {id:'obj', name:P.L.obj.name || '3D object'}, {id:'icon', name:P.L.icon.name || 'Icon'}, ...P.L.layers.map(l => ({id:l.id, name:l.name})), {id:'bg', name:P.L.bg.name || 'Background'}];
+  const list = [{id:'part', name:P.L.part.name || 'Particles'}, {id:'obj', name:P.L.obj.name || '3D object'}, {id:'icon', name:P.L.icon.name || 'Icon'}, ...P.L.layers.map(l => ({id:l.id, name:l.name})), ...(P.L.bg.gone ? [] : [{id:'bg', name:P.L.bg.name || 'Background'}])];   // a deleted Background leaves the list; the scene shows its flat colour
   for (const x of P.L.xs || []){            // a copy sits directly above the layer it came from
     const at = list.findIndex(d => d.id === x.anchor);
     list.splice(at < 0 ? 0 : at, 0, {id:x.id, name:x.name});
@@ -4067,7 +4069,7 @@ function renderLayers(){
     if (d.id === 'bg' && L.solid) fxs.push('solid ' + L.solidCol);
     const med = d.id === 'bg' ? bgMed : medians.get(d.id) ?? .5;
     const sw = img ? `<span class="sw" style="background:${heatJS(med)}"></span>` : `<span class="sw ring"></span>`;
-    const canDel = (img && d.id !== 'bg') || xtra, [rIcon, rName] = roleOf(d.id, L);
+    const canDel = img || xtra, [rIcon, rName] = roleOf(d.id, L);
     row.title = `${d.name} · ${rName}${fxs.length ? ' · ' + fxs.join(' · ') : ''}${img ? ' · double-click to calibrate' : ''}`;
     row.innerHTML = `<button class="ibtn eye" id="eye-${d.id}" title="${L.vis?'Hide':'Show'} (E, selected layer)" aria-pressed="${L.vis}" aria-label="${L.vis?'Hide':'Show'} ${nmE}">${L.vis?EYE_ON:EYE_OFF}</button>
       <div class="lmain">${sw}<span class="role" title="${rName}"><svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><use href="#${rIcon}"/></svg></span><span class="nm" title="${nmE} · double-click to rename">${renaming === d.id ? `<input class="rnin" id="rn-${d.id}" type="text" data-typing maxlength="40" autocomplete="off" spellcheck="false" aria-label="Rename ${nmE}" value="${escH(renameDraft || d.name)}">` : nmE}</span><span class="vh">${rName}${fxs.length ? ', ' + escH(fxs.join(', ')) : ''}</span></div>
@@ -4114,7 +4116,8 @@ function selectLayer(id){
   sel = id; renderLayers(); syncLayerEd(); const r = document.getElementById('row-'+id); if (r) r.focus();
 }
 function syncLayerEd(){
-  if ((!P.L.layers.some(l => l.id === sel) && !['bg','icon','obj','part'].includes(sel) && !isExtra(sel))) sel = 'bg';
+  if (P.L.bg.gone && sel === 'bg') sel = homeSel();
+  if ((!P.L.layers.some(l => l.id === sel) && !['bg','icon','obj','part'].includes(sel) && !isExtra(sel))) sel = homeSel();
   const kd = kindOf(sel), isI = kd==='icon', isO = kd==='obj', isPt = kd==='part', isS = kd==='shape', img = isImageLayer(sel), L = getL(sel);
   const d = layerDefs().find(x => x.id === sel);
   $('#edTitle').textContent = d ? d.name : '';
@@ -4124,7 +4127,7 @@ function syncLayerEd(){
     const med = sel === 'bg' ? bgMed : medians.get(sel) ?? .5;
     $('#edInfo').textContent = `${TYPE_NAMES[L.type]} · ${(area*100).toFixed(1)}% of image · depth ${med.toFixed(2)}`;
   } else $('#edInfo').textContent = isI ? 'Icon overlay' : isO ? '3D object overlay' : isS ? 'Shape layer' : 'Particle layer';
-  $('#bCalibrate').hidden = !img; $('#bLayerDelete').hidden = !P.L.layers.some(l => l.id === sel) && !isExtra(sel); resetLayerDelete();
+  $('#bCalibrate').hidden = !img; $('#bLayerDelete').hidden = !P.L.layers.some(l => l.id === sel) && !isExtra(sel) && sel !== 'bg'; resetLayerDelete();
   $('#olBox').hidden = !(isI || isS || (img && sel !== 'bg')); $('#olOn').checked = !!L.olOn; $('#olCol').value = L.olCol || '#ffffff'; $('#olColOut').textContent = ($('#olCol').value).toUpperCase();
   $('#olOnly').checked = !!L.olOnly; $('#trOn').checked = !!L.trOn; $('#trOnly').checked = !!L.trOnly; $('#trGrad').checked = !!L.trGrad; $('#trOuter').checked = !!L.trOuter; syncTrUI();
   $('#rcBox').hidden = !(img || isI || isS); $('#rcOn').checked = !!L.rcOn; $('#rcKeep').checked = !!L.rcKeep; $('#rcCol').value = L.rcCol || '#00e5ff'; $('#rcColOut').textContent = $('#rcCol').value.toUpperCase();
@@ -4352,7 +4355,7 @@ function builtinState(name){
   }};
 }
 function presetOf(s){
-  return {...globalsOf(s), mod: modForSave(s), L:{ layersFx: s.L.layers.map(l => ({...fxPick(l), name: l.name})), bgFx: {...fxPick(s.L.bg), name: s.L.bg.name, solid: s.L.bg.solid || 0, solidCol: s.L.bg.solidCol}, icon: clone(s.L.icon), obj: clone(s.L.obj), part: clone(s.L.part), xs: clone(s.L.xs || []) }, pins: pinsOf()};
+  return {...globalsOf(s), mod: modForSave(s), L:{ layersFx: s.L.layers.map(l => ({...fxPick(l), name: l.name})), bgFx: {...fxPick(s.L.bg), name: s.L.bg.name, solid: s.L.bg.solid || 0, gone: s.L.bg.gone || 0, solidCol: s.L.bg.solidCol}, icon: clone(s.L.icon), obj: clone(s.L.obj), part: clone(s.L.part), xs: clone(s.L.xs || []) }, pins: pinsOf()};
 }
 function xsOk(l){ return !!l && (l.kind === 'shape' ? l.slot >= 0 && l.slot < SHAPE_MAX : l.kind === 'icon' ? l.slot > 0 && l.slot < ICON_MAX : l.kind === 'obj' ? l.slot > 0 && l.slot < OBJ_MAX : l.kind === 'part' && l.slot > 0 && l.slot < SL); }
 function applyState(s){
@@ -4365,7 +4368,7 @@ function applyState(s){
   P = {...clone(P0), ...globalsOf(s), ...tools, L: keepL};
   P.L.layers.forEach((l, u) => { Object.assign(l, fxPick(LD), fxPick(list[u] || {})); l.solo = false; if (list[u] && list[u].name) l.name = list[u].name; });
   Object.assign(P.L.bg, fxPick(LD), fxPick(bgFx)); P.L.bg.solo = false;
-  P.L.bg.solid = bgFx.solid || 0; if (bgFx.solidCol) P.L.bg.solidCol = bgFx.solidCol; if (bgFx.name) P.L.bg.name = bgFx.name;
+  P.L.bg.solid = bgFx.solid || 0; P.L.bg.gone = bgFx.gone || 0; if (bgFx.solidCol) P.L.bg.solidCol = bgFx.solidCol; if (bgFx.name) P.L.bg.name = bgFx.name;
   const di = defLayers(), oldNames = {icon: P.L.icon.name, obj: P.L.obj.name, part: P.L.part.name};
   P.L.icon = {...di.icon, ...(sL.icon || {})}; P.L.obj = {...di.obj, ...(sL.obj || {})}; P.L.part = {...di.part, ...(sL.part || {})};
   for (const id of ['part','icon','obj']){ delete P.L[id].gone; if (!P.L[id].name && oldNames[id]) P.L[id].name = oldNames[id]; }
@@ -7887,7 +7890,7 @@ function openRowMenu(id, x, y){
   if (easyOn()) return;
   closePinMenu();
   const d = layerDefs().find(q => q.id === id), L = d && getL(id); if (!d || !L) return;
-  const img = isImageLayer(id), canDel = (img && id !== 'bg') || isExtra(id), canOl = kindOf(id) === 'icon' || kindOf(id) === 'shape' || (img && id !== 'bg');
+  const img = isImageLayer(id), canDel = img || isExtra(id), canOl = kindOf(id) === 'icon' || kindOf(id) === 'shape' || (img && id !== 'bg');
   const m = pinMenuEl = document.createElement('div'); m.className = 'pinMenu rowMenu'; m.setAttribute('role', 'menu'); m.setAttribute('aria-label', d.name + ' layer menu');
   const OL_SVG = '<svg class="gi-svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="2.5" stroke-dasharray="2.2 2"/></svg>';
   const item = (ico, text, fn, off) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = (ico.charAt(0) === '<' ? ico : use(ico)) + '<span>' + escH(text) + '</span>'; if (off){ b.disabled = true; b.title = off; } b.onclick = () => fn(b); m.append(b); return b; };
@@ -7999,6 +8002,7 @@ function drawAddMenu(){
   add('i-plus', 'New layer, then pick its object', addLayer, P.L.layers.length >= MAX_OBJ ? `You can have up to ${MAX_OBJ} layers plus Background` : '', true);   // needs calibration, so Easy leaves it out
   if (easyOn()) add('i-image', 'Upload a picture\u2026', () => $('#fImg').click());
   else add('i-image', 'Import layer images\u2026', () => $('#bLayersImport').click());
+  if (P.L.bg.gone) add('i-image', 'Background', restoreBackground);
   add('r-shape', 'Shape', () => addShape());
   add('r-icon', 'Icon: upload\u2026', () => { iconPickInto = false; $('#fIcon').click(); });
   add('r-icon', 'Icon: built-in', addBuiltinIcon);
@@ -8028,44 +8032,60 @@ function setClearMenu(open){
   const m = $('#clearMenu'); if (open) drawClearMenu(); m.hidden = !open; $('#bClearMenu').setAttribute('aria-expanded', open);
   if (open){ const f = m.querySelector('button:not(:disabled)') || m.querySelector('button'); if (f) f.focus(); }
 }
-function hiddenDeletable(){ return { pics: P.L.layers.filter(l => !l.vis), xs: (P.L.xs || []).filter(l => !l.vis) }; }
+function hiddenDeletable(){ return { pics: P.L.layers.filter(l => !l.vis), xs: (P.L.xs || []).filter(l => !l.vis), bg: !P.L.bg.vis && !P.L.bg.gone }; }
 function drawClearMenu(){
   const m = $('#clearMenu'); m.innerHTML = '';
-  const n = P.L.layers.length, bgPic = !P.L.bg.solid, h = hiddenDeletable(), nh = h.pics.length + h.xs.length;
+  const n = P.L.layers.length, bgPic = !P.L.bg.gone, h = hiddenDeletable(), nh = h.pics.length + h.xs.length + (h.bg ? 1 : 0);
   const item = (label, fn, off) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.innerHTML = '<span>' + label + '</span>'; if (off){ b.disabled = true; b.title = off; } b.onclick = () => { setClearMenu(false); fn(); }; m.appendChild(b); };
   item('Clear layers', clearPictureLayers, !n && !bgPic ? 'No picture layers to clear' : '');
   item('Clear hidden', clearHiddenLayers, !nh ? 'No hidden layers to clear' : '');
-  const note = document.createElement('p'); note.className = 'note'; note.textContent = 'Clear layers deletes every picture layer and turns the Background into a flat colour. Clear hidden deletes hidden layers, except Background, Particles, Icon and 3D object. Undo brings them back.'; m.appendChild(note);
+  const note = document.createElement('p'); note.className = 'note'; note.textContent = 'Clear layers deletes every picture layer and the Background. Clear hidden deletes hidden layers, except the built-in Particles, Icon and 3D object. Undo brings them back; Add layer › Background restores the Background.'; m.appendChild(note);
 }
 function afterClear(){
   if (!layerDefs().some(d => d.id === sel)) sel = 'bg';
   uploadMasks(); uploadLayerCols(); rebuildBg(); computeMedians(); uploadIcon(); renderLayers(); syncLayerEd(); syncBgFill(); status(); changed(); markDirty();
 }
+function deleteBackground(fromHist){
+  if (P.L.bg.gone) return;
+  const prev = {solid: P.L.bg.solid || 0, selWas: sel};
+  P.L.bg.gone = 1; P.L.bg.solid = 1; if (sel === 'bg') sel = homeSel(); afterClear();
+  if (fromHist) return;
+  const e = histPush('delete', 'Background delete', () => { P.L.bg.gone = 0; P.L.bg.solid = prev.solid; sel = prev.selWas; afterClear(); }, () => deleteBackground(true));
+  actionToast('Background deleted; the scene shows a flat colour. Add layer › Background brings it back', 'Undo', () => histUndoEntry(e));
+}
+function restoreBackground(){
+  if (!P.L.bg.gone) return;
+  const prev = {solid: P.L.bg.solid || 0, selWas: sel};
+  const doIt = () => { P.L.bg.gone = 0; P.L.bg.solid = 0; sel = 'bg'; afterClear(); };
+  doIt();
+  const e = histPush('add', 'Background add', () => { P.L.bg.gone = 1; P.L.bg.solid = prev.solid; sel = prev.selWas; afterClear(); }, doIt);
+  actionToast('Background restored', 'Undo', () => histUndoEntry(e));
+}
 function clearPictureLayers(){
   if (cal){ toast('Finish calibrating first'); return; }
-  const before = P.L.layers.slice(), bgWas = P.L.bg.solid || 0;
-  if (!before.length && bgWas){ toast('No picture layers to clear'); return; }
+  const before = P.L.layers.slice(), bgWas = P.L.bg.solid || 0, goneWas = P.L.bg.gone || 0;
+  if (!before.length && goneWas){ toast('No picture layers to clear'); return; }
   const keep = before.map(L => ({L, mask: masks.get(L.id), own: ownCols.get(L.id), med: medians.get(L.id)})), selWas = sel;
-  const doIt = () => { for (const L of before) removeLayer(L.id); P.L.bg.solid = 1; afterClear(); };
+  const doIt = () => { for (const L of before) removeLayer(L.id); P.L.bg.gone = 1; P.L.bg.solid = 1; if (sel === 'bg') sel = homeSel(); afterClear(); };
   doIt();
   const e = histPush('clear', 'Clear layers', () => {
     if (before.some(L => P.L.layers.some(x => x.id === L.id))) return;
     P.L.layers = before.slice(); for (const k of keep){ if (k.mask) masks.set(k.L.id, k.mask); if (k.own) ownCols.set(k.L.id, k.own); if (k.med !== undefined) medians.set(k.L.id, k.med); }
-    P.L.bg.solid = bgWas; if (layerDefs().some(d => d.id === selWas)) sel = selWas; afterClear();
+    P.L.bg.solid = bgWas; P.L.bg.gone = goneWas; if (layerDefs().some(d => d.id === selWas)) sel = selWas; afterClear();
   }, doIt, true);
-  actionToast(before.length ? `Cleared ${before.length} picture ${before.length === 1 ? 'layer' : 'layers'}; Background is now a flat colour` : 'Background is now a flat colour', 'Undo', () => histUndoEntry(e));
+  actionToast(`Cleared ${before.length ? before.length + ' picture ' + (before.length === 1 ? 'layer' : 'layers') + ' and the Background' : 'the Background'}; the scene shows a flat colour`, 'Undo', () => histUndoEntry(e));
 }
 function clearHiddenLayers(){
   if (cal){ toast('Finish calibrating first'); return; }
-  const h = hiddenDeletable(), n = h.pics.length + h.xs.length;
+  const h = hiddenDeletable(), n = h.pics.length + h.xs.length + (h.bg ? 1 : 0);
   if (!n){ toast('No hidden layers to clear'); return; }
-  const picsBefore = P.L.layers.slice(), xsBefore = P.L.xs.slice(), selWas = sel;
+  const picsBefore = P.L.layers.slice(), xsBefore = P.L.xs.slice(), selWas = sel, bgPrev = {solid: P.L.bg.solid || 0};
   const keep = h.pics.map(L => ({L, mask: masks.get(L.id), own: ownCols.get(L.id), med: medians.get(L.id)}));
-  const doIt = () => { for (const L of h.pics) removeLayer(L.id); P.L.xs = P.L.xs.filter(l => l.vis); afterClear(); };
+  const doIt = () => { for (const L of h.pics) removeLayer(L.id); P.L.xs = P.L.xs.filter(l => l.vis); if (h.bg){ P.L.bg.gone = 1; P.L.bg.solid = 1; if (sel === 'bg') sel = homeSel(); } afterClear(); };
   doIt();
   const e = histPush('clear', 'Clear hidden', () => {
     if (h.pics.some(L => P.L.layers.some(x => x.id === L.id))) return;
-    P.L.layers = picsBefore.slice(); P.L.xs = xsBefore.slice();
+    P.L.layers = picsBefore.slice(); P.L.xs = xsBefore.slice(); if (h.bg){ P.L.bg.gone = 0; P.L.bg.solid = bgPrev.solid; }
     for (const k of keep){ if (k.mask) masks.set(k.L.id, k.mask); if (k.own) ownCols.set(k.L.id, k.own); if (k.med !== undefined) medians.set(k.L.id, k.med); }
     if (layerDefs().some(d => d.id === selWas)) sel = selWas; afterClear();
   }, doIt, true);
