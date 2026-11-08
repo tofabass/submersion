@@ -1738,7 +1738,7 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 /* ---------- parameters ---------- */
 const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsrcAngle:0, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
   seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trOuter:0, trStops:[{p:0,c:'#00e5ff'},{p:1,c:'#9b5cff'}], rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0,
-  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, thInfl:0, thRound:.5, thick:0, vis:true, solo:false};
+  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, frCx:.5, frCy:.5, frTint:0, thInfl:0, thRound:.5, thick:0, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
@@ -1878,6 +1878,9 @@ const LSPECS = {
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
     ['frAng','Fractal angle',0,360,1,v=>v+'°'],
     ['frSpin','Fractal spin',-4,4,1,turns],
+    ['frCx','Fractal centre X',0,1,.01,fx(2)],
+    ['frCy','Fractal centre Y',0,1,.01,fx(2)],
+    ['frTint','Fractal tint',0,1,.01,fx(2)],
   ],
   /* Thickness (Phase A): Inflate swells the layer toward the camera inside its mask; Edge rounding shapes the rim from a sharp edge to a full pillow. Full interface only; picture and mask layers only. */
   'g-lth':[
@@ -2533,9 +2536,10 @@ precision highp float;
 precision highp sampler2DArray;
 uniform sampler2D uImg, uDepth, uBg, uOther, uSel;
 uniform sampler2DArray uMasks, uLayerCol, uIcon, uObj, uPart, uTrI, uTrS;
-uniform vec4 uK[24], uM[24], uN[24], uO[24];   // uO: x = Inflate, y = Edge rounding, z = Wall thickness (w spare)
+uniform vec4 uK[24], uM[24], uN[24], uO[24], uP[24];   // uO: x = Inflate, y = Edge rounding, z = Wall thickness (w spare). uP: x = Fractal centre X, y = centre Y (both .5 = centred), z = Fractal tint (w spare)
 uniform sampler2D uTrG;
 vec2 gTr;
+float gFrIt = -1.;   // set by fractalWarp: how far along its iterations the point got (0-1), read by the tint after the lookup; -1 = no fractal ran, so no tint
 /* Fractal rounds allowed in the current evalL call. The outline and glow taps call evalL dozens of
    times per pixel, so they can be given a lower cap; FR_TAP_CAP of 99 means no cap is applied. */
 const float FR_TAP_CAP = 99.;
@@ -2570,23 +2574,28 @@ vec2 toUV(vec2 p, float phi){
 /* Fractal warp: push the sample point through a few rounds of a fractal formula, then look the
    picture up at the result, so the picture itself becomes fractal. No extra texture reads.
    uN.x = amount (0 = off), uN.y = zoom, uN.z = angle in radians,
-   uN.w = ((spin + 4)*8 + (type - 1))*32 + iterations, all small whole numbers. */
+   uN.w = ((spin + 4)*8 + (type - 1))*32 + iterations, all small whole numbers.
+   uP.xy - .5 = Centre X/Y (0 = the old centred look): the view centre for Julia, Mandelbrot and Burning Ship (plane units, x4), the fold shift
+   for the kaleidoscope fold (x2), the spiral's centre on screen for the Droste spiral (x1). Sets gFrIt (0-1) for the tint. */
 vec2 fractalWarp(int i, vec2 p, float phi){
   vec4 N = uN[i];
   float pk = N.w, it = mod(pk, 32.); pk = floor(pk/32.);
   float ty = mod(pk, 8.) + 1., sp = floor(pk/8.) - 4.;
   float n = min(it, gFrCap);
   if (n < .5) return p;
+  vec2 cen = uP[i].xy - .5;            // exactly 0 at the defaults, so every type below is unchanged there
   if (ty > 3.5){                       // Droste spiral: no rounds, so Iterations is ignored. Log-polar, sheared so one turn of the angle steps one whole period outward
     const float LNS = 1.0986;          // ln 3: each copy is 3x smaller than the one around it
     const float PER = 2.*LNS;          // mirrored rings, so a full period is two copies (inside-out, then the right way round)
-    float r = max(length(p), 1.5/uRes.y);   // clamp the radius about a pixel from the centre: no log(0), no atan(0,0), no ring shimmer
-    vec2 d = length(p) > 1e-6 ? p : vec2(1., 0.);
+    vec2 pc = p - cen;                 // Centre X/Y moves the spiral's centre across the frame; the picture's own centre stays what the copies are made from
+    float r = max(length(pc), 1.5/uRes.y);   // clamp the radius about a pixel from the centre: no log(0), no atan(0,0), no ring shimmer
+    vec2 d = length(pc) > 1e-6 ? pc : vec2(1., 0.);
     float L = log(r/max(N.y, .05)), th = atan(d.y, d.x);
     float cc = PER/TAU;                // shear: th + 2pi moves X by exactly PER, a whole period, so the atan jump on the negative x axis cannot show
     float X = L + cc*th + sp*PER*phi/TAU;   // spin flows through whole periods per loop, so the loop closes seamlessly
     float Y = th - cc*L + N.z;         // the angle stays continuous: only cos/sin of it are used, never a mod
     float t = mod(X, PER); t = LNS - abs(t - LNS);   // triangle wave into one copy's band, continuous at every ring
+    gFrIt = t/LNS;                     // tint stand-in for an iteration count: the position inside the band, 0 at its inner edge, 1 at its outer edge (continuous, so no seam)
     return .5*exp(t - LNS)*vec2(cos(Y), sin(Y));    // band runs from radius .5 (the picture's half height) in to .5/3
   }
   float a = N.z + sp*phi;              // whole turns per loop, so the loop closes seamlessly
@@ -2595,35 +2604,44 @@ vec2 fractalWarp(int i, vec2 p, float phi){
   vec2 ctr = vec2(0.);
   if (ty > 2.5){                       // Kaleidoscopic fold: mirror into a quadrant, turn by the angle, shift by a step that shrinks 1.8x each round
     float cs = cos(a), sn = sin(a), f = .4444;   // f = (S-1)/S for S = 1.8, so the point never grows and needs no scaling back
+    vec2 sh = vec2(1., .7) + cen*2.;   // Centre X/Y offsets the fold shift (1, .7) by up to 1 either way
     vec2 w = q;
+    float fl = 0.;                     // rounds in which the fold actually mirrored the point: the tint stand-in for an escape count
     for (int r = 0; r < 12; r++){
       if (float(r) >= n) break;
+      if (w.x < 0. || w.y < 0.) fl += 1.;
       w = abs(w);
-      w = vec2(cs*w.x - sn*w.y, sn*w.x + cs*w.y) - vec2(1., .7)*f;
+      w = vec2(cs*w.x - sn*w.y, sn*w.x + cs*w.y) - sh*f;
       f /= 1.8;
     }
     float wr = length(w);
     if (!(wr < 1e4)) return p;         // not a number: leave the point alone
+    gFrIt = min(fl/n, 1.);
     if (wr > 4.) w *= 4./wr;
     return w/k;
   }
   if (ty < 1.5){                       // Julia: c travels the circle where the set stays connected
-    z = q; c = .7885*vec2(cos(a), sin(a));
+    ctr = cen*4.;                      // Centre X/Y moves the view centre across the plane (up to 2 units either way); 0 at the defaults
+    z = q + ctr; c = .7885*vec2(cos(a), sin(a));
   } else {                             // Mandelbrot and Burning Ship: c is the point itself; the angle turns the view
     float cs = cos(a), sn = sin(a);
-    ctr = ty > 4.5 ? vec2(-.6, -.5) : vec2(-.5, 0.);   // Burning Ship view centre: the ship sits down and left of Mandelbrot's; at zoom 1 the window is 3 units high (y -2 to 1), tune this vec2 by eye
+    ctr = (ty > 4.5 ? vec2(-.6, -.5) : vec2(-.5, 0.)) + cen*4.;   // Burning Ship view centre: the ship sits down and left of Mandelbrot's; at zoom 1 the window is 3 units high (y -2 to 1), tune this vec2 by eye. Centre X/Y is added to it
     c = vec2(cs*q.x - sn*q.y, sn*q.x + cs*q.y) + ctr;
     z = vec2(0.);
   }
+  float cr = 0.;                       // rounds run, for the tint
   for (int r = 0; r < 12; r++){
     if (float(r) >= n) break;
     if (ty > 4.5) z = abs(z);          // Burning Ship: fold both parts positive before squaring
     z = vec2(z.x*z.x - z.y*z.y, 2.*z.x*z.y) + c;
+    cr += 1.;
     if (dot(z, z) > 16.) break;        // escaped: stop before the numbers grow large
   }
+  float ze = dot(z, z);
   z -= ctr;                            // back to the picture's own centre
   float r2 = dot(z, z);
   if (!(r2 < 1e8)) return p;           // not a number, or a runaway: leave the point alone
+  gFrIt = ze > 16. ? clamp((cr - log2(.5*log(ze)))/n, 0., 1.) : 1.;   // tint: smooth escape count as a share of the rounds allowed; points that never escape count as 1
   float rr = sqrt(r2);
   if (rr > 4.) z *= 4./rr;             // soft limit so an escaped point cannot fling the sample far away
   return z/k;
@@ -2655,6 +2673,7 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   vec2 pf = fold(p0, uSpin*phi + uAudioRot + uSymAng + uM[i].y + B.x*phi, A.w, uG[i].w)/F.y/(uH[i].w > 0. ? uH[i].w : 1.);
   float sa = uM[i].z*phi + uM[i].w; float sc = cos(sa), ss = sin(sa);
   vec2 pr = vec2(sc*pf.x - ss*pf.y, ss*pf.x + sc*pf.y);
+  gFrIt = -1.;   // no fractal has run for this layer yet in this call, so no tint
   if (uN[i].x > 0.) pr = mix(pr, fractalWarp(i, pr, phi), uN[i].x);   // Fractal runs inside the symmetry wedge, so the mirror lines stay clean
   vec2 uv = toUV(pr, phi);
   vec2 cam = uDrift*vec2(sin(phi), .6*sin(2.*phi)) + uSteer;
@@ -2708,6 +2727,10 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
     vec3 rc = vec3(rr, rg, rb)/255.;
     if (uI[i].w < 0.) rc *= dot(max(col, 0.), vec3(.2126, .7152, .0722));   // keep shading
     col = mix(col, rc, clamp(abs(uI[i].w), 0., 1.));
+  }
+  if (uP[i].z > 0. && gFrIt >= 0.){   // Fractal tint: a hue ramp along the iteration fraction (red at 0, up to purple at 1; less than a full turn, so no seam where it wraps), keeping the picture's own shading. Runs after Recolour and before the global hue / sat, so those still move it. No extra texture reads
+    vec3 tc = hsv2rgb(vec3(.75*gFrIt, .8, 1.))*(.4 + 1.2*dot(max(col, 0.), vec3(.2126, .7152, .0722)));
+    col = mix(col, tc, uP[i].z);
   }
   vec3 h = rgb2hsv(max(col, 0.));
   h.x = fract(h.x + uHue + B.y + uDepthHue*A.z + uHueCycle*phi/TAU + hueDrift(phi) + (uG[i].x > 0. ? uG[i].y + uG[i].z*(.5 - .5*cos(uG[i].x*phi)) : 0.));
@@ -3007,7 +3030,7 @@ var LITE = {on:false, fps:30, entries:12, dpr:1, partRes:512, partMul:.35, objRe
    most of them, so the test report shows it: a low number here is what would block more of them. */
 const maxFragVecs = () => { try { return gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS); } catch(e){ return '?'; } };
 const U = {};
-for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uN','uO','uTrG']) U[n] = gl.getUniformLocation(prog, n);
+for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uN','uO','uP','uTrG']) U[n] = gl.getUniformLocation(prog, n);
 const MU = {}; for (const n of ['uMVP','uR','uOff','uMode','uPh','uDim']) MU[n] = gl.getUniformLocation(mprog, n);
 const PU = {}; for (const n of ['uTw','uTwRot','uCountF','uPh','uPhi','uSize','uSizeVar','uSpeed','uAngle','uSpread','uTurb','uWobble','uTwinkle','uHue','uHueVar','uSat','uBright','uSymN','uSymMirror','uMode','uAspect','uSeed','uScale','uCenter','uShape']) PU[n] = gl.getUniformLocation(pprog, n);
 
@@ -4702,7 +4725,7 @@ $('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(
 /* randomizer presets: built-in themes plus the user's own saved tick sets */
 const RP_BUILTIN = [
   {id:'b:colour', name:'Colour only', amt:.8, keys:['g:hue','g:depthHue','g:sat','g:hueCycle','l:hue','l:sat','l:con','l:phue','l:phueVar','l:psat','l:pbright']},
-  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:frAmt','l:frZoom','l:frAng','l:thInfl','l:thRound','l:thick','l:psymN','l:psymMirror','l:ptwist']},
+  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:frAmt','l:frZoom','l:frAng','l:frCx','l:frCy','l:frTint','l:thInfl','l:thRound','l:thick','l:psymN','l:psymMirror','l:ptwist']},
   {id:'b:motion', name:'Motion + depth', amt:.6, keys:['g:strength','g:focus','g:depthScale','g:drift','g:srcOrbit','g:spin','l:lsrcSpin','l:frSpin','g:fog','l:z','l:relief','l:inst','l:instSp','l:instOff','l:spinX','l:spinY','l:pspeed','l:pangle','l:pturb','l:pmode']},
   {id:'b:fx', name:'FX', amt:.7, keys:['l:wig','l:glow','l:melt','l:trail','l:blend','g:edges','g:fog','l:ptwinkle','l:pshape']},
   {id:'b:chaos', name:'Chaos (everything, 100%)', amt:1, keys:'*'},
@@ -5778,7 +5801,7 @@ let toastT;
 function toast(msg, ms = 2200){ const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove('on'), ms); }
 
 /* ---------- render ---------- */
-const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96), Ov = new Float32Array(96);
+const Gd = new Float32Array(96), A = new Float32Array(96), B = new Float32Array(96), C = new Float32Array(96), Dv = new Float32Array(96), E = new Float32Array(96), F = new Float32Array(96), H = new Float32Array(96), Iv = new Float32Array(96), Jv = new Float32Array(96), Kv = new Float32Array(96), Mv = new Float32Array(96), Nv = new Float32Array(96), Ov = new Float32Array(96), Pv = new Float32Array(96);
 /* depth = the layer's median depth + offset + swing; re-sorted each frame so layers pass through each other */
 /* global smoothing: every continuous control glides toward its new value instead of jumping */
 const GLIDE = new Map(), NO_GLIDE = new Set(['olOn','olCol','olOnly','trOn','trOnly','trGrad','trOuter','trN','rcOn','rcCol','rcKeep','slot','lsrcSpin','frType','frIt','frSpin','twBounceRate','ltwBounceRate','ptwSpeed','ptwBounceRate','hdSpeed','pRandL','pRandM','pRandH','seg','loop','spin','oscRate','wetRate','hueCycle','hueSpeed','pwobble','pspeed','count','mirror','blend','bpm','psymN','pseed','psymMirror','q','spinX','spinY','sspin','glide','aspect','vis','solo']);
@@ -6090,7 +6113,8 @@ function draw(w, h){
       const amt = ty > 0 && !solid ? clamp01(l.frAmt ?? 1) : 0;
       Nv[o] = amt; Nv[o+1] = Math.max(.05, +l.frZoom || 1); Nv[o+2] = (l.frAng || 0)*Math.PI/180;
       const it = Math.max(1, Math.min(LITE.on ? (ty === 3 ? 3 : 4) : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds (3 for the kaleidoscope fold)
-      Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0; }
+      Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0;
+      Pv[o] = clamp01(l.frCx ?? .5); Pv[o+1] = clamp01(l.frCy ?? .5); Pv[o+2] = amt > 0 ? clamp01(l.frTint ?? 0) : 0; Pv[o+3] = 0; }   // Centre X/Y (.5 = centred) and tint: an old project without these keys gets the defaults, which render as before
     { const inf = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thInfl || 0) : 0;   // Inflate, Edge rounding, Wall thickness: Full only, picture and mask layers only
       Ov[o] = inf; Ov[o+1] = clamp01(l.thRound ?? .5); Ov[o+2] = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thick || 0) : 0; Ov[o+3] = 0; }
     Gd[o]=l.hdSpeed || 0; Gd[o+1]=(l.hdMin ?? 0)/360; Gd[o+2]=((l.hdMax ?? 360) - (l.hdMin ?? 0))/360;
@@ -6099,7 +6123,7 @@ function draw(w, h){
   });
   trLutUpload();
   gl.viewport(0,0,w,h);
-  gl.uniform4fv(U.uA, A); gl.uniform4fv(U.uB, B); gl.uniform4fv(U.uC, C); gl.uniform4fv(U.uD, Dv); gl.uniform4fv(U.uE, E); gl.uniform4fv(U.uF, F); gl.uniform4fv(U.uG, Gd); gl.uniform4fv(U.uH, H); gl.uniform4fv(U.uI, Iv); gl.uniform4fv(U.uJ, Jv); gl.uniform4fv(U.uK, Kv); gl.uniform4fv(U.uM, Mv); gl.uniform4fv(U.uN, Nv); gl.uniform4fv(U.uO, Ov); gl.uniform1f(U.uGInv, clamp01(Q.ginv || 0));
+  gl.uniform4fv(U.uA, A); gl.uniform4fv(U.uB, B); gl.uniform4fv(U.uC, C); gl.uniform4fv(U.uD, Dv); gl.uniform4fv(U.uE, E); gl.uniform4fv(U.uF, F); gl.uniform4fv(U.uG, Gd); gl.uniform4fv(U.uH, H); gl.uniform4fv(U.uI, Iv); gl.uniform4fv(U.uJ, Jv); gl.uniform4fv(U.uK, Kv); gl.uniform4fv(U.uM, Mv); gl.uniform4fv(U.uN, Nv); gl.uniform4fv(U.uO, Ov); gl.uniform4fv(U.uP, Pv); gl.uniform1f(U.uGInv, clamp01(Q.ginv || 0));
   { const c = P.L.bg.solidCol || '#000000'; gl.uniform3f(U.uBgCol, parseInt(c.slice(1,3),16)/255, parseInt(c.slice(3,5),16)/255, parseInt(c.slice(5,7),16)/255); }
   gl.uniform1i(U.uCount, list.length);
   gl.uniform2f(U.uRes, w, h);
@@ -9099,7 +9123,7 @@ const testMode = (() => {
     S('sp7', SP, aSY, 'adv', 'Pin Source spin, map an oscillator to it, press Roll with Geometry and Motion ticked, then Reset all and Undo.', 'Pin, mapping and Roll work for the new sliders; Reset all returns them to 0 and Undo brings the values back. Save and import a project and the values are kept.', '#g-lsym', {cat: 'layer', top: 1}),
     S('sp8', SP, aTL, 'adv', 'Set different Source angle values in two timeline scenes and play with Glide. Give the scenes different Source spin values.', 'The angle glides smoothly between scenes. Source spin switches at the middle of the transition, like Spin, because gliding a turns-per-loop speed would make the picture jump.', '#tlPlay', {panel: 'T'}),
     S('sp9', SP, aLF, 'lite', 'In Lite, turn Source spin and Source angle on.', 'The picture still turns inside the symmetry with no extra stutter.', '#g-lsym', {cat: 'layer', top: 1}),
-    S('fc1', FC, aFC, 'adv', 'Select a picture layer and open the Layer tab. Look for the Fractal group under Symmetry, then switch the interface to Easy and back to Full.', 'Fractal has six sliders: Fractal type, amount, iterations, zoom, angle and spin. Type reads "off" to start with, and the whole group is hidden in Easy.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc1', FC, aFC, 'adv', 'Select a picture layer and open the Layer tab. Look for the Fractal group under Symmetry, then switch the interface to Easy and back to Full.', 'Fractal has nine sliders: Fractal type, amount, iterations, zoom, angle, spin, centre X, centre Y and tint. Type reads "off" to start with, and the whole group is hidden in Easy.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc2', FC, aFC, 'adv', 'Set Fractal type to Julia, then sweep Fractal amount from 0 to 1 and back.', 'At 0 the layer looks exactly as it did with Fractal off. Raising it bends the picture into repeating Julia shapes, smoothly, with no flashing and no black frames.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc3', FC, aFC, 'adv', 'With Julia on, move Fractal iterations from 1 to 12, then Fractal zoom from 0.25 to 4.', 'More iterations give finer detail and zoom magnifies the fractal window. No speckled or flickering pixels at any setting.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc4', FC, aFC, 'adv', 'Set Fractal spin to 1 and watch a full loop, then try -1 and 2. Put spin back to 0 and move Fractal angle through 0-360°.', 'The pattern turns in whole turns per loop and the end of the loop matches the start with no jump. Angle turns the pattern and then holds still.', '#g-lfr', {cat: 'layer', top: 1}),
@@ -9107,7 +9131,13 @@ const testMode = (() => {
     S('fc12', FC, aFC, 'adv', 'Set Fractal type to Kaleidoscope fold. Sweep amount, iterations, zoom and angle, then set spin to 1 and -1.', 'The picture folds into a crystalline, self-similar pattern with sharp mirror lines. Iterations 1 to 12 add finer folds without popping or black frames, and spin turns the pattern once per loop with no jump at the loop point. Lite stops at 3 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc13', FC, aFC, 'adv', 'Set Fractal type to Droste spiral on a plain photo. Sweep amount, zoom and angle, move iterations, then set spin to 1, 2 and -1 and watch a full loop each time. Look closely at the centre and to the left of it.', 'The picture repeats inside itself along a spiral, each copy 3 times smaller, with every other ring turned inside out. Iterations changes nothing and its hover note says so. There is no seam line to the left of the centre, the centre does not flicker or go black, and spin flows the copies inward or outward and ends each loop exactly where it started.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc14', FC, aFC, 'adv', 'Set Fractal type to Burning Ship. Sweep amount, iterations, zoom and angle, then set spin to 1 and -1.', 'The picture bends into the jagged, ship-like Burning Ship shape, sitting below and left of where the Mandelbrot type frames its set, with sharp masts instead of round bulbs. At zoom 1 the whole ship is in view. Iterations 1 to 12 sharpen it without popping or black frames, and spin turns the view once per loop with no jump at the loop point. Lite stops at 4 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
-    S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
+
+    S('fc15', FC, aFC, 'adv', 'Turn a fractal type on, then move Fractal centre X and centre Y away from 0.5 and back, for each type in turn: Julia, Mandelbrot, Kaleidoscope fold, Droste spiral, Burning Ship. Double-click both sliders.', 'At 0.5 / 0.5 every type looks exactly as it did before this update. Moving centre X or Y slides the view across the fractal for Julia, Mandelbrot and Burning Ship, shifts the crystal folds for the Kaleidoscope fold, and moves the middle of the spiral across the frame for the Droste spiral, smoothly and with no popping. A double-click on either slider returns it to 0.5.', '#g-lfr', {cat: 'layer', top: 1}),
+
+    S('fc16', FC, aFC, 'adv', 'Turn a fractal type on, raise Fractal tint from 0 to 1 and back, for each type in turn. Try it on a picture layer, an Icon layer, and a layer with Recolour on.', 'At 0 the layer is untinted and looks exactly as before. Raising it paints a colour ramp along the fractal, from red where the pattern is shallow up to purple where it is deep, while the picture\'s own light and dark still show through. There is no hard colour seam where the ramp ends, and no extra slowdown. With Fractal amount at 0 or the type off there is no tint at all.', '#g-lfr', {cat: 'layer', top: 1}),
+
+    S('fc17', FC, aPJ, 'adv', 'Open a project, Look preset or timeline scene saved before centre X, centre Y and tint existed, with a fractal type set. Then switch two timeline scenes between different centre and tint values and play with Glide.', 'The old file opens with centre X and Y at 0.5 and tint at 0, and the fractal looks exactly as it did before. Centre X, centre Y and tint glide smoothly between scenes, unlike type, iterations and spin which switch.', '#bProjImport', {cat: 'project'}),
+    S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle, centre X, centre Y, tint and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc7', FC, aPJ, 'adv', 'Save a project with a fractal set, reload the page and import it. Then open a project, Look preset or timeline scene saved before this update.', 'The fractal comes back exactly as saved. Older files open with Fractal off and look and move exactly as they did before.', '#bProjImport', {cat: 'project'}),
     S('fc8', FC, aTL, 'adv', 'Give two timeline scenes different Fractal angle values, then different type, iterations and spin values, and play with Glide.', 'Angle, amount and zoom glide smoothly between scenes. Type, iterations and spin switch instead of gliding, like Source spin, because gliding them would make the picture jump.', '#tlPlay', {panel: 'T'}),
     S('fc9', FC, aFC, 'adv', 'Turn a fractal on for an Icon layer, a 3D object layer and a particle layer. Then set Instances to 3 on a picture layer and turn on Glow and an outline.', 'Every layer kind warps. The instance copies stay in step, and the glow and outline follow the warped shape rather than the original one.', '#g-lfr', {cat: 'layer', top: 1}),
