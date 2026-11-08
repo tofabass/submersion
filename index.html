@@ -1727,7 +1727,7 @@ const clamp01 = v => Math.max(0, Math.min(1, v));
 /* ---------- parameters ---------- */
 const LD = {ltwist:0, ltwBounce:0, ltwBounceRate:1, lsymAngle:0, lsrcSpin:0, lsrcAngle:0, z:0, osc:0, oscRate:1, oscPhase:0, relief:1, wet:0, wetSwing:0, wetRate:1, wetPhase:0, hdSpeed:0, hdMin:0, hdMax:360,
   seg:0, spin:0, hue:0, sat:0, con:0, inv:0, op:1, inst:1, instSp:.4, instOff:0, instSw:0, instSwRate:1, instMode:'shrink', blend:0, wig:0, glow:0, melt:0, trail:0, olOn:0, olCol:'#ffffff', olW:4, olSoft:.3, olOp:1, olOnly:0, trOn:0, trOnly:0, trSpeed:1, trN:1, trLen:.35, trInt:1.5, trHue:190, trSat:.6, trGrad:0, trOuter:0, trStops:[{p:0,c:'#00e5ff'},{p:1,c:'#9b5cff'}], rcOn:0, rcCol:'#00e5ff', rcStr:1, rcKeep:0,
-  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, thInfl:0, thRound:.5, vis:true, solo:false};
+  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, thInfl:0, thRound:.5, thick:0, vis:true, solo:false};
 const FX_KEYS = Object.keys(LD).filter(k => k !== 'vis' && k !== 'solo');
 const fxPick = o => { const r = {}; for (const k of FX_KEYS) if (o && k in o) r[k] = o[k]; return r; };
 const MAX_OBJ = 7, SL = 4;   // SL: copies of each icon / 3D object / particle layer the renderer can hold (the original plus three)
@@ -1870,6 +1870,7 @@ const LSPECS = {
   'g-lth':[
     ['thInfl','Inflate',0,1,.01,fx(2)],
     ['thRound','Edge rounding',0,1,.01,fx(2)],
+    ['thick','Wall thickness',0,1,.01,fx(2)],
   ],
   'g-lcol':[
     ['hue','Hue',-180,180,1,v=>v+'°'],
@@ -2519,7 +2520,7 @@ precision highp float;
 precision highp sampler2DArray;
 uniform sampler2D uImg, uDepth, uBg, uOther, uSel;
 uniform sampler2DArray uMasks, uLayerCol, uIcon, uObj, uPart, uTrI, uTrS;
-uniform vec4 uK[24], uM[24], uN[24], uO[24];   // uO: x = Inflate, y = Edge rounding (z, w spare for Thickness walls)
+uniform vec4 uK[24], uM[24], uN[24], uO[24];   // uO: x = Inflate, y = Edge rounding, z = Wall thickness (w spare)
 uniform sampler2D uTrG;
 vec2 gTr;
 /* Fractal rounds allowed in the current evalL call. The outline and glow taps call evalL dozens of
@@ -2638,6 +2639,22 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   }
   gTr = uv;
   vec4 s = A.x < .5 ? imageLayer(i, uv) : sprite(i, uv, phi);
+  if (full && uO[i].z > 0. && A.x < .5 && s.a < .999){
+    /* Thickness walls (main call only; outline, glow and trail taps skip them): the cut-out is a solid slab
+       reaching .25*thickness depth units back. March 4 slices from the front face backwards; each slice is the
+       layer shifted by the parallax a deeper copy would get. Where the front face is not covered, the first
+       slice that is covered shows a wall: the picture's own colour there (the rim), darker toward the back. */
+    vec2 sh = cam*uStrength*.0625*uO[i].z;   // shift per slice: 4 slices x .0625 = .25 depth units
+    vec3 wc = vec3(0.); float wa = 0.;
+    for (int k=1; k<=4; k++){
+      vec4 ws = imageLayer(i, uv - sh*float(k));
+      float m = ws.a*(1. - wa);
+      wc += m*ws.rgb*(1. - .14*float(k)); wa += m;   // 0.86 at the front slice down to 0.44 at the back
+      if (wa > .995) break;
+    }
+    float na = s.a + wa*(1. - s.a);
+    if (na > 1e-4) s = vec4((s.rgb*s.a + wc*(1. - s.a))/na, na);
+  }
   vec3 col = s.rgb;
   float iv = A.x < .5 ? abs(uGInv - uH[i].x) : uH[i].x;   // global invert flips image layers; a layer's own invert flips it back
   if (iv > 0.) col = mix(col, 1. - clamp(col, 0., 1.), iv);
@@ -4506,7 +4523,7 @@ $('#bRandBasic').onclick = () => { randSet = new Set(BASIC_RAND); diceOff.clear(
 /* randomizer presets: built-in themes plus the user's own saved tick sets */
 const RP_BUILTIN = [
   {id:'b:colour', name:'Colour only', amt:.8, keys:['g:hue','g:depthHue','g:sat','g:hueCycle','l:hue','l:sat','l:con','l:phue','l:phueVar','l:psat','l:pbright']},
-  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:frAmt','l:frZoom','l:frAng','l:thInfl','l:thRound','l:psymN','l:psymMirror','l:ptwist']},
+  {id:'b:geo', name:'Geometry', amt:.7, keys:['g:seg','g:mirror','g:twist','g:zoom','g:spin','g:symAngle','g:srcOrbit','l:seg','l:spin','l:lsymAngle','l:lsrcAngle','l:ltwist','l:frAmt','l:frZoom','l:frAng','l:thInfl','l:thRound','l:thick','l:psymN','l:psymMirror','l:ptwist']},
   {id:'b:motion', name:'Motion + depth', amt:.6, keys:['g:strength','g:focus','g:depthScale','g:drift','g:srcOrbit','g:spin','l:lsrcSpin','l:frSpin','g:fog','l:z','l:relief','l:inst','l:instSp','l:instOff','l:spinX','l:spinY','l:pspeed','l:pangle','l:pturb','l:pmode']},
   {id:'b:fx', name:'FX', amt:.7, keys:['l:wig','l:glow','l:melt','l:trail','l:blend','g:edges','g:fog','l:ptwinkle','l:pshape']},
   {id:'b:chaos', name:'Chaos (everything, 100%)', amt:1, keys:'*'},
@@ -5844,8 +5861,8 @@ function draw(w, h){
       Nv[o] = amt; Nv[o+1] = Math.max(.05, +l.frZoom || 1); Nv[o+2] = (l.frAng || 0)*Math.PI/180;
       const it = Math.max(1, Math.min(LITE.on ? 4 : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds
       Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0; }
-    { const inf = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thInfl || 0) : 0;   // Inflate + Edge rounding: Full only, picture and mask layers only
-      Ov[o] = inf; Ov[o+1] = clamp01(l.thRound ?? .5); Ov[o+2] = 0; Ov[o+3] = 0; }
+    { const inf = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thInfl || 0) : 0;   // Inflate, Edge rounding, Wall thickness: Full only, picture and mask layers only
+      Ov[o] = inf; Ov[o+1] = clamp01(l.thRound ?? .5); Ov[o+2] = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thick || 0) : 0; Ov[o+3] = 0; }
     Gd[o]=l.hdSpeed || 0; Gd[o+1]=(l.hdMin ?? 0)/360; Gd[o+2]=((l.hdMax ?? 360) - (l.hdMin ?? 0))/360;
     const pk = phi + (x.off || 0);
     Gd[o+3]=(x.off ? instG(Q, 'twist', x.off) + Q.twBounce*Math.sin(Q.twBounceRate*pk) : twG) + (l.ltwist || 0) + (l.ltwBounce || 0)*Math.sin((l.ltwBounceRate || 1)*pk);
@@ -7725,7 +7742,7 @@ function syncModeUI(){
   if (sb){ sb.disabled = LITE.on; sb.title = LITE.on ? 'Full mode only (Lite renders at Normal at most)' : ''; }
   const fi = $('#g-lfr-frIt');
   if (fi) fi.title = LITE.on ? 'Lite runs at most 4 fractal rounds' : '';
-  for (const id of ['#g-lth-thInfl', '#g-lth-thRound']){ const t = $(id); if (t) t.title = LITE.on ? 'Full mode only (Lite ignores thickness)' : ''; }
+  for (const id of ['#g-lth-thInfl', '#g-lth-thRound', '#g-lth-thick']){ const t = $(id); if (t) t.title = LITE.on ? 'Full mode only (Lite ignores thickness)' : ''; }
 }
 function setMode(m, persist = true){
   const on = m === 'lite';
@@ -8509,15 +8526,15 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins', 'layer-fractal'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins', FC = 'layer-fractal';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins', 'layer-fractal', 'layer-thickness'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins', FC = 'layer-fractal', TH = 'layer-thickness';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
   const aFR = 'First run and Easy / Full', aLY = 'Layers', aIM = 'Image import', aSC = 'Sample scenes', aDP = 'Depth and parallax', aSY = 'Symmetry', aCO = 'Colour and Recolour',
     aFX = 'Effects', aMO = 'Motion and loop', aOS = 'Oscillators and Mod', aAU = 'Audio', aRL = 'Randomize and Roll', aLC = 'Layer colours', aPN = 'Pins and phone pin bar',
     aUD = 'Undo and redo', aPJ = 'Projects and presets', aOU = 'Output', aLF = 'Lite vs Full', aLK = 'Look settings', aHU = 'Hide UI and mini menu', aPS = 'Phone sheets',
-    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode', aFC = 'Layer fractal';
+    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode', aFC = 'Layer fractal', aTH = 'Layer thickness';
   const LK = {look: 1, lkg: ['iface']};
   /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
   const STEPS = [
@@ -8690,6 +8707,12 @@ const testMode = (() => {
     S('fc9', FC, aFC, 'adv', 'Turn a fractal on for an Icon layer, a 3D object layer and a particle layer. Then set Instances to 3 on a picture layer and turn on Glow and an outline.', 'Every layer kind warps. The instance copies stay in step, and the glow and outline follow the warped shape rather than the original one.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc10', FC, aLF, 'lite', 'Switch to Lite with one fractal layer running. Hover or long-press the Fractal iterations slider, raise iterations to 12, then add a second fractal layer.', 'The iterations slider says that Lite runs at most 4 fractal rounds. Lite holds its frame rate at 12 as well, because it caps the rounds itself.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc11', FC, aFC, 'adv', 'With every Fractal type set to off, compare the frame rate against a scene from before this update. Then finish a Test mode run and read the Device line of the report.', 'The frame rate is the same as before, because nothing extra is drawn while Fractal is off. The Device line now includes the fragment uniform vector count for this device.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('th1', TH, aTH, 'adv', 'Select a picture layer and open the Layer tab. Look for the Thickness group under Fractal, then select an Icon layer and the Background.', 'Thickness has three sliders: Inflate, Edge rounding and Wall thickness. The group shows for picture and mask layers only, and is hidden in Easy.', '#g-lth', {cat: 'layer', top: 1}),
+    S('th2', TH, aTH, 'adv full', 'On a picture layer with a clear cut-out, raise Inflate to 1 and sweep Edge rounding from 0 to 1.', 'The layer swells toward the camera inside its outline with a soft rim. Rounding widens and rounds the rim. No speckles or hard steps.', '#g-lth', {cat: 'layer', top: 1}),
+    S('th3', TH, aTH, 'adv full', 'Turn up Parallax strength and Camera drift (or steer the camera), then raise Wall thickness from 0 to 1 on the same layer.', 'The cut-out becomes a solid slab: side walls appear on the side away from the camera, in the picture\'s own rim colours and darker toward the back. At 0 the layer looks exactly as before.', '#g-lth', {cat: 'layer', top: 1}),
+    S('th4', TH, aTH, 'adv full', 'With walls showing, turn on Glow, an outline and Trails on that layer, and set Instances to 3.', 'Glow, outline and trails still follow the front face; the walls show only on the main picture. Instance copies each get their own walls.', '#g-lth', {cat: 'layer', top: 1}),
+    S('th5', TH, aTH, 'adv', 'Pin Wall thickness, Roll with Geometry ticked, Reset all, then Undo. Double-click or double-tap each Thickness slider. Save and reopen the project.', 'Roll moves all three sliders, Reset all returns them to 0, 0.5 and 0, Undo brings the values back, double-click resets each one, and the reopened project keeps them.', '#g-lth', {cat: 'layer', top: 1}),
+    S('th6', TH, aTH, 'adv lite', 'Switch to Lite with Inflate and Wall thickness raised.', 'The sliders say Lite ignores thickness, the layer draws flat with no walls, and the frame rate holds.', '#g-lth', {cat: 'layer', top: 1}),
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
     S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
