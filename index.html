@@ -1282,7 +1282,7 @@ body.easy .moreMenu .onlyCmp{display:flex}
               <button data-f="0" aria-pressed="true">Photo</button>
               <button data-f="1" aria-pressed="false">Solid colour</button>
             </div>
-            <div class="bgcol" id="bgColRow"><label for="bgCol">Colour</label><input type="color" id="bgCol" value="#153126"><output id="bgColOut">#153126</output></div>
+            <div class="bgcol" id="bgColRow"><label for="bgCol">Colour</label><input type="color" id="bgCol" value="#000000"><output id="bgColOut">#000000</output></div>
             <p class="note" id="bgNote" hidden>The solid colour fills everything behind your layers and stays still: it ignores parallax, colour, glow and melt. Opacity, blend mode and dry/wet still apply.</p>
           </div>
           <div class="lbl" data-adv>Colour</div>
@@ -1779,7 +1779,7 @@ const TYPE_NOTES = {
 function defLayers(){
   return {
     layers: [], xs: [],
-    bg:   {...LD, id:'bg', name:'Background', type:'bg', solid:0, solidCol:'#153126'},
+    bg:   {...LD, id:'bg', name:'Background', type:'bg', solid:0, solidCol:'#000000'},
     icon: {...LD, z:.4, x:.5, y:.5, size:.35, sspin:0, which:'eye', vis:false},
     obj:  {...LD, z:.7, x:.5, y:.5, size:.45, spinX:1, spinY:1, tube:1, shape:'merkaba', style:'both', vis:false},
     part: {...LD, z:.6, vis:false, count:400, psize:7, psizeVar:.6, pspeed:1, pangle:90, pspread:.3, pturb:.25, pwobble:2, ptwinkle:.35,
