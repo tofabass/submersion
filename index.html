@@ -1893,7 +1893,7 @@ const LSPECS = {
   ],
   /* Fractal: the sample point runs through a fractal formula before the picture is looked up, so the picture itself becomes fractal. Full interface only (the host div carries data-adv). */
   'g-lfr':[
-    ['frType','Fractal type',0,6,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral','Burning Ship','Newton'][+v] || 'off'],
+    ['frType','Fractal type',0,7,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral','Burning Ship','Newton','Self-similar tile'][+v] || 'off'],
     ['frAmt','Fractal amount',0,1,.01,fx(2)],
     ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
@@ -2600,7 +2600,7 @@ vec2 toUV(vec2 p, float phi){
    uN.x = amount (0 = off), uN.y = zoom, uN.z = angle in radians,
    uN.w = ((spin + 4)*8 + (type - 1))*32 + iterations, all small whole numbers.
    uP.xy - .5 = Centre X/Y (0 = the old centred look): the view centre for Julia, Mandelbrot, Burning Ship and Newton (plane units, x4), the fold shift
-   for the kaleidoscope fold (x2), the spiral's centre on screen for the Droste spiral (x1). Sets gFrIt (0-1) for the tint. */
+   for the kaleidoscope fold (x2), the spiral's centre on screen for the Droste spiral and the pattern's centre for the self-similar tile (x1). Sets gFrIt (0-1) for the tint. */
 vec2 fractalWarp(int i, vec2 p, float phi){
   vec4 N = uN[i];
   float pk = N.w, it = mod(pk, 32.); pk = floor(pk/32.);
@@ -2670,6 +2670,30 @@ vec2 fractalWarp(int i, vec2 p, float phi){
     float rr = sqrt(r2);
     if (rr > 4.) z *= 4./rr;
     return z/k;
+  }
+  if (ty > 6.5 && ty < 7.5){           // Self-similar tile: tiles inside tiles. Each round is one level: scale by 2, turn, fold into one copy. Coarsest level first, finest last
+    vec2 w = (p - cen)*(2.*k)*exp2(-n);   // the finest copy is 2/(2k) = a third of the picture height at zoom 1 whatever the level count, so more levels add bigger tiles round it instead of shrinking it to noise. Centre X/Y moves the pattern and its pivot across the frame, 0 at the defaults
+    float g = 0.;                      // tint: each copy's hash, mixed half-and-half down the levels
+    for (int r = 0; r < 12; r++){
+      if (float(r) >= n) break;
+      float j = n - 1. - float(r);     // level counted from the finest (0), so its hash does not change when a coarser level is added
+      float sg = mod(j, 2.) < .5 ? 1. : -1.;   // neighbouring levels turn opposite ways, like meshed gears
+      float ra = TAU*fract(.618034*j + .3) + sg*a;   // per-level hash: a golden-ratio step, so consecutive levels differ by about 137.5 degrees and never by a quarter turn (unturned, 2x levels of a mirrored grid would collapse into one finer grid). Spin turns every level whole turns per loop about its parent's centre, so the loop closes
+      float cs = cos(ra), sn = sin(ra);
+      vec2 v = 2.*vec2(cs*w.x - sn*w.y, sn*w.x + cs*w.y);
+      vec2 cl = floor(.5*v + .5);      // which copy the point is in (copies sit on even numbers)
+      w = abs(mod(v - 1., 4.) - 2.) - 1.;   // mirrored triangle wave into [-1,1]: neighbouring copies are mirror images, so no tile edge is a hard cut
+      vec3 h3 = fract(vec3(cl, j)*vec3(.1031, .1030, .0973));   // per-copy hash from the copy's whole-number position and the level only: no time, no frame, so no shimmer. It must not carry the parent copy's hash either, or children would differ across the parent's mirror line and cut a seam there
+      h3 += dot(h3, h3.yzx + 33.33);
+      float hc = fract((h3.x + h3.y)*h3.z);
+      float tb = (hc - .5)*2.*(1. - w.x*w.x)*(1. - w.y*w.y);   // each copy gets its own twirl, up to 1 radian at its middle, faded to nothing at its edges so neighbours still meet
+      float tc = cos(tb), ts = sin(tb);
+      w = vec2(tc*w.x - ts*w.y, ts*w.x + tc*w.y);
+      g = r == 0 ? hc : mix(g, hc, .5);
+    }
+    if (!(dot(w, w) < 1e4)) return p;  // not a number: leave the point alone
+    gFrIt = g;                         // 0-1: the finest copy decides half the colour, its parent a quarter, and so on
+    return .5*w;                       // one copy spans the picture's central square (its height)
   }
   if (ty > .5 && ty < 1.5){            // Julia: c travels the circle where the set stays connected
     ctr = cen*4.;                      // Centre X/Y moves the view centre across the plane (up to 2 units either way); 0 at the defaults
@@ -6364,7 +6388,7 @@ function draw(w, h){
     { const ty = Math.round(l.frType || 0), solid = x.isBg && x.orig.solid;   // Fractal: amount, zoom and angle, then type + iterations + spin packed as one small whole number
       const amt = ty > 0 && !solid ? clamp01(l.frAmt ?? 1) : 0;
       Nv[o] = amt; Nv[o+1] = Math.max(.05, +l.frZoom || 1); Nv[o+2] = (l.frAng || 0)*Math.PI/180;
-      const it = Math.max(1, Math.min(LITE.on ? (ty === 3 || ty === 6 ? 3 : 4) : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds (3 for the kaleidoscope fold and Newton, whose complex division costs about three Julia rounds)
+      const it = Math.max(1, Math.min(LITE.on ? (ty === 3 || ty === 6 || ty === 7 ? 3 : 4) : 12, Math.round(l.frIt ?? 5)));          // Lite runs fewer rounds (3 for the kaleidoscope fold, Newton, whose complex division costs about three Julia rounds, and the self-similar tile, with four sin/cos per level)
       Nv[o+3] = amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(l.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0;
       Pv[o] = clamp01(l.frCx ?? .5); Pv[o+1] = clamp01(l.frCy ?? .5); Pv[o+2] = amt > 0 ? clamp01(l.frTint ?? 0) : 0; Pv[o+3] = 0; }   // Centre X/Y (.5 = centred) and tint: an old project without these keys gets the defaults, which render as before
     { const inf = x.type === 0 && !x.isBg && !LITE.on ? clamp01(+l.thInfl || 0) : 0;   // Inflate, Edge rounding, Wall thickness: Full only, picture and mask layers only
@@ -8423,7 +8447,7 @@ function syncModeUI(){
   const sb = $('#qSeg [data-q="1"]');
   if (sb){ sb.disabled = LITE.on; sb.title = LITE.on ? 'Full mode only (Lite renders at Normal at most)' : ''; }
   const fi = $('#g-lfr-frIt');
-  if (fi) fi.title = (LITE.on ? 'Lite runs at most 4 fractal rounds (3 for the fold and Newton)\n' : '') + 'The Droste spiral has no rounds, so iterations do nothing for it';
+  if (fi) fi.title = (LITE.on ? 'Lite runs at most 4 fractal rounds (3 for the fold, Newton and tile)\n' : '') + 'The Droste spiral has no rounds, so iterations do nothing for it';
   for (const id of ['#g-lth-thInfl', '#g-lth-thRound', '#g-lth-thick']){ const t = $(id); if (t) t.title = LITE.on ? 'Full mode only (Lite ignores thickness)' : ''; }
 }
 function setMode(m, persist = true){
@@ -9393,6 +9417,7 @@ const testMode = (() => {
 
     S('fc17', FC, aPJ, 'adv', 'Open a project, Look preset or timeline scene saved before centre X, centre Y and tint existed, with a fractal type set. Then switch two timeline scenes between different centre and tint values and play with Glide.', 'The old file opens with centre X and Y at 0.5 and tint at 0, and the fractal looks exactly as it did before. Centre X, centre Y and tint glide smoothly between scenes, unlike type, iterations and spin which switch.', '#bProjImport', {cat: 'project'}),
     S('fc18', FC, aFC, 'adv', 'Set Fractal type to Newton. Start with iterations at 1, then raise them one at a time to 12. Then sweep amount, zoom and angle, move centre X and centre Y, raise tint, and set spin to 1 and -1.', 'At low iterations (about 1 to 4) the picture is bent into three lobes with curved borders between them. At high iterations large areas collapse onto three points and smear, which is how Newton behaves and not a fault, so judge the look at low counts. No black frames or speckled pixels near the three centres. Tint shows quick-settling areas at one end of the colour ramp and the borders at the other. Spin 1 and -1 close the loop. Lite stops at 3 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
+    S('fc19', FC, aFC, 'adv', 'Set Fractal type to Self-similar tile. Start with iterations at 1, then raise them one at a time to 12. Then sweep amount, zoom and angle, move centre X and centre Y, raise tint, and set spin to 1 and -1. Record one loop with spin 1.', 'At 1 iteration the picture becomes a grid of mirrored copies, each with its own small twirl. Each extra iteration wraps the copies in bigger tiles turned to a new angle, so you see tiles inside tiles; past about 4 the new tiles are larger than the screen and the look barely changes. No hard edge or line where two copies meet, and nothing flickers while it sits still. Zoom changes the copy size, centre X and Y slide the pattern. Tint gives each copy its own colour. Spin turns the levels like meshed gears and the first and last frames of the loop match. Lite stops at 3 rounds.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc6', FC, aFC, 'adv', 'Pin Fractal amount, map an oscillator to it, press Roll with Geometry ticked and again with Motion + depth ticked, then Reset all and Undo. Double-click or double-tap each Fractal slider.', 'Pin, mapping and Roll all work. Roll moves amount, zoom, angle, centre X, centre Y, tint and spin but never switches a type on by itself. Reset all puts the type back to off, Undo brings the values back, and a double-click returns each slider to its default.', '#g-lfr', {cat: 'layer', top: 1}),
     S('fc7', FC, aPJ, 'adv', 'Save a project with a fractal set, reload the page and import it. Then open a project, Look preset or timeline scene saved before this update.', 'The fractal comes back exactly as saved. Older files open with Fractal off and look and move exactly as they did before.', '#bProjImport', {cat: 'project'}),
     S('fc8', FC, aTL, 'adv', 'Give two timeline scenes different Fractal angle values, then different type, iterations and spin values, and play with Glide.', 'Angle, amount and zoom glide smoothly between scenes. Type, iterations and spin switch instead of gliding, like Source spin, because gliding them would make the picture jump.', '#tlPlay', {panel: 'T'}),
