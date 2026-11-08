@@ -2774,7 +2774,7 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   if (uN[i].x > 0.) pr = mix(pr, fractalWarp(i, pr, phi), uN[i].x);   // Fractal runs inside the symmetry wedge, so the mirror lines stay clean
   vec2 uv = toUV(pr, phi);
   vec2 cam = uDrift*vec2(sin(phi), .6*sin(2.*phi)) + uSteer;
-  float dz = A.x < .5 ? Q.z*(D(uv) - F.w) : 0.;   // inner depth: per-pixel parallax inside the layer
+  float dz = A.x < .5 && !(Q.y > .5 && uH[i].y > .5) ? Q.z*(D(uv) - F.w) : 0.;   // a flat-colour Background has no depth map to follow: otherwise the picture's depth cuts holes in whatever sits near it   // inner depth: per-pixel parallax inside the layer
   if (uO[i].x > 0.){   // Inflate: the layer swells toward the camera inside its mask. The mask's G channel is the distance to the edge (0 at the rim, 1 at 48 px in); Edge rounding sets how wide and how round the rim is.
     float r = uO[i].y, t = clamp(texture(uMasks, vec3(uv, A.y)).g/max(mix(.12, 1., r), .05), 0., 1.);
     float bv = mix(t, sqrt(max(1. - (1. - t)*(1. - t), 0.)), r);
@@ -6231,7 +6231,7 @@ function activeLayers(phi, Q){
     }
   };
   P.L.layers.forEach((l, i) => { if (ok(l)) add(l, 0, i, medians.get(l.id) ?? .5, false, i); });
-  if (ok(P.L.bg)) add(P.L.bg, 0, 0, bgMed, true, 7);
+  if (ok(P.L.bg)) add(P.L.bg, 0, 0, P.L.bg.gone ? -4 : bgMed, true, 7);   // a deleted Background is only a backdrop: far behind everything, so no layer can slip behind it
   if (ok(P.L.icon)) add(P.L.icon, 1, 0, .5, false, 8, 'icon');
   if (ok(P.L.obj))  add(P.L.obj,  2, 0, .5, false, 9, 'obj');
   if (ok(P.L.part)) add(P.L.part, 3, 0, .5, false, 10, 'part');
