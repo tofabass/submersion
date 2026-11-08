@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bridge test</title>
+<style>
+  :root { color-scheme: dark light; --bg:#0d1117; --fg:#e6edf3; --mut:#8b949e; --bar:#2f81f7; --pk:#f78166; --ok:#3fb950; --bad:#f85149; }
+  @media (prefers-color-scheme: light) { :root { --bg:#fff; --fg:#1f2328; --mut:#656d76; --bar:#0969da; --pk:#cf222e; --ok:#1a7f37; --bad:#cf222e; } }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui, sans-serif; max-width:640px; }
+  h1 { font-size:16px; margin:0 0 12px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  button, input { font:inherit; padding:6px 10px; }
+  #status { font-weight:600; } #status.ok { color:var(--ok); } #status.bad { color:var(--bad); }
+  .meters { display:grid; grid-template-columns:70px 1fr 52px; gap:6px 10px; align-items:center; }
+  .track { height:14px; background:color-mix(in srgb, var(--fg) 12%, transparent); border-radius:3px; position:relative; overflow:hidden; }
+  .fill { position:absolute; inset:0 auto 0 0; width:0; background:var(--bar); }
+  .fill.pk { background:var(--pk); }
+  .num { color:var(--mut); font-variant-numeric:tabular-nums; text-align:right; }
+  p { color:var(--mut); }
+</style>
+</head>
+<body>
+<h1>Submersion Bridge: test page</h1>
+<div class="row">
+  <label>Port <input id="port" type="number" value="8787" min="1024" max="65535" style="width:6em"></label>
+  <button id="go">Connect</button>
+  <span id="status">Not connected</span>
+</div>
+<div class="row"><span>Frames per second: <b id="fps">0</b></span><span>Band edges (Hz): <b id="edges">n/a</b></span></div>
+<div class="meters" id="meters"></div>
+<p id="note"></p>
+<script>
+const NAMES = ['RMS', 'Peak', 'Bass', 'Low-mid', 'Mid', 'High-mid', 'Treble'];
+const meters = document.getElementById('meters'), fills = [], nums = [];
+NAMES.forEach((n, i) => {
+  meters.insertAdjacentHTML('beforeend', `<span>${n}</span><div class="track"><div class="fill${n === 'Peak' ? ' pk' : ''}"></div></div><span class="num">0.00</span>`);
+});
+meters.querySelectorAll('.fill').forEach(f => fills.push(f));
+meters.querySelectorAll('.num').forEach(f => nums.push(f));
+const $ = id => document.getElementById(id);
+let ws = null, wantOpen = false, retry = 0, timer = 0, frames = 0, last = null;
+
+function setStatus(text, cls) { $('status').textContent = text; $('status').className = cls || ''; }
+function draw(v) { v.forEach((x, i) => { fills[i].style.width = (x * 100).toFixed(1) + '%'; nums[i].textContent = x.toFixed(2); }); }
+
+function connect() {
+  clearTimeout(timer);
+  if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} }
+  const port = Number($('port').value) || 8787;
+  setStatus('Connecting…');
+  try { ws = new WebSocket('ws://localhost:' + port); }
+  catch (e) { return fail(); }
+  ws.onopen = () => { retry = 0; setStatus('Connected', 'ok'); };
+  ws.onmessage = ev => {
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.t === 'hello') $('edges').textContent = m.edges.join(', ');
+    else if (m.t === 'f') { frames++; last = m; draw([m.rms, m.peak, ...m.bands]); }
+  };
+  ws.onclose = () => { if (wantOpen) fail(); };
+}
+/* WebSocket errors carry no detail, so the wording is fixed and never shows browser text */
+function fail() {
+  setStatus('Couldn\'t connect to Ableton. Check that the device is on a track and Chrome allows local network access, then try again.', 'bad');
+  const wait = Math.min(5000, 500 * 2 ** retry++);
+  timer = setTimeout(() => { if (wantOpen) connect(); }, wait);
+}
+$('go').onclick = () => { wantOpen = true; retry = 0; connect(); };
+setInterval(() => { $('fps').textContent = frames; frames = 0; }, 1000);
+$('note').textContent = 'Open this page from the bridge itself (http://localhost:PORT/) or from any page; it reconnects on its own with a short backoff.';
+</script>
+</body>
+</html>
