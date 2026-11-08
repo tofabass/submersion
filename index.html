@@ -4141,6 +4141,37 @@ function layerFxReset(){
   if (isImageLayer(sel)) for (const k of FX_KEYS) L[k] = base[k]; else Object.assign(L, base);
   Object.assign(L, keep); syncLayerEd(); renderLayers(); changed();
 }
+/* ---- copy a layer's settings (Ctrl+Shift+C) and paste them onto another layer (Ctrl+Shift+V) ----
+   Everything comes across, depth and position included, except what makes the layer itself: its picture and mask (kept
+   outside the layer object), name, role, icon choice, shape type, 3D shape, visibility, solo and lock. Across kinds only the
+   settings the target also has are pasted, so a picture's settings on an icon leave the icon's own placement keys alone. */
+const CLIP_KEEP = new Set(['id', 'name', 'autoName', 'kind', 'slot', 'anchor', 'type', 'which', 'shp', 'shape', 'vis', 'solo', 'rlock']);
+let layerClip = null;
+function layerKeysOf(id){   // the settings a layer of this kind can hold: its own keys plus its kind's defaults
+  const kd = kindOf(id), base = kd === 'icon' ? defLayers().icon : kd === 'obj' ? defLayers().obj : kd === 'part' ? defLayers().part : kd === 'shape' ? shapeDef() : id === 'bg' ? defLayers().bg : LD;
+  return new Set([...Object.keys(base), ...Object.keys(getL(id))]);
+}
+function copyLayerSettings(){
+  const d = layerDefs().find(x => x.id === sel); if (!d){ toast("Couldn't copy settings. Select a layer first."); return; }
+  const L = getL(sel), data = {};
+  for (const k of Object.keys(L)) if (!CLIP_KEEP.has(k)) data[k] = cloneV(L[k]);
+  layerClip = {from: d.name, data};
+  toast(`Copied ${d.name} settings. Select another layer and press Ctrl+Shift+V.`, 2600);
+}
+function pasteLayerSettings(){
+  if (!layerClip){ toast("Couldn't paste settings. Copy a layer's settings first with Ctrl+Shift+C."); return; }
+  if (cal){ toast('Finish calibrating first'); return; }
+  const id = sel, d = layerDefs().find(x => x.id === id); if (!d){ toast("Couldn't paste settings. Select a layer first."); return; }
+  const L = getL(id), keys = layerKeysOf(id), before = clone(L);
+  let n = 0;
+  for (const [k, v] of Object.entries(layerClip.data)) if (keys.has(k) && !CLIP_KEEP.has(k)){ L[k] = cloneV(v); n++; }
+  if (!n){ toast(`Couldn't paste settings. ${d.name} shares no settings with ${layerClip.from}.`); return; }
+  const after = clone(L), nm = d.name;
+  const put = snap => () => { if (!layerDefs().some(q => q.id === id)) throw new Error('gone'); const T = getL(id); for (const k in T) if (!(k in snap)) delete T[k]; Object.assign(T, clone(snap)); syncLayerEd(); renderLayers(); changed(); };
+  syncLayerEd(); renderLayers(); changed(); markDirty();
+  const e = histPush('paste', `${layerClip.from} settings on ${nm}`, put(before), put(after));
+  actionToast(`Pasted ${layerClip.from} settings onto ${nm}`, 'Undo', () => histUndoEntry(e));
+}
 function syncPart(){ const q = selOf('part'); $('#partMode').value = q.pmode; $('#partShape').value = q.pshape; $('#partMirror').checked = !!q.psymMirror; }
 $('#partMode').addEventListener('change', e => { selOf('part').pmode = e.target.value; renderLayers(); });
 $('#partShape').addEventListener('change', e => { selOf('part').pshape = e.target.value; });
@@ -6036,6 +6067,7 @@ window.addEventListener('keydown', e => {
   if (mod && !e.altKey && k === 'f'){ if (easyOn()) return; e.preventDefault(); if (sres.hidden) openFind(); else closeSearch(); return; }
   if (cal && cal.id !== 'bg' && mod && (k === 'z' || k === 'y')){ e.preventDefault(); stepSel(k === 'y' || e.shiftKey ? 1 : -1); return; }
   if (mod && !e.altKey && (k === 'z' || k === 'y')){ e.preventDefault(); if (!e.repeat) histStep(k === 'y' || e.shiftKey ? 1 : -1); return; }
+  if (mod && e.shiftKey && !e.altKey && (k === 'c' || k === 'v')){ if (easyOn()) return; e.preventDefault(); if (!e.repeat){ if (k === 'c') copyLayerSettings(); else pasteLayerSettings(); } return; }   // copy / paste a layer's settings (Full interface)
   if (mod || e.altKey) return;
   if (cal && k === 'p'){ e.preventDefault(); if (!e.repeat){ T.peek = true; updateBadge(); } return; }
   if (e.repeat && e.key !== 'ArrowUp' && e.key !== 'ArrowDown'){ if (e.code === 'Space') e.preventDefault(); return; }
@@ -8425,8 +8457,8 @@ document.querySelectorAll('#lookPop .lkg').forEach(d => {
 const KEYMAP = [
   ['Playback'], [['Space'], 'Play / pause'], [['R'], 'Record one loop (press again to stop)'], [['M'], 'Tap tempo'],
   ['Panels and view'], [['I'], 'Inspector'], [['L'], 'Layers'], [['O'], 'Oscillators'], [['T'], 'Settings'], [['H'], 'Hide / show the UI'], [['Shift+F'], 'Full screen'], [['Ctrl+F'], 'Find a control'],
-  ['Layers'], [['↑', '↓'], 'Select the layer above / below'], [['E'], 'Hide / show the selected layer'], [['S'], 'Solo the selected layer'], [['Enter'], 'Calibrate the selected layer'],
-  ['Effects'], [['?', '/'], 'Roll'], [['Z'], 'Reset all'], [['Shift+I'], 'Invert all image layers'], [['Ctrl+Z'], 'Undo Roll, resets, layer delete, Look preset or project load'], [['Ctrl+Shift+Z', 'Ctrl+Y'], 'Redo'],
+  ['Layers'], [['↑', '↓'], 'Select the layer above / below'], [['E'], 'Hide / show the selected layer'], [['S'], 'Solo the selected layer'], [['Enter'], 'Calibrate the selected layer'], [['Ctrl+Shift+C'], "Copy the selected layer's settings"], [['Ctrl+Shift+V'], 'Paste them onto the selected layer'],
+  ['Effects'], [['?', '/'], 'Roll'], [['Z'], 'Reset all'], [['Shift+I'], 'Invert all image layers'], [['Ctrl+Z'], 'Undo Roll, resets, layer delete, settings paste, Look preset or project load'], [['Ctrl+Shift+Z', 'Ctrl+Y'], 'Redo'],
   ['Project'], [['Ctrl+S'], 'Save project'],
   ['While calibrating'], [['P'], 'Hold to peek at the selection'], [['B'], 'Switch selection tool'], [['Ctrl+Z'], 'Undo selection (Ctrl+Shift+Z redoes)'],
 ];
@@ -9244,15 +9276,15 @@ const testMode = (() => {
   const setUnlocked = () => { unlockedMem = true; try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch(e){} };
 
   /* Updates, oldest first. The newest (last) one is what "What's new" tests. */
-  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins', 'layer-fractal', 'layer-thickness'];
-  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins', FC = 'layer-fractal', TH = 'layer-thickness';
+  const UPDATES = ['baseline', 'easy-mode', 'phone-menu-sheet', 'interactive-tutorial', '3d-drag', 'pins-popup', 'osc-smooth-map', 'touch-double-tap', 'scene-timeline', 'pins-and-test-device', 'timeline-transitions', 'entity-icons', 'light-trace', 'menu-places', 'spin-and-pins', 'layer-fractal', 'layer-thickness', 'layer-copy-paste'];
+  const B = 'baseline', EZ = 'easy-mode', PH = 'phone-menu-sheet', TU = 'interactive-tutorial', D3 = '3d-drag', PP = 'pins-popup', OM = 'osc-smooth-map', DT = 'touch-double-tap', TLU = 'scene-timeline', PD = 'pins-and-test-device', TLX = 'timeline-transitions', EI = 'entity-icons', LT = 'light-trace', MP = 'menu-places', SP = 'spin-and-pins', FC = 'layer-fractal', TH = 'layer-thickness', CP = 'layer-copy-paste';
   /* tags (steps that do not fit the current setup are skipped with a reason):
      desktop / touch = pointer type, lite / full = performance mode, easy = Easy interface only, adv = needs the Full interface (hidden in Easy) */
   const S = (id, update, area, tags, action, expect, target, open) => ({id, update, area, tags: tags ? tags.split(' ') : [], action, expect, target, open});
   const aFR = 'First run and Easy / Full', aLY = 'Layers', aIM = 'Image import', aSC = 'Sample scenes', aDP = 'Depth and parallax', aSY = 'Symmetry', aCO = 'Colour and Recolour',
     aFX = 'Effects', aMO = 'Motion and loop', aOS = 'Oscillators and Mod', aAU = 'Audio', aRL = 'Randomize and Roll', aLC = 'Layer colours', aPN = 'Pins and phone pin bar',
     aUD = 'Undo and redo', aPJ = 'Projects and presets', aOU = 'Output', aLF = 'Lite vs Full', aLK = 'Look settings', aHU = 'Hide UI and mini menu', aPS = 'Phone sheets',
-    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode', aFC = 'Layer fractal', aTH = 'Layer thickness';
+    aTU = 'Tutorial', aKY = 'Keyboard shortcuts', aTL = 'Scene timeline', aTM = 'Test mode', aFC = 'Layer fractal', aTH = 'Layer thickness', aCP = 'Layer copy and paste';
   const LK = {look: 1, lkg: ['iface']};
   /* Every future build adds or updates its steps here under a new update tag, then adds the tag to the end of UPDATES. */
   const STEPS = [
@@ -9442,6 +9474,8 @@ const testMode = (() => {
     S('th4', TH, aTH, 'adv full', 'With walls showing, turn on Glow, an outline and Trails on that layer, and set Instances to 3.', 'Glow, outline and trails still follow the front face; the walls show only on the main picture. Instance copies each get their own walls.', '#g-lth', {cat: 'layer', top: 1}),
     S('th5', TH, aTH, 'adv', 'Pin Wall thickness, Roll with Geometry ticked, Reset all, then Undo. Double-click or double-tap each Thickness slider. Save and reopen the project.', 'Roll moves all three sliders, Reset all returns them to 0, 0.5 and 0, Undo brings the values back, double-click resets each one, and the reopened project keeps them.', '#g-lth', {cat: 'layer', top: 1}),
     S('th6', TH, aTH, 'adv lite', 'Switch to Lite with Inflate and Wall thickness raised.', 'The sliders say Lite ignores thickness, the layer draws flat with no walls, and the frame rate holds.', '#g-lth', {cat: 'layer', top: 1}),
+    S('cp1', CP, aCP, 'adv desktop', 'Give a picture layer a clear look (a fractal, a colour shift, an outline, a different depth). With it selected press Ctrl+Shift+C, select another picture layer and press Ctrl+Shift+V.', 'A note says the settings were copied. After the paste the second layer takes every setting of the first, depth and position included, but keeps its own picture, mask, name, visibility and lock. A note offers Undo, and Undo (or Ctrl+Z) puts the second layer back exactly.', '#layerList', {cat: 'layer', top: 1}),
+    S('cp2', CP, aCP, 'adv desktop', 'Paste the same copied settings onto an Icon layer, a Shape layer and the 3D object. Then press Ctrl+Shift+V in Easy, and once in a fresh session before copying anything.', 'Each one takes the settings it also has (colour, effects, fractal, depth) and keeps its own icon, shape type and 3D shape, plus its position and size, which a picture layer has none of to give. Nothing happens in Easy. With nothing copied a note says to copy a layer first.', '#layerList', {cat: 'layer', top: 1}),
     S('pj1', B, aPJ, '', 'Open the Project tab.', 'Name box, Export file, Import file, Look presets and Output are listed.', '#projName', {cat: 'project'}),
     S('pj2', B, aPJ, '', 'Name the project TEST-project, then change any slider.', 'The window title shows the name; an unsaved dot appears (More button, Project tab, title).', '#projName', {cat: 'project'}),
     S('pj3', B, aPJ, 'desktop', 'Press Ctrl+S.', 'A TEST-project file downloads and the unsaved dot clears.'),
