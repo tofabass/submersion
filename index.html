@@ -1786,6 +1786,7 @@ const P0 = {
   gamma:1, strength:.08, focus:.5, steer:0, depthScale:.6, cross:.08,
   hueSpeed:0, hueMin:0, hueMax:360,
   seg:1, mirror:1, twist:0, twBounce:0, twBounceRate:1, zoom:1, srcOrbit:0,
+  frType:0, frAmt:1, frIt:5, frZoom:1, frAng:0, frSpin:0, frCx:.5, frCy:.5,   // scene fractal (Symmetry tab), same meaning as the per-layer Fractal
   loop:12, drift:0, spin:0, symAngle:0, breathe:0, hueCycle:0,
   hue:0, depthHue:0, sat:1, fog:0, edges:0, ginv:0,
   wet:1, wetSwing:0, wetRate:1,
@@ -1815,6 +1816,7 @@ const pctFmt = v => +v === 0 ? 'open' : Math.round(v*100) + '%';
 const HZ = {get: v => Math.round(2**v), set: n => Math.log2(Math.max(1, n)), unit: 'Hz'};
 const turns = v => v + ' /loop';
 const pct = v => Math.round(v*100) + '% wet';
+const FR_NAMES = ['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral','Burning Ship','Newton','Self-similar tile'];
 const SPEC = {
   'g-layers':[
     ['wet','Global dry/wet',0,1,.01,pct],
@@ -1833,6 +1835,14 @@ const SPEC = {
     ['twist','Twist',-3,3,.01,fx(2)],
     ['zoom','Zoom',.3,4,.01,v=>(+v).toFixed(2)+'×'],
     ['srcOrbit','Source orbit',0,.5,.005,fx(3)],
+    ['frType','Fractal type',0,7,1,v=>FR_NAMES[+v] || 'off'],     // scene fractal: warps every picture, icon, shape and 3D object layer before its own Fractal; Full only
+    ['frAmt','Fractal amount',0,1,.01,fx(2)],
+    ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
+    ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
+    ['frAng','Fractal angle',0,360,1,v=>v+'°'],
+    ['frSpin','Fractal spin',-4,4,1,turns],
+    ['frCx','Fractal centre X',0,1,.01,fx(2)],
+    ['frCy','Fractal centre Y',0,1,.01,fx(2)],
   ],
   'g-motion':[
     ['loop','Loop length',4,32,1,v=>v+' s'],
@@ -1894,7 +1904,7 @@ const LSPECS = {
   ],
   /* Fractal: the sample point runs through a fractal formula before the picture is looked up, so the picture itself becomes fractal. Full interface only (the host div carries data-adv). */
   'g-lfr':[
-    ['frType','Fractal type',0,7,1,v=>['off','Julia','Mandelbrot','Kaleidoscope fold','Droste spiral','Burning Ship','Newton','Self-similar tile'][+v] || 'off'],
+    ['frType','Fractal type',0,7,1,v=>FR_NAMES[+v] || 'off'],
     ['frAmt','Fractal amount',0,1,.01,fx(2)],
     ['frIt','Fractal iterations',1,12,1,v=>v+'×'],
     ['frZoom','Fractal zoom',.25,4,.01,v=>(+v).toFixed(2)+'×'],
@@ -2572,6 +2582,8 @@ float gFrCap = 99.;
 uniform vec2 uRes, uSteer, uRange;
 uniform float uPitch, uCross, uHSpeed, uHMin, uHRange, uExposure, uLite;
 uniform vec4 uSymB;
+uniform vec4 uGFr;
+uniform vec2 uGFrC;
 uniform float uImgAspect, uPhi, uSpin, uAudioRot, uTwist, uMirror, uZoom, uBreathe, uZoomMod, uSrcOrbit, uSymAng, uDrift, uStrength, uFocus, uEdge, uHue, uDepthHue, uHueCycle, uSat, uFog, uGamma, uSegG;
 uniform float uSelMask, uSelI, uYaw, uSpread, uRangeOn, uCalOverlay, uPreview, uCalBg;
 uniform int uView, uCount;
@@ -2602,13 +2614,13 @@ vec2 toUV(vec2 p, float phi){
    uN.w = ((spin + 4)*8 + (type - 1))*32 + iterations, all small whole numbers.
    uP.xy - .5 = Centre X/Y (0 = the old centred look): the view centre for Julia, Mandelbrot, Burning Ship and Newton (plane units, x4), the fold shift
    for the kaleidoscope fold (x2), the spiral's centre on screen for the Droste spiral and the pattern's centre for the self-similar tile (x1). Sets gFrIt (0-1) for the tint. */
-vec2 fractalWarp(int i, vec2 p, float phi){
-  vec4 N = uN[i];
+vec2 fractalWarp(int i, vec2 p, float phi){   // i < 0 runs the scene-wide fractal from the Symmetry tab (uGFr, uGFrC), packed exactly like a layer's
+  vec4 N = i < 0 ? uGFr : uN[i];
   float pk = N.w, it = mod(pk, 32.); pk = floor(pk/32.);
   float ty = mod(pk, 8.) + 1., sp = floor(pk/8.) - 4.;
   float n = min(it, gFrCap);
   if (n < .5) return p;
-  vec2 cen = uP[i].xy - .5;            // exactly 0 at the defaults, so every type below is unchanged there
+  vec2 cen = (i < 0 ? uGFrC : uP[i].xy) - .5;   // exactly 0 at the defaults, so every type below is unchanged there
   if (ty > 3.5 && ty < 4.5){           // Droste spiral: no rounds, so Iterations is ignored. Log-polar, sheared so one turn of the angle steps one whole period outward
     const float LNS = 1.0986;          // ln 3: each copy is 3x smaller than the one around it
     const float PER = 2.*LNS;          // mirrored rings, so a full period is two copies (inside-out, then the right way round)
@@ -2750,6 +2762,8 @@ vec4 evalL(int i, vec2 p0, float phi, bool full, out float zo){
   float sa = uM[i].z*phi + uM[i].w; float sc = cos(sa), ss = sin(sa);
   vec2 pr = vec2(sc*pf.x - ss*pf.y, ss*pf.x + sc*pf.y);
   gFrIt = -1.;   // no fractal has run for this layer yet in this call, so no tint
+  if (uGFr.x > 0. && A.x < 2.5 && !(A.x < .5 && Q.y > .5)) pr = mix(pr, fractalWarp(-1, pr, phi), uGFr.x);   // scene fractal first: pictures, icons, shapes and 3D objects, not particles or the background; no tint
+  gFrIt = -1.;
   if (uN[i].x > 0.) pr = mix(pr, fractalWarp(i, pr, phi), uN[i].x);   // Fractal runs inside the symmetry wedge, so the mirror lines stay clean
   vec2 uv = toUV(pr, phi);
   vec2 cam = uDrift*vec2(sin(phi), .6*sin(2.*phi)) + uSteer;
@@ -3106,7 +3120,7 @@ var LITE = {on:false, fps:30, entries:12, dpr:1, partRes:512, partMul:.35, objRe
    most of them, so the test report shows it: a low number here is what would block more of them. */
 const maxFragVecs = () => { try { return gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS); } catch(e){ return '?'; } };
 const U = {};
-for (const n of ['uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uN','uO','uP','uTrG']) U[n] = gl.getUniformLocation(prog, n);
+for (const n of ['uGFr','uGFrC','uExposure','uI','uJ','uImg','uDepth','uIcon','uObj','uBg','uOther','uSel','uMasks','uRes','uSteer','uRange','uImgAspect','uPhi','uSpin','uAudioRot','uTwist','uMirror','uZoom','uBreathe','uZoomMod','uSrcOrbit','uSymAng','uDrift','uStrength','uFocus','uEdge','uHue','uDepthHue','uHueCycle','uSat','uFog','uGamma','uSegG','uSelMask','uSelI','uYaw','uSpread','uRangeOn','uCalOverlay','uPreview','uCalBg','uView','uCount','uA','uB','uC','uD','uE','uF','uG','uH','uBgCol','uGInv','uLayerCol','uPart','uPitch','uCross','uHSpeed','uHMin','uHRange','uSymB','uLite','uTrI','uTrS','uK','uM','uN','uO','uP','uTrG']) U[n] = gl.getUniformLocation(prog, n);
 const MU = {}; for (const n of ['uMVP','uR','uOff','uMode','uPh','uDim']) MU[n] = gl.getUniformLocation(mprog, n);
 const PU = {}; for (const n of ['uTw','uTwRot','uCountF','uPh','uPhi','uSize','uSizeVar','uSpeed','uAngle','uSpread','uTurb','uWobble','uTwinkle','uHue','uHueVar','uSat','uBright','uSymN','uSymMirror','uMode','uAspect','uSeed','uScale','uCenter','uShape']) PU[n] = gl.getUniformLocation(pprog, n);
 
@@ -6472,6 +6486,10 @@ function draw(w, h){
   gl.uniform1f(U.uMirror, Q.mirror);
   gl.uniform1f(U.uSpin, Q.spin);
   gl.uniform1f(U.uSymAng, (Q.symAngle || 0)*Math.PI/180);
+  { const ty = Math.round(Q.frType || 0), amt = ty > 0 ? clamp01(Q.frAmt ?? 1) : 0;   // scene fractal, packed like a layer's (hidden in Easy, where it keeps its value like any hidden control)
+    const it = Math.max(1, Math.min(LITE.on ? (ty === 3 || ty === 6 || ty === 7 ? 3 : 4) : 12, Math.round(Q.frIt ?? 5)));
+    gl.uniform4f(U.uGFr, amt, Math.max(.05, +Q.frZoom || 1), (Q.frAng || 0)*Math.PI/180, amt > 0 ? ((Math.max(-4, Math.min(4, Math.round(Q.frSpin || 0))) + 4)*8 + Math.min(7, ty - 1))*32 + it : 0);
+    gl.uniform2f(U.uGFrC, clamp01(Q.frCx ?? .5), clamp01(Q.frCy ?? .5)); }
   gl.uniform1f(U.uAudioRot, 0);
   gl.uniform1f(U.uTwist, twG);
   gl.uniform1f(U.uZoom, Q.zoom);
