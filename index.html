@@ -2608,7 +2608,7 @@ vec2 fractalWarp(int i, vec2 p, float phi){
   float n = min(it, gFrCap);
   if (n < .5) return p;
   vec2 cen = uP[i].xy - .5;            // exactly 0 at the defaults, so every type below is unchanged there
-  if (ty > 3.5){                       // Droste spiral: no rounds, so Iterations is ignored. Log-polar, sheared so one turn of the angle steps one whole period outward
+  if (ty > 3.5 && ty < 4.5){           // Droste spiral: no rounds, so Iterations is ignored. Log-polar, sheared so one turn of the angle steps one whole period outward
     const float LNS = 1.0986;          // ln 3: each copy is 3x smaller than the one around it
     const float PER = 2.*LNS;          // mirrored rings, so a full period is two copies (inside-out, then the right way round)
     vec2 pc = p - cen;                 // Centre X/Y moves the spiral's centre across the frame; the picture's own centre stays what the copies are made from
@@ -2626,7 +2626,7 @@ vec2 fractalWarp(int i, vec2 p, float phi){
   float k = 3./max(N.y, .05);          // zoom 1 = the classic fractal window fills the height
   vec2 q = p*k, z, c;
   vec2 ctr = vec2(0.);
-  if (ty > 2.5){                       // Kaleidoscopic fold: mirror into a quadrant, turn by the angle, shift by a step that shrinks 1.8x each round
+  if (ty > 2.5 && ty < 3.5){           // Kaleidoscopic fold: mirror into a quadrant, turn by the angle, shift by a step that shrinks 1.8x each round
     float cs = cos(a), sn = sin(a), f = .4444;   // f = (S-1)/S for S = 1.8, so the point never grows and needs no scaling back
     vec2 sh = vec2(1., .7) + cen*2.;   // Centre X/Y offsets the fold shift (1, .7) by up to 1 either way
     vec2 w = q;
@@ -2644,19 +2644,19 @@ vec2 fractalWarp(int i, vec2 p, float phi){
     if (wr > 4.) w *= 4./wr;
     return w/k;
   }
-  if (ty < 1.5){                       // Julia: c travels the circle where the set stays connected
+  if (ty > .5 && ty < 1.5){            // Julia: c travels the circle where the set stays connected
     ctr = cen*4.;                      // Centre X/Y moves the view centre across the plane (up to 2 units either way); 0 at the defaults
     z = q + ctr; c = .7885*vec2(cos(a), sin(a));
-  } else {                             // Mandelbrot and Burning Ship: c is the point itself; the angle turns the view
+  } else if ((ty > 1.5 && ty < 2.5) || (ty > 4.5 && ty < 5.5)){   // Mandelbrot and Burning Ship: c is the point itself; the angle turns the view
     float cs = cos(a), sn = sin(a);
-    ctr = (ty > 4.5 ? vec2(-.6, -.5) : vec2(-.5, 0.)) + cen*4.;   // Burning Ship view centre: the ship sits down and left of Mandelbrot's; at zoom 1 the window is 3 units high (y -2 to 1), tune this vec2 by eye. Centre X/Y is added to it
+    ctr = (ty > 4.5 && ty < 5.5 ? vec2(-.6, -.5) : vec2(-.5, 0.)) + cen*4.;   // Burning Ship view centre: the ship sits down and left of Mandelbrot's; at zoom 1 the window is 3 units high (y -2 to 1), tune this vec2 by eye. Centre X/Y is added to it
     c = vec2(cs*q.x - sn*q.y, sn*q.x + cs*q.y) + ctr;
     z = vec2(0.);
-  }
+  } else return p;                     // a type this function does not know: leave the point alone, never fall into another type's branch
   float cr = 0.;                       // rounds run, for the tint
   for (int r = 0; r < 12; r++){
     if (float(r) >= n) break;
-    if (ty > 4.5) z = abs(z);          // Burning Ship: fold both parts positive before squaring
+    if (ty > 4.5 && ty < 5.5) z = abs(z);   // Burning Ship: fold both parts positive before squaring
     z = vec2(z.x*z.x - z.y*z.y, 2.*z.x*z.y) + c;
     cr += 1.;
     if (dot(z, z) > 16.) break;        // escaped: stop before the numbers grow large
